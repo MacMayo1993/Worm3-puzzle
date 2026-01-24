@@ -1,10 +1,188 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { COLORS, FACE_COLORS, ANTIPODAL_COLOR } from '../utils/constants.js';
 import { play, vibrate } from '../utils/audio.js';
 import TallyMarks from '../manifold/TallyMarks.jsx';
+
+// Particle system for flip effect
+const FlipParticles = ({ active, color, onComplete }) => {
+  const particlesRef = useRef([]);
+  const groupRef = useRef();
+  const progressRef = useRef(0);
+  const velocitiesRef = useRef([]);
+  const PARTICLE_COUNT = 16;
+
+  // Initialize particle velocities on activation
+  useEffect(() => {
+    if (active) {
+      progressRef.current = 0;
+      velocitiesRef.current = Array.from({ length: PARTICLE_COUNT }, (_, i) => {
+        const angle = (i / PARTICLE_COUNT) * Math.PI * 2 + Math.random() * 0.3;
+        const speed = 1.5 + Math.random() * 1.5;
+        return {
+          x: Math.cos(angle) * speed,
+          y: Math.sin(angle) * speed,
+          z: (Math.random() - 0.5) * 2,
+          rotSpeed: (Math.random() - 0.5) * 10
+        };
+      });
+    }
+  }, [active]);
+
+  useFrame((_, delta) => {
+    if (!active || !groupRef.current) return;
+
+    progressRef.current += delta * 2.5;
+    const p = progressRef.current;
+
+    if (p >= 1) {
+      onComplete?.();
+      return;
+    }
+
+    // Ease out cubic for smooth deceleration
+    const easeOut = 1 - Math.pow(1 - p, 3);
+    const opacity = 1 - easeOut;
+
+    particlesRef.current.forEach((mesh, i) => {
+      if (!mesh) return;
+      const vel = velocitiesRef.current[i];
+      if (!vel) return;
+
+      // Position with easing
+      mesh.position.x = vel.x * easeOut * 0.5;
+      mesh.position.y = vel.y * easeOut * 0.5;
+      mesh.position.z = vel.z * easeOut * 0.3 + 0.02;
+
+      // Rotation
+      mesh.rotation.z = vel.rotSpeed * p;
+
+      // Scale down as they fly out
+      const scale = (1 - easeOut * 0.7) * 0.08;
+      mesh.scale.set(scale, scale, scale);
+
+      // Update opacity
+      if (mesh.material) {
+        mesh.material.opacity = opacity * 0.9;
+      }
+    });
+  });
+
+  if (!active) return null;
+
+  return (
+    <group ref={groupRef} position={[0, 0, 0.03]}>
+      {Array.from({ length: PARTICLE_COUNT }, (_, i) => (
+        <mesh
+          key={i}
+          ref={el => particlesRef.current[i] = el}
+        >
+          <boxGeometry args={[1, 1, 0.3]} />
+          <meshBasicMaterial
+            color={color}
+            transparent
+            opacity={0.9}
+            blending={THREE.AdditiveBlending}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+};
+
+// Antipodal glow fill effect - glows from outside and fills inward
+const AntipodalGlowFill = ({ active, color }) => {
+  const ringRef = useRef();
+  const innerGlowRef = useRef();
+  const outerRingRef = useRef();
+  const progressRef = useRef(0);
+
+  // Reset progress when activated
+  useEffect(() => {
+    if (active) {
+      progressRef.current = 0;
+    }
+  }, [active]);
+
+  useFrame((_, delta) => {
+    if (!active) return;
+
+    // Progress the animation (matches flip speed)
+    progressRef.current = Math.min(1, progressRef.current + delta * 5);
+    const progress = progressRef.current;
+
+    // Snappy easing - fast start, smooth end
+    const snappyProgress = 1 - Math.pow(1 - progress, 3);
+
+    // Update outer shrinking ring
+    if (ringRef.current) {
+      // Ring shrinks from outside (full size) to inside (zero)
+      const ringScale = Math.max(0.01, 1 - snappyProgress);
+      ringRef.current.scale.set(ringScale, ringScale, 1);
+
+      // Pulsing glow opacity
+      const glowPulse = Math.sin(progress * Math.PI * 4) * 0.3 + 0.7;
+      ringRef.current.material.opacity = (1 - snappyProgress * 0.3) * glowPulse * 0.9;
+    }
+
+    // Update outer edge glow ring
+    if (outerRingRef.current) {
+      const edgeScale = Math.max(0.01, 1.1 - snappyProgress * 0.8);
+      outerRingRef.current.scale.set(edgeScale, edgeScale, 1);
+      outerRingRef.current.material.opacity = (1 - snappyProgress) * 0.6;
+    }
+
+    // Inner fill glow expands to fill the tile
+    if (innerGlowRef.current) {
+      const fillScale = snappyProgress * 0.95;
+      innerGlowRef.current.scale.set(fillScale, fillScale, 1);
+      // Fade in then out
+      const fillOpacity = Math.sin(progress * Math.PI) * 0.7;
+      innerGlowRef.current.material.opacity = fillOpacity;
+    }
+  });
+
+  if (!active) return null;
+
+  return (
+    <group position={[0, 0, 0.025]}>
+      {/* Outer edge glow - starts larger */}
+      <mesh ref={outerRingRef}>
+        <ringGeometry args={[0.4, 0.5, 32]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={0.6}
+          blending={THREE.AdditiveBlending}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      {/* Main shrinking glow ring */}
+      <mesh ref={ringRef}>
+        <ringGeometry args={[0.2, 0.45, 32]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={0.8}
+          blending={THREE.AdditiveBlending}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      {/* Inner expanding fill */}
+      <mesh ref={innerGlowRef} position={[0, 0, -0.005]}>
+        <circleGeometry args={[0.48, 32]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={0}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+    </group>
+  );
+};
 
 // Worm component for disparity visualization
 const Worm = ({ position, rotation, scale = 1 }) => {
@@ -44,6 +222,13 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
   const pulseT = useRef(0);
   const flipFromColor = useRef(null);
   const flipToColor = useRef(null);
+  const flipProgress = useRef(0);
+
+  // State for triggering particle and glow effects (needs re-render)
+  const [particlesActive, setParticlesActive] = useState(false);
+  const [glowActive, setGlowActive] = useState(false);
+  const [currentGlowColor, setCurrentGlowColor] = useState(null);
+  const [currentParticleColor, setCurrentParticleColor] = useState(null);
 
   const prevCurr = useRef(meta?.curr ?? 0);
   useEffect(() => {
@@ -53,9 +238,19 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
     // Only trigger flip animation if the color actually changed to its antipodal
     if (curr !== prevVal && meta?.flips > 0 && ANTIPODAL_COLOR[prevVal] === curr) {
       // Store the colors for the flip animation
+      // flipToColor is the ANTIPODAL color (what we're flipping TO)
       flipFromColor.current = FACE_COLORS[prevVal];
       flipToColor.current = FACE_COLORS[curr];
       spinT.current = 1;
+      flipProgress.current = 0;
+
+      // Set the glow color to the ANTIPODAL color (what we're becoming)
+      // So if flipping FROM blue, we glow GREEN (the antipodal)
+      setCurrentGlowColor(FACE_COLORS[curr]);
+      setCurrentParticleColor(FACE_COLORS[curr]);
+      setParticlesActive(true);
+      setGlowActive(true);
+
       play('/sounds/flip.mp3');
       vibrate(16);
     }
@@ -63,30 +258,57 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
   }, [meta?.curr, meta?.flips]);
 
   useFrame((_, delta) => {
-    // Flip animation
+    // Flip animation with SNAPPY acceleration
     if (spinT.current > 0 && groupRef.current) {
-      const dt = Math.min(delta * 4, spinT.current);
+      // Faster animation speed (5x instead of 4x) for snappier feel
+      const dt = Math.min(delta * 5, spinT.current);
       spinT.current -= dt;
-      const p = 1 - spinT.current;
+      const rawP = 1 - spinT.current;
+
+      // Snappy ease-out-back easing for acceleration
+      // Fast start, slight overshoot, smooth settle
+      const easeOutBack = (t) => {
+        const c1 = 1.70158;
+        const c3 = c1 + 1;
+        return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+      };
+
+      // Use different easing for different phases
+      let p;
+      if (rawP < 0.5) {
+        // First half: accelerate quickly (ease-out quad)
+        p = rawP * 2;
+        p = 1 - (1 - p) * (1 - p);
+        p = p * 0.5;
+      } else {
+        // Second half: snappy with slight overshoot
+        p = (rawP - 0.5) * 2;
+        p = easeOutBack(p);
+        p = 0.5 + p * 0.5;
+      }
+
+      flipProgress.current = rawP;
 
       let angle;
-      if (p < 0.5) {
-        // First half: rotate towards the "portal"
-        angle = Math.sin(p * Math.PI * 2) * Math.PI;
+      if (rawP < 0.5) {
+        // First half: quick snap towards the flip
+        angle = p * Math.PI;
       } else {
-        // Second half: emerge from portal with overshoot
-        const overshoot = Math.sin((p - 0.5) * Math.PI * 4) * 0.15;
+        // Second half: complete with snappy overshoot
+        const overshoot = Math.sin((rawP - 0.5) * Math.PI * 2) * 0.2;
         angle = Math.PI + overshoot;
       }
 
       groupRef.current.rotation.y = rot[1] + angle;
 
-      const scale = 1 + Math.sin(p * Math.PI) * 0.15;
+      // Punchier scale animation - bigger at midpoint
+      const scalePunch = Math.sin(rawP * Math.PI);
+      const scale = 1 + scalePunch * 0.2;
       groupRef.current.scale.set(scale, scale, 1);
 
-      // Animate color through the flip
+      // Animate color through the flip - switch at midpoint
       if (meshRef.current && flipFromColor.current && flipToColor.current) {
-        if (p < 0.5) {
+        if (rawP < 0.5) {
           meshRef.current.material.color.set(flipFromColor.current);
         } else {
           meshRef.current.material.color.set(flipToColor.current);
@@ -97,9 +319,11 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
         groupRef.current.rotation.y = rot[1];
         groupRef.current.scale.set(1, 1, 1);
         // Start shake animation after flip completes
-        shakeT.current = 0.5;
+        shakeT.current = 0.4;
+        setGlowActive(false);
         flipFromColor.current = null;
         flipToColor.current = null;
+        flipProgress.current = 0;
       }
     }
 
@@ -222,6 +446,19 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
           })}
         </>
       )}
+
+      {/* Antipodal glow fill effect during flip */}
+      <AntipodalGlowFill
+        active={glowActive}
+        color={currentGlowColor}
+      />
+
+      {/* Particle burst effect during flip */}
+      <FlipParticles
+        active={particlesActive}
+        color={currentParticleColor}
+        onComplete={() => setParticlesActive(false)}
+      />
 
       {overlay && (
         <Text position={[0,0,0.03]} fontSize={0.17} color="black" anchorX="center" anchorY="middle">
