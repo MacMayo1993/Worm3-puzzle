@@ -150,10 +150,13 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
   return (
     <group position={pos} rotation={rot} ref={groupRef}>
       <mesh ref={meshRef}>
-        <planeGeometry args={[0.82,0.82]} />
-        <meshBasicMaterial
+        <planeGeometry args={[0.85,0.85]} />
+        <meshStandardMaterial
           color={baseColor}
           side={THREE.DoubleSide}
+          roughness={0.3}
+          metalness={0.05}
+          envMapIntensity={0.3}
         />
       </mesh>
 
