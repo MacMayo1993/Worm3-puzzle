@@ -1,8 +1,8 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Environment } from '@react-three/drei';
 import IntroScene from '../intro/IntroScene.jsx';
 import TextOverlay from '../intro/TextOverlay.jsx';
+import BlackHoleEnvironment from '../../3d/BlackHoleEnvironment.jsx';
 
 const WelcomeScreen = ({ onEnter }) => {
   const [time, setTime] = useState(0);
@@ -41,7 +41,7 @@ const WelcomeScreen = ({ onEnter }) => {
           <pointLight position={[10, 10, 10]} intensity={1.35} />
           <pointLight position={[-10, -10, -10]} intensity={1.0} />
           <Suspense fallback={null}>
-            <Environment preset="city" />
+            <BlackHoleEnvironment />
             <IntroScene time={time} />
           </Suspense>
         </Canvas>

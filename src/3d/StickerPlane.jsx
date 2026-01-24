@@ -1,10 +1,29 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { COLORS, FACE_COLORS, ANTIPODAL_COLOR } from '../utils/constants.js';
 import { play, vibrate } from '../utils/audio.js';
 import TallyMarks from '../manifold/TallyMarks.jsx';
+
+// Create a rounded rectangle shape
+const createRoundedRectShape = (width, height, radius) => {
+  const shape = new THREE.Shape();
+  const x = -width / 2;
+  const y = -height / 2;
+
+  shape.moveTo(x + radius, y);
+  shape.lineTo(x + width - radius, y);
+  shape.quadraticCurveTo(x + width, y, x + width, y + radius);
+  shape.lineTo(x + width, y + height - radius);
+  shape.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  shape.lineTo(x + radius, y + height);
+  shape.quadraticCurveTo(x, y + height, x, y + height - radius);
+  shape.lineTo(x, y + radius);
+  shape.quadraticCurveTo(x, y, x + radius, y);
+
+  return shape;
+};
 
 // Worm component for disparity visualization
 const Worm = ({ position, rotation, scale = 1 }) => {
@@ -147,10 +166,23 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
 
   const shadowIntensity = Math.min(0.5, (meta?.flips ?? 0) * 0.03);
 
+  // Create rounded rectangle geometries
+  const borderShape = useMemo(() => createRoundedRectShape(0.95, 0.95, 0.08), []);
+  const stickerShape = useMemo(() => createRoundedRectShape(0.82, 0.82, 0.06), []);
+
   return (
     <group position={pos} rotation={rot} ref={groupRef}>
+      {/* Black rounded border background */}
+      <mesh position={[0, 0, -0.001]}>
+        <shapeGeometry args={[borderShape]} />
+        <meshBasicMaterial
+          color="#000000"
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
       <mesh ref={meshRef}>
-        <planeGeometry args={[0.82,0.82]} />
+        <shapeGeometry args={[stickerShape]} />
         <meshBasicMaterial
           color={baseColor}
           side={THREE.DoubleSide}

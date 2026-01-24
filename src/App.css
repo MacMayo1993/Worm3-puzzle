@@ -33,7 +33,7 @@ html, body {
 }
 
 body {
-  background: radial-gradient(ellipse at center, #fdfcf7 0%, #e8e2d0 100%);
+  background: #f5f5f5;
   font-family: 'Georgia', 'Times New Roman', serif;
 }
 
@@ -43,39 +43,13 @@ body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background: radial-gradient(ellipse at 50% 30%, #fdfcf7 0%, #f5f1e3 50%, #e8e2d0 100%);
+  background: #f5f5f5;
   color: var(--ink-dark);
   font-family: 'Georgia', serif;
   position: relative;
 }
 
-/* Grain/Film Texture Overlay */
-.full-screen::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E");
-  opacity: 0.03;
-  pointer-events: none;
-  z-index: 9998;
-}
-
-/* Sepia/Warm Overlay */
-.full-screen::after {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, rgba(188, 108, 37, 0.03) 0%, rgba(96, 108, 56, 0.02) 100%);
-  pointer-events: none;
-  z-index: 9997;
-  mix-blend-mode: multiply;
-}
+/* Removed CSS overlays - using 3D environment instead */
 
 /* Canvas Container */
 .canvas-container {
@@ -86,9 +60,9 @@ body {
   left: 0;
 }
 
-/* Give the 3D canvas a warm vintage tint */
+/* Give the 3D canvas enhanced visual clarity */
 .canvas-container canvas {
-  filter: contrast(1.05) sepia(0.12) brightness(1.02) saturate(0.95);
+  filter: contrast(1.15) brightness(1.05) saturate(1.1);
 }
 
 /* UI Layer */
@@ -400,7 +374,7 @@ body {
 .welcome-screen {
   position: fixed;
   inset: 0;
-  background: radial-gradient(ellipse at 50% 30%, #fdfcf7 0%, #f5f1e3 50%, #e8e2d0 100%);
+  background: #f5f5f5;
   z-index: 9999;
   overflow: hidden;
 }
@@ -408,7 +382,7 @@ body {
 .welcome-canvas {
   position: absolute;
   inset: 0;
-  filter: sepia(0.15) contrast(1.05);
+  filter: contrast(1.15) brightness(1.05) saturate(1.1);
 }
 
 .intro-text-overlay {

@@ -19,6 +19,7 @@ import ManifoldGrid from './manifold/ManifoldGrid.jsx';
 
 // 3D components
 import CubeAssembly from './3d/CubeAssembly.jsx';
+import BlackHoleEnvironment from './3d/BlackHoleEnvironment.jsx';
 
 // UI components
 import TopMenuBar from './components/menus/TopMenuBar.jsx';
@@ -75,6 +76,7 @@ export default function WORM3() {
   const [exploded, setExploded] = useState(false);
   const [explosionT, setExplosionT] = useState(0);
   const [cascades, setCascades] = useState([]);
+  const [flipPulse, setFlipPulse] = useState(false);
 
   const handleWelcomeComplete = () => {
     setShowWelcome(false);
@@ -211,8 +213,10 @@ export default function WORM3() {
         pN = base * 0.6;
 
       let next = state;
+      let flipped = false;
       if (Math.random() < pSelf) {
         next = flipStickerPair(next, S, src.x, src.y, src.z, src.dirKey, currentManifoldMap);
+        flipped = true;
       }
 
       const neighbors = (() => {
@@ -251,6 +255,7 @@ export default function WORM3() {
       for (const [nx, ny, nz] of neighbors) {
         if (Math.random() < pN) {
           next = flipStickerPair(next, S, nx, ny, nz, src.dirKey, currentManifoldMap);
+          flipped = true;
 
           const fromPos = getStickerWorldPos(src.x, src.y, src.z, src.dirKey, S, explosionT);
           const toPos = getStickerWorldPos(nx, ny, nz, src.dirKey, S, explosionT);
@@ -264,6 +269,12 @@ export default function WORM3() {
             }
           ]);
         }
+      }
+
+      // Trigger pulse on chaos flip
+      if (flipped) {
+        setFlipPulse(true);
+        setTimeout(() => setFlipPulse(false), 600);
       }
 
       return next;
@@ -307,6 +318,10 @@ export default function WORM3() {
       return flipStickerPair(prev, size, pos.x, pos.y, pos.z, dirKey, currentManifoldMap);
     });
     setMoves((m) => m + 1);
+
+    // Trigger background pulse effect
+    setFlipPulse(true);
+    setTimeout(() => setFlipPulse(false), 600);
 
     // Trigger first-flip tutorial
     if (!hasFlippedOnce) {
@@ -833,7 +848,7 @@ export default function WORM3() {
   }
 
   return (
-    <div className="full-screen">
+    <div className={`full-screen ${flipPulse ? 'flip-pulse' : ''}`}>
       {showTutorial && <Tutorial onClose={closeTutorial} />}
 
       <div className="canvas-container" onContextMenu={(e) => e.preventDefault()}>
@@ -849,8 +864,8 @@ export default function WORM3() {
             </>
           )}
           <Suspense fallback={null}>
-            <Environment preset="city" />
-            <ManifoldGrid color="#3d5a3d" opacity={0.12} />
+            <BlackHoleEnvironment flipPulse={flipPulse} />
+            <ManifoldGrid color="#88aaff" opacity={0.25} />
             <CubeAssembly
               size={size}
               cubies={cubies}
