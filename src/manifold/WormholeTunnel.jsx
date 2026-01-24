@@ -17,10 +17,11 @@ const WormholeTunnel = ({ meshIdx1, meshIdx2, dirKey1, dirKey2, cubieRefs, inten
       return {
         id: i,
         angle,
-        radius: 0.1 + radiusFactor * 0.25,
-        baseOpacity: flips > 0 ? (0.3 + (1 - radiusFactor) * 0.5) : (0.15 + (1 - radiusFactor) * 0.3),
-        lineWidth: Math.max(0.3, 1.5 - radiusFactor * 1.2),
-        colors: new Float32Array(30 * 3)
+        radius: (0.1 + radiusFactor * 0.25) * 1.25, // 25% thicker
+        baseOpacity: flips > 0 ? (0.4 + (1 - radiusFactor) * 0.6) : (0.2 + (1 - radiusFactor) * 0.4), // More vibrant
+        lineWidth: Math.max(0.375, (1.5 - radiusFactor * 1.2) * 1.25), // 25% thicker lines
+        colors: new Float32Array(30 * 3),
+        sparkOffset: Math.random() * Math.PI * 2 // Random spark timing
       };
     });
   }, [flips]);
@@ -63,7 +64,10 @@ const WormholeTunnel = ({ meshIdx1, meshIdx2, dirKey1, dirKey2, cubieRefs, inten
       const config = strandConfig[i];
 
       if (line.material) {
-        line.material.opacity = config.baseOpacity * pulse;
+        // Add occasional electrical spark effect
+        const sparkPulse = Math.sin(pulseT.current * 3 + config.sparkOffset);
+        const spark = sparkPulse > 0.9 ? (sparkPulse - 0.9) * 10 : 0; // Random bright flashes
+        line.material.opacity = config.baseOpacity * pulse * (1 + spark * 0.5);
       }
 
       const offsetX = Math.cos(config.angle) * config.radius;
