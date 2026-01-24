@@ -19,6 +19,7 @@ import ManifoldGrid from './manifold/ManifoldGrid.jsx';
 
 // 3D components
 import CubeAssembly from './3d/CubeAssembly.jsx';
+import BlackHoleEnvironment from './3d/BlackHoleEnvironment.jsx';
 
 // UI components
 import TopMenuBar from './components/menus/TopMenuBar.jsx';
@@ -75,7 +76,6 @@ export default function WORM3() {
   const [exploded, setExploded] = useState(false);
   const [explosionT, setExplosionT] = useState(0);
   const [cascades, setCascades] = useState([]);
-  const [flipPulse, setFlipPulse] = useState(false);
 
   const handleWelcomeComplete = () => {
     setShowWelcome(false);
@@ -308,10 +308,6 @@ export default function WORM3() {
       return flipStickerPair(prev, size, pos.x, pos.y, pos.z, dirKey, currentManifoldMap);
     });
     setMoves((m) => m + 1);
-
-    // Trigger black hole pulse effect
-    setFlipPulse(true);
-    setTimeout(() => setFlipPulse(false), 600);
 
     // Trigger first-flip tutorial
     if (!hasFlippedOnce) {
@@ -838,14 +834,16 @@ export default function WORM3() {
   }
 
   return (
-    <div className={`full-screen ${flipPulse ? 'flip-pulse' : ''}`}>
+    <div className="full-screen">
       {showTutorial && <Tutorial onClose={closeTutorial} />}
 
       <div className="canvas-container" onContextMenu={(e) => e.preventDefault()}>
         <Canvas camera={{ position: [0, 0, cameraZ], fov: 40 }}>
-          <ambientLight intensity={visualMode === 'wireframe' ? 0.2 : 1.25} />
-          <pointLight position={[10, 10, 10]} intensity={visualMode === 'wireframe' ? 0.3 : 1.35} />
-          <pointLight position={[-10, -10, -10]} intensity={visualMode === 'wireframe' ? 0.2 : 1.0} />
+          {/* Premium lighting setup */}
+          <ambientLight intensity={visualMode === 'wireframe' ? 0.2 : 0.8} />
+          <directionalLight position={[5, 8, 5]} intensity={visualMode === 'wireframe' ? 0.3 : 1.2} castShadow />
+          <pointLight position={[10, 10, 10]} intensity={visualMode === 'wireframe' ? 0.3 : 0.8} />
+          <pointLight position={[-10, -10, -10]} intensity={visualMode === 'wireframe' ? 0.2 : 0.6} />
           {visualMode === 'wireframe' && (
             <>
               <pointLight position={[0, 0, 0]} intensity={0.5} color="#fefae0" distance={15} decay={2} />
@@ -854,6 +852,7 @@ export default function WORM3() {
             </>
           )}
           <Suspense fallback={null}>
+            <BlackHoleEnvironment />
             <Environment preset="city" />
             <ManifoldGrid color="#3d5a3d" opacity={0.12} />
             <CubeAssembly
