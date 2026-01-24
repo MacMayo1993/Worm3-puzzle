@@ -17,8 +17,8 @@ const Tutorial = ({ onClose }) => {
         <>
           <p><b>WORM³</b> is a Rubik's Cube puzzle exploring <b>antipodal topology</b> on the real projective plane.</p>
           <p>Each sticker has a <b>permanent antipodal twin</b> on the opposite side that flips with it through wormholes!</p>
-          <p>🪱 Look for the <b>wiggling worms</b> on flipped stickers—they show disparity that needs fixing!</p>
-          <p style={{ fontSize: '13px', marginTop: '12px', fontStyle: 'italic', color: '#7f5539' }}>
+          <p>Look for the <b>wiggling worms</b> on flipped stickers—they show disparity that needs fixing!</p>
+          <p style={{ fontSize: '13px', marginTop: '12px', fontStyle: 'italic', color: 'rgba(255, 255, 255, 0.7)' }}>
             This is a topological puzzle where manifold geometry meets classic cubing!
           </p>
         </>
@@ -32,7 +32,7 @@ const Tutorial = ({ onClose }) => {
           <p><b>Twist Slices:</b> Drag on a face to rotate rows, columns, or depth slices</p>
           <p><b>Face Twist:</b> Hold <b>Shift</b> while dragging to rotate the entire face clockwise/counter-clockwise</p>
           <p><b>On Mobile:</b> Simply tap and drag—full touch support with responsive UI!</p>
-          <p style={{ fontSize: '13px', marginTop: '8px', color: '#7f5539' }}>
+          <p style={{ fontSize: '13px', marginTop: '8px', color: 'rgba(255, 255, 255, 0.7)' }}>
             <b>Tip:</b> You can drag in any direction continuously without hitting rotation limits
           </p>
         </>
@@ -42,7 +42,7 @@ const Tutorial = ({ onClose }) => {
       title: "Flipping Through Wormholes",
       content: (
         <>
-          <p><b>Enable FLIP mode</b> (orange button at bottom), then tap/click any sticker to flip it!</p>
+          <p><b>Enable FLIP mode</b> (blue button at bottom), then tap/click any sticker to flip it!</p>
           <p>Watch the <b>colored tunnels</b> that connect antipodal pairs:</p>
           <ul style={{ margin: '8px 0', paddingLeft: '20px', fontSize: '14px' }}>
             <li><span style={{ color: COLORS.blue, fontWeight: 600 }}>Blue ↔ Green</span></li>
@@ -50,7 +50,7 @@ const Tutorial = ({ onClose }) => {
             <li><span style={{ color: COLORS.yellow, fontWeight: 600 }}>Yellow ↔ White</span></li>
           </ul>
           <p>Tunnels get <b>thicker and brighter</b> with more flips, and occasionally spark with electricity!</p>
-          <p>🪱 <b>Worms appear</b> on stickers in disparity—flip them back to remove the worms!</p>
+          <p><b>Worms appear</b> on stickers in disparity—flip them back to remove the worms!</p>
         </>
       )
     },
@@ -65,7 +65,7 @@ const Tutorial = ({ onClose }) => {
             <li><b>Sudokube:</b> Latin square numbers (1-3 for 3×3) on each face</li>
             <li><b>Wireframe:</b> Skeletal view with enhanced lighting for topology visualization</li>
           </ul>
-          <p style={{ fontSize: '13px', marginTop: '8px', color: '#7f5539' }}>
+          <p style={{ fontSize: '13px', marginTop: '8px', color: 'rgba(255, 255, 255, 0.7)' }}>
             Each mode helps you see different aspects of the puzzle's topology!
           </p>
         </>
@@ -75,7 +75,7 @@ const Tutorial = ({ onClose }) => {
       title: "Chaos Mode & Special Features",
       content: (
         <>
-          <p><b>CHAOS Mode</b> (☢ button): Unstable flipped stickers randomly spread to N-S-E-W neighbors!</p>
+          <p><b>CHAOS Mode</b> (red button): Unstable flipped stickers randomly spread to N-S-E-W neighbors!</p>
           <ul style={{ margin: '6px 0', paddingLeft: '20px', fontSize: '13px', lineHeight: '1.7' }}>
             <li><b>Level 1:</b> Gentle chaos, good for learning</li>
             <li><b>Level 2:</b> Moderate spread rate</li>
@@ -99,12 +99,12 @@ const Tutorial = ({ onClose }) => {
             <li><b>Pairs:</b> Active wormhole connections (stickers in disparity)</li>
             <li><b>Time:</b> Session timer showing minutes:seconds</li>
           </ul>
-          <p><b>Parity Tracker (⟲ EVEN/ODD):</b> Shows whether total flips are even or odd</p>
+          <p><b>Parity Tracker (EVEN/ODD):</b> Shows whether total flips are even or odd</p>
           <ul style={{ margin: '6px 0', paddingLeft: '20px', fontSize: '13px' }}>
-            <li><span style={{ color: '#606c38', fontWeight: 600 }}>EVEN</span>: Even number of flips (green)</li>
-            <li><span style={{ color: '#bc6c25', fontWeight: 600 }}>ODD</span>: Odd number of flips (orange)</li>
+            <li><span style={{ color: '#06b6d4', fontWeight: 600 }}>EVEN</span>: Even number of flips (cyan)</li>
+            <li><span style={{ color: '#8b5cf6', fontWeight: 600 }}>ODD</span>: Odd number of flips (purple)</li>
           </ul>
-          <p style={{ fontSize: '13px', marginTop: '8px', fontStyle: 'italic', color: '#7f5539' }}>
+          <p style={{ fontSize: '13px', marginTop: '8px', fontStyle: 'italic', color: 'rgba(255, 255, 255, 0.7)' }}>
             Parity affects solvability in certain configurations!
           </p>
         </>
@@ -140,15 +140,15 @@ const Tutorial = ({ onClose }) => {
       content: (
         <>
           <p>Four different ways to win—each more challenging!</p>
-          <p><b>🎲 Classic Victory:</b> Solve all faces to uniform colors (like traditional Rubik's)</p>
-          <p><b>🔢 Sudokube Victory:</b> Create valid Latin squares on all faces—no repeated numbers in any row or column!</p>
-          <p><b>👑 Ultimate Victory:</b> Achieve BOTH Classic AND Sudokube victories simultaneously! The ultimate challenge.</p>
-          <p><b>🪱 Secret WORM³ Victory:</b> Solve the cube where EVERY single sticker has traveled through a wormhole at least once!</p>
-          <p style={{ marginTop: '16px', padding: '12px', background: 'rgba(188, 108, 37, 0.1)', borderRadius: '6px', fontSize: '13px' }}>
+          <p><b>Classic Victory:</b> Solve all faces to uniform colors (like traditional Rubik's)</p>
+          <p><b>Sudokube Victory:</b> Create valid Latin squares on all faces—no repeated numbers in any row or column!</p>
+          <p><b>Ultimate Victory:</b> Achieve BOTH Classic AND Sudokube victories simultaneously! The ultimate challenge.</p>
+          <p><b>Secret WORM³ Victory:</b> Solve the cube where EVERY single sticker has traveled through a wormhole at least once!</p>
+          <p style={{ marginTop: '16px', padding: '12px', background: 'rgba(59, 130, 246, 0.15)', borderRadius: '8px', fontSize: '13px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
             <b>Pro Tip:</b> Use <b>SHUFFLE</b> to start a new game, <b>RESET</b> to return to solved state.
             Achievement badges appear at the top when you complete each victory type!
           </p>
-          <p style={{ marginTop: '12px', fontStyle: 'italic', fontSize: '13px', color: '#7f5539', textAlign: 'center' }}>
+          <p style={{ marginTop: '12px', fontStyle: 'italic', fontSize: '13px', color: 'rgba(255, 255, 255, 0.7)', textAlign: 'center' }}>
             Good luck, topologist! Press SHUFFLE to begin your journey.
           </p>
         </>
@@ -161,11 +161,11 @@ const Tutorial = ({ onClose }) => {
   return (
     <div className="tutorial-overlay">
       <div className="tutorial-card" style={{ maxWidth: '620px' }}>
-        <h2 style={{ marginBottom: '4px' }}>{currentStep.title}</h2>
-        <div style={{ fontSize: '11px', color: '#9c6644', marginBottom: '16px', letterSpacing: '0.1em' }}>
+        <h2 style={{ marginBottom: '4px', color: 'rgba(255, 255, 255, 0.95)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{currentStep.title}</h2>
+        <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '16px', letterSpacing: '0.08em', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
           Step {step} of {totalSteps}
         </div>
-        <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
+        <div style={{ fontSize: '14px', lineHeight: '1.6', color: 'rgba(255, 255, 255, 0.9)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
           {currentStep.content}
         </div>
         <div className="tutorial-actions" style={{ marginTop: '20px' }}>
@@ -173,19 +173,20 @@ const Tutorial = ({ onClose }) => {
           <div style={{ display: 'flex', gap: '8px' }}>
             {step > 1 && (
               <button className="bauhaus-btn" onClick={() => setStep(s => s - 1)}>
-                ← Back
+                Back
               </button>
             )}
             {step < totalSteps ? (
               <button className="bauhaus-btn" onClick={() => setStep(s => s + 1)}>
-                Next →
+                Next
               </button>
             ) : (
               <button className="bauhaus-btn" onClick={onClose} style={{
-                background: '#606c38',
+                background: 'rgba(16, 185, 129, 0.85)',
+                borderColor: 'rgba(52, 211, 153, 0.5)',
                 fontWeight: 700
               }}>
-                Start Playing! 🚀
+                Start Playing!
               </button>
             )}
           </div>
