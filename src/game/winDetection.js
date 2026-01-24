@@ -94,38 +94,34 @@ export const checkSudokubeSolved = (cubies, size) => {
   return true;
 };
 
-// Check if WORM³ victory - entire cube solved but every sticker is in disparity (flipped)
+// Check if WORM³ victory - cube is solved AND every sticker has traveled through wormhole
 export const checkWormVictory = (cubies, size) => {
-  const DIR_TO_FACE = { PZ: 1, NX: 2, PY: 3, NZ: 4, PX: 5, NY: 6 };
+  // First check if cube is solved normally
+  if (!checkRubiksSolved(cubies, size)) return false;
 
-  let allCorrectPosition = true;
-  let allFlipped = true;
-  let totalStickers = 0;
+  // Then check if EVERY sticker has traveled through a wormhole at least once
+  let allHaveFlipped = true;
 
   for (let x = 0; x < size; x++) {
     for (let y = 0; y < size; y++) {
       for (let z = 0; z < size; z++) {
         const c = cubies[x][y][z];
-        for (const [dirKey, st] of Object.entries(c.stickers)) {
-          totalStickers++;
-          const expectedColor = DIR_TO_FACE[dirKey];
-
-          // Check if sticker shows the correct color for its position
-          if (st.curr !== expectedColor) {
-            allCorrectPosition = false;
-          }
-
-          // Check if sticker has been flipped (curr !== orig)
-          if (st.curr === st.orig) {
-            allFlipped = false;
+        for (const st of Object.values(c.stickers)) {
+          // If any sticker has never been flipped, WORM³ victory not achieved
+          if ((st.flips ?? 0) === 0) {
+            allHaveFlipped = false;
+            break;
           }
         }
+        if (!allHaveFlipped) break;
       }
+      if (!allHaveFlipped) break;
     }
+    if (!allHaveFlipped) break;
   }
 
-  // WORM³ victory: cube is solved AND every single sticker is flipped
-  return allCorrectPosition && allFlipped && totalStickers > 0;
+  // WORM³ victory: cube is solved AND every sticker has been through wormhole
+  return allHaveFlipped;
 };
 
 // Main win detection function - returns { rubiks, sudokube, ultimate, worm }
