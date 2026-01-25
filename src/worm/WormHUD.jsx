@@ -133,6 +133,10 @@ export default function WormHUD({
   );
 }
 
+// Check if mobile
+const isMobile = typeof window !== 'undefined' &&
+  (window.innerWidth <= 768 || 'ontouchstart' in window);
+
 const styles = {
   container: {
     position: 'absolute',
@@ -146,10 +150,11 @@ const styles = {
   statsBar: {
     display: 'flex',
     justifyContent: 'center',
-    gap: '24px',
-    padding: '12px 20px',
+    gap: isMobile ? '12px' : '24px',
+    padding: isMobile ? '8px 10px' : '12px 20px',
     background: 'linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 100%)',
-    borderBottom: '2px solid #00ff88'
+    borderBottom: '2px solid #00ff88',
+    flexWrap: 'wrap'
   },
   statGroup: {
     display: 'flex',
@@ -158,12 +163,12 @@ const styles = {
     gap: '2px'
   },
   statLabel: {
-    fontSize: '10px',
+    fontSize: isMobile ? '8px' : '10px',
     color: '#888',
     letterSpacing: '0.1em'
   },
   statValue: {
-    fontSize: '18px',
+    fontSize: isMobile ? '14px' : '18px',
     color: '#00ff88',
     fontWeight: 'bold',
     textShadow: '0 0 10px #00ff88'
@@ -179,9 +184,11 @@ const styles = {
     bottom: '-40px',
     left: '50%',
     transform: 'translateX(-50%)',
-    fontSize: '11px',
+    fontSize: isMobile ? '10px' : '11px',
     color: '#666',
-    letterSpacing: '0.05em'
+    letterSpacing: '0.05em',
+    whiteSpace: 'nowrap',
+    display: isMobile ? 'none' : 'block' // Hide hint on mobile (touch controls are visible)
   },
   overlay: {
     position: 'fixed',
@@ -223,12 +230,13 @@ const styles = {
   },
   buttonGroup: {
     display: 'flex',
-    gap: '12px',
-    justifyContent: 'center'
+    gap: isMobile ? '8px' : '12px',
+    justifyContent: 'center',
+    flexWrap: 'wrap'
   },
   button: {
-    padding: '12px 24px',
-    fontSize: '14px',
+    padding: isMobile ? '14px 20px' : '12px 24px',
+    fontSize: isMobile ? '12px' : '14px',
     fontFamily: "'Courier New', monospace",
     fontWeight: 'bold',
     color: '#00ff88',
@@ -237,7 +245,9 @@ const styles = {
     borderRadius: '6px',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    letterSpacing: '0.1em'
+    letterSpacing: '0.1em',
+    minWidth: isMobile ? '100px' : 'auto',
+    touchAction: 'manipulation' // Prevent double-tap zoom on mobile
   },
   quitButton: {
     color: '#888',
