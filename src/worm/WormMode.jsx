@@ -30,9 +30,6 @@ import { play } from '../utils/audio.js';
 // Game configuration for surface mode
 const CONFIG = {
   initialOrbs: 15,        // Starting number of orbs
-  baseSpeed: 0.8,         // Base tiles per second
-  speedIncrement: 0.05,   // Speed increase per segment
-  maxSpeed: 3.0,          // Maximum speed
   growthPerOrb: 1,        // Segments gained per orb
   warpBonus: 25           // Score bonus per warp
 };
@@ -40,15 +37,13 @@ const CONFIG = {
 // Game configuration for tunnel mode
 const TUNNEL_CONFIG = {
   initialOrbs: 10,        // Starting number of orbs in tunnels
-  baseSpeed: 0.4,         // Base tunnel progress per second (t units)
-  speedIncrement: 0.02,   // Speed increase per segment
-  maxSpeed: 1.2,          // Maximum speed
   growthPerOrb: 1,        // Segments gained per orb
   tunnelBonus: 50,        // Bonus for completing a tunnel
+  tunnelStepSize: 0.15,   // How far worm moves per step in tunnel (t units)
   minFlipsForStart: 3     // Minimum flipped stickers needed to start tunnel mode
 };
 
-// Custom hook for WORM mode game logic
+// Custom hook for WORM mode game logic (turn-based)
 export function useWormGame(cubies, size, animState, onRotate) {
   // Game state
   const [gameState, setGameState] = useState('playing');
@@ -63,22 +58,23 @@ export function useWormGame(cubies, size, animState, onRotate) {
   // Camera mode - first-person worm view
   const [wormCameraEnabled, setWormCameraEnabled] = useState(false);
 
-  // Timing
-  const lastMoveTime = useRef(0);
+  // Turn-based: signal when to move
+  const pendingMoveRef = useRef(false);
   const rotationQueue = useRef([]);
 
   // Ref for current worm state (avoids stale closures in event handlers)
   const wormRef = useRef(worm);
   wormRef.current = worm;
 
-  // Calculate current speed
-  const speed = useMemo(() => {
-    const s = CONFIG.baseSpeed + (worm.length * CONFIG.speedIncrement);
-    return Math.min(s, CONFIG.maxSpeed);
-  }, [worm.length]);
+  // Refs for state values needed in move function
+  const moveDirRef = useRef(moveDir);
+  moveDirRef.current = moveDir;
+  const orbsRef = useRef(orbs);
+  orbsRef.current = orbs;
+  const pendingGrowthRef = useRef(pendingGrowth);
+  pendingGrowthRef.current = pendingGrowth;
 
   // Initialize orbs on mount only (intentionally empty deps)
-  // Orbs should only spawn once when the game starts, not on every cubies/size change
   useEffect(() => {
     const initialOrbs = spawnOrbs(cubies, size, CONFIG.initialOrbs, worm, []);
     setOrbs(initialOrbs);
@@ -96,9 +92,14 @@ export function useWormGame(cubies, size, animState, onRotate) {
     setOrbsEaten(0);
     setPendingGrowth(0);
     setGameState('playing');
-    lastMoveTime.current = 0;
+    pendingMoveRef.current = false;
     rotationQueue.current = [];
   }, [cubies, size]);
+
+  // Move worm forward one step (called on ArrowUp)
+  const triggerMove = useCallback(() => {
+    pendingMoveRef.current = true;
+  }, []);
 
   // Keyboard controls
   useEffect(() => {
@@ -139,6 +140,7 @@ export function useWormGame(cubies, size, animState, onRotate) {
       if (!head) return;
 
       switch (key) {
+        // Cube rotations (WASD/QE) - just rotate, don't move worm
         case 'w':
           e.preventDefault();
           queueRotation('col', -1, head.x);
@@ -163,6 +165,7 @@ export function useWormGame(cubies, size, animState, onRotate) {
           e.preventDefault();
           queueRotation('depth', -1, head.z);
           break;
+        // Turn worm (left/right arrows) - just turn, don't move
         case 'arrowleft':
           e.preventDefault();
           setMoveDir(prev => turnWorm(prev, 'left'));
@@ -170,6 +173,11 @@ export function useWormGame(cubies, size, animState, onRotate) {
         case 'arrowright':
           e.preventDefault();
           setMoveDir(prev => turnWorm(prev, 'right'));
+          break;
+        // Move worm forward (up arrow)
+        case 'arrowup':
+          e.preventDefault();
+          triggerMove();
           break;
         case 'c':
           // Toggle worm camera (first-person view)
@@ -181,7 +189,7 @@ export function useWormGame(cubies, size, animState, onRotate) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameState, restart]); // worm accessed via wormRef to avoid stale closure
+  }, [gameState, restart, triggerMove]); // worm accessed via wormRef to avoid stale closure
 
   // Process rotation queue
   useEffect(() => {
@@ -215,7 +223,6 @@ export function useWormGame(cubies, size, animState, onRotate) {
     orbs,
     score,
     warps,
-    speed,
     pendingGrowth,
     orbsTotal: CONFIG.initialOrbs,
     wormCameraEnabled,
@@ -230,12 +237,16 @@ export function useWormGame(cubies, size, animState, onRotate) {
     setPendingGrowth,
     setWormCameraEnabled,
 
-    // Refs
-    lastMoveTime,
+    // Refs for turn-based movement
+    pendingMoveRef,
+    moveDirRef,
+    orbsRef,
+    pendingGrowthRef,
 
     // Actions
     restart,
     updateAfterRotation,
+    triggerMove,
 
     // Config
     CONFIG
@@ -288,7 +299,7 @@ export function WormMode3D({
   );
 }
 
-// Game loop component - must be inside Canvas for useFrame
+// Game loop component - turn-based movement (must be inside Canvas for useFrame)
 export function WormGameLoop({
   cubies,
   size,
@@ -298,11 +309,10 @@ export function WormGameLoop({
   const {
     gameState,
     worm,
-    moveDir,
-    orbs,
-    speed,
-    pendingGrowth,
-    lastMoveTime,
+    pendingMoveRef,
+    moveDirRef,
+    orbsRef,
+    pendingGrowthRef,
     setGameState,
     setWorm,
     setMoveDir,
@@ -313,19 +323,20 @@ export function WormGameLoop({
     CONFIG
   } = game;
 
-  useFrame((state, delta) => {
+  useFrame(() => {
     if (gameState !== 'playing') return;
     if (animState) return;
 
-    lastMoveTime.current += delta;
-
-    const moveInterval = 1 / speed;
-    if (lastMoveTime.current < moveInterval) return;
-
-    lastMoveTime.current = 0;
+    // Turn-based: only move when player presses ArrowUp
+    if (!pendingMoveRef.current) return;
+    pendingMoveRef.current = false;
 
     const head = worm[0];
     if (!head) return;
+
+    const moveDir = moveDirRef.current;
+    const orbs = orbsRef.current;
+    const pendingGrowth = pendingGrowthRef.current;
 
     const nextPos = getNextSurfacePosition(
       { x: head.x, y: head.y, z: head.z, dirKey: head.dirKey },
@@ -344,11 +355,15 @@ export function WormGameLoop({
     }
 
     let finalPos = nextPos;
+    let finalMoveDir = nextPos.moveDir || moveDir;
 
     if (isPositionFlipped(nextPos, cubies)) {
-      const antipodalPos = getAntipodalPosition(nextPos, cubies, size);
+      // Wormhole teleport - get antipodal position with transformed direction
+      const antipodalPos = getAntipodalPosition(nextPos, cubies, size, moveDir);
       if (antipodalPos) {
-        finalPos = { ...antipodalPos, moveDir: moveDir };
+        finalPos = antipodalPos;
+        finalMoveDir = antipodalPos.moveDir || moveDir;
+        setMoveDir(finalMoveDir); // Update direction for next move
         setWarps(w => w + 1);
         setScore(s => s + CONFIG.warpBonus);
         play('/sounds/warp.mp3');
@@ -377,7 +392,7 @@ export function WormGameLoop({
     }
 
     setWorm(prev => {
-      const newWorm = [{ ...finalPos, moveDir }, ...prev];
+      const newWorm = [{ ...finalPos, moveDir: finalMoveDir }, ...prev];
 
       if (pendingGrowth > 0) {
         setPendingGrowth(g => g - 1);
@@ -395,7 +410,7 @@ export function WormGameLoop({
 // TUNNEL MODE - Worm travels inside the cube through antipodal wormhole tunnels
 // ============================================================================
 
-// Custom hook for TUNNEL mode game logic
+// Custom hook for TUNNEL mode game logic (turn-based)
 export function useTunnelWormGame(cubies, size, animState, onRotate) {
   // Game state
   const [gameState, setGameState] = useState('playing');
@@ -410,19 +425,26 @@ export function useTunnelWormGame(cubies, size, animState, onRotate) {
   // Camera mode - first-person worm view
   const [wormCameraEnabled, setWormCameraEnabled] = useState(false);
 
-  // Timing
-  const lastMoveTime = useRef(0);
+  // Turn-based: signal when to move
+  const pendingMoveRef = useRef(false);
   const rotationQueue = useRef([]);
 
   // Ref for current worm state
   const wormRef = useRef(worm);
   wormRef.current = worm;
 
-  // Calculate current speed
-  const speed = useMemo(() => {
-    const s = TUNNEL_CONFIG.baseSpeed + (worm.length * TUNNEL_CONFIG.speedIncrement);
-    return Math.min(s, TUNNEL_CONFIG.maxSpeed);
-  }, [worm.length]);
+  // Refs for state values needed in move function
+  const tunnelsRef = useRef(tunnels);
+  tunnelsRef.current = tunnels;
+  const orbsRef = useRef(orbs);
+  orbsRef.current = orbs;
+  const pendingGrowthRef = useRef(pendingGrowth);
+  pendingGrowthRef.current = pendingGrowth;
+
+  // Move worm forward one step (called on ArrowUp)
+  const triggerMove = useCallback(() => {
+    pendingMoveRef.current = true;
+  }, []);
 
   // Initialize tunnels and worm on mount
   useEffect(() => {
@@ -491,7 +513,7 @@ export function useTunnelWormGame(cubies, size, animState, onRotate) {
     setTunnelsTraversed(0);
     setPendingGrowth(0);
     setGameState('playing');
-    lastMoveTime.current = 0;
+    pendingMoveRef.current = false;
     rotationQueue.current = [];
   }, [cubies, size]);
 
@@ -533,6 +555,7 @@ export function useTunnelWormGame(cubies, size, animState, onRotate) {
       const center = Math.floor(size / 2);
 
       switch (key) {
+        // Cube rotations (WASD/QE) - just rotate, don't move worm
         case 'w':
           e.preventDefault();
           queueRotation('col', -1, center);
@@ -557,6 +580,11 @@ export function useTunnelWormGame(cubies, size, animState, onRotate) {
           e.preventDefault();
           queueRotation('depth', -1, center);
           break;
+        // Move worm forward (up arrow)
+        case 'arrowup':
+          e.preventDefault();
+          triggerMove();
+          break;
         case 'c':
           e.preventDefault();
           setWormCameraEnabled(prev => !prev);
@@ -566,7 +594,7 @@ export function useTunnelWormGame(cubies, size, animState, onRotate) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameState, restart, size]);
+  }, [gameState, restart, size, triggerMove]);
 
   // Process rotation queue
   useEffect(() => {
@@ -594,7 +622,6 @@ export function useTunnelWormGame(cubies, size, animState, onRotate) {
     tunnels,
     score,
     tunnelsTraversed,
-    speed,
     pendingGrowth,
     orbsTotal: TUNNEL_CONFIG.initialOrbs,
     wormCameraEnabled,
@@ -611,20 +638,24 @@ export function useTunnelWormGame(cubies, size, animState, onRotate) {
     setWormCameraEnabled,
     setTargetTunnelId,
 
-    // Refs
-    lastMoveTime,
+    // Refs for turn-based movement
+    pendingMoveRef,
+    tunnelsRef,
+    orbsRef,
+    pendingGrowthRef,
 
     // Actions
     restart,
     updateAfterRotation,
     updateTunnels,
+    triggerMove,
 
     // Config
     CONFIG: TUNNEL_CONFIG
   };
 }
 
-// Game loop component for TUNNEL mode
+// Game loop component for TUNNEL mode (turn-based)
 export function TunnelWormGameLoop({
   cubies,
   size,
@@ -634,11 +665,10 @@ export function TunnelWormGameLoop({
   const {
     gameState,
     worm,
-    orbs,
-    tunnels,
-    speed,
-    pendingGrowth,
-    lastMoveTime,
+    pendingMoveRef,
+    tunnelsRef,
+    orbsRef,
+    pendingGrowthRef,
     setGameState,
     setWorm,
     setOrbs,
@@ -649,24 +679,28 @@ export function TunnelWormGameLoop({
     CONFIG
   } = game;
 
-  useFrame((state, delta) => {
+  useFrame(() => {
     if (gameState !== 'playing') return;
     if (animState) return;
+
+    // Turn-based: only move when player presses ArrowUp
+    if (!pendingMoveRef.current) return;
+    pendingMoveRef.current = false;
+
+    const tunnels = tunnelsRef.current;
+    const orbs = orbsRef.current;
+    const pendingGrowth = pendingGrowthRef.current;
+
     if (worm.length === 0 || tunnels.length === 0) return;
-
-    lastMoveTime.current += delta;
-
-    // Continuous movement through tunnel
-    const moveAmount = speed * delta;
 
     const head = worm[0];
     if (!head || !head.tunnel) return;
 
-    // Advance worm through tunnel
-    let newT = head.t + moveAmount;
+    // Move worm forward by one step
+    const stepSize = CONFIG.tunnelStepSize;
+    let newT = head.t + stepSize;
     let newTunnelId = head.tunnelId;
     let newTunnel = head.tunnel;
-    let traversedTunnel = false;
 
     // Check if we've reached the end of the tunnel
     if (newT >= 1.0) {
@@ -679,13 +713,11 @@ export function TunnelWormGameLoop({
         newTunnelId = newTunnel.id;
         // Enter from appropriate end
         newT = nextTunnelInfo.enterFromEntry ? 0.0 : 1.0;
-        // If entering from exit, we'll travel backwards (decreasing t)
-        traversedTunnel = true;
         setTunnelsTraversed(t => t + 1);
         setScore(s => s + CONFIG.tunnelBonus);
         play('/sounds/warp.mp3');
       } else {
-        // No connected tunnel - game over or bounce back
+        // No connected tunnel - game over
         setGameState('gameover');
         play('/sounds/gameover.mp3');
         return;
@@ -734,8 +766,6 @@ export function TunnelWormGameLoop({
         const seg = prev[i];
         if (i === 0) continue; // Skip old head
 
-        // Body follows head with delay
-        const followT = i < prev.length - 1 ? prev[i].t : prev[i].t;
         newWorm.push({
           tunnelId: seg.tunnelId,
           t: seg.t,
@@ -746,10 +776,8 @@ export function TunnelWormGameLoop({
       // Handle growth or tail removal
       if (pendingGrowth > 0) {
         setPendingGrowth(g => g - 1);
-        // Keep all segments (growth)
         return newWorm;
       } else {
-        // Remove tail segment
         return newWorm.slice(0, -1);
       }
     });
