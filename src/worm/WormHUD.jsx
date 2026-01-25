@@ -11,13 +11,13 @@ export default function WormHUD({
   warps,
   warpsLabel = 'WARPS', // 'WARPS' for surface mode, 'TUNNELS' for tunnel mode
   gameState, // 'playing', 'paused', 'gameover', 'victory'
-  speed,
   wormCameraEnabled = false,
   mode = 'surface', // 'surface' or 'tunnel'
   onPause,
   onResume,
   onRestart,
-  onQuit
+  onQuit,
+  onCameraToggle
 }) {
   const isTunnelMode = mode === 'tunnel';
   const isPlaying = gameState === 'playing';
@@ -47,24 +47,25 @@ export default function WormHUD({
           <span style={styles.statLabel}>{warpsLabel}</span>
           <span style={styles.statValue}>{warps}</span>
         </div>
-        <div style={styles.statGroup}>
-          <span style={styles.statLabel}>SPEED</span>
-          <span style={styles.statValue}>{speed.toFixed(1)}x</span>
-        </div>
-        {wormCameraEnabled && (
-          <div style={{...styles.statGroup, ...styles.cameraIndicator}}>
-            <span style={styles.statLabel}>CAM</span>
-            <span style={{...styles.statValue, color: '#ff6b6b'}}>WORM</span>
-          </div>
-        )}
+        {/* Camera toggle button */}
+        <button
+          style={{
+            ...styles.cameraToggle,
+            ...(wormCameraEnabled ? styles.cameraToggleActive : {})
+          }}
+          onClick={onCameraToggle}
+        >
+          <span style={styles.cameraIcon}>{wormCameraEnabled ? '🎥' : '👁️'}</span>
+          <span style={styles.cameraLabel}>{wormCameraEnabled ? 'WORM' : 'CUBE'}</span>
+        </button>
       </div>
 
       {/* Control hint */}
       {isPlaying && (
         <div style={styles.hint}>
           {isTunnelMode
-            ? 'WASD/QE to align tunnels | C for worm cam | Space to pause'
-            : 'WASD/QE to rotate | C for worm cam | Space to pause'}
+            ? '↑ move | WASD/QE rotate cube | C toggle camera | Space pause'
+            : '↑ move | ←/→ turn | WASD/QE rotate cube | C camera | Space pause'}
         </div>
       )}
 
@@ -182,11 +183,32 @@ const styles = {
     fontWeight: 'bold',
     textShadow: '0 0 10px #00ff88'
   },
-  cameraIndicator: {
-    background: 'rgba(255, 107, 107, 0.2)',
-    padding: '4px 8px',
-    borderRadius: '4px',
-    border: '1px solid #ff6b6b'
+  cameraToggle: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '2px',
+    padding: '4px 10px',
+    background: 'rgba(255, 165, 0, 0.15)',
+    border: '2px solid #ffa500',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    pointerEvents: 'auto',
+    transition: 'all 0.2s ease'
+  },
+  cameraToggleActive: {
+    background: 'rgba(255, 107, 107, 0.25)',
+    borderColor: '#ff6b6b',
+    boxShadow: '0 0 12px rgba(255, 107, 107, 0.5)'
+  },
+  cameraIcon: {
+    fontSize: isMobile ? '14px' : '16px'
+  },
+  cameraLabel: {
+    fontSize: isMobile ? '8px' : '10px',
+    color: '#ffa500',
+    fontWeight: 'bold',
+    letterSpacing: '0.05em'
   },
   hint: {
     position: 'absolute',

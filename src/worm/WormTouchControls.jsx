@@ -14,7 +14,10 @@ export default function WormTouchControls({
   wormCameraEnabled,
   gameState,
   onPause,
-  onResume
+  onResume,
+  onMoveForward,  // Turn-based: move worm forward
+  onTurnLeft,     // Turn-based: turn worm left
+  onTurnRight     // Turn-based: turn worm right
 }) {
   const touchStartRef = useRef(null);
   const touchStartTimeRef = useRef(0);
@@ -110,48 +113,76 @@ export default function WormTouchControls({
       )}
 
       {/* Control buttons - bottom area */}
-      <div style={styles.buttonBar}>
-        {/* Face rotation buttons */}
-        <button
-          style={styles.rotateButton}
-          onTouchStart={(e) => { e.stopPropagation(); handleFaceRotate(1); }}
-          onClick={() => handleFaceRotate(1)}
-        >
-          ↺ Q
-        </button>
+      <div style={styles.controlsContainer}>
+        {/* Movement controls - for turn-based gameplay */}
+        <div style={styles.movementRow}>
+          <button
+            style={styles.turnButton}
+            onTouchStart={(e) => { e.stopPropagation(); onTurnLeft?.(); }}
+            onClick={() => onTurnLeft?.()}
+          >
+            ↰
+          </button>
+          <button
+            style={styles.forwardButton}
+            onTouchStart={(e) => { e.stopPropagation(); onMoveForward?.(); }}
+            onClick={() => onMoveForward?.()}
+          >
+            ▲
+          </button>
+          <button
+            style={styles.turnButton}
+            onTouchStart={(e) => { e.stopPropagation(); onTurnRight?.(); }}
+            onClick={() => onTurnRight?.()}
+          >
+            ↱
+          </button>
+        </div>
 
-        {/* Pause/Resume button */}
-        <button
-          style={styles.pauseButton}
-          onTouchStart={(e) => e.stopPropagation()}
-          onClick={() => {
-            if (gameState === 'playing') onPause?.();
-            else if (gameState === 'paused') onResume?.();
-          }}
-        >
-          {gameState === 'playing' ? '⏸' : '▶'}
-        </button>
+        {/* Rotation & utility controls */}
+        <div style={styles.buttonBar}>
+          {/* Face rotation buttons */}
+          <button
+            style={styles.rotateButton}
+            onTouchStart={(e) => { e.stopPropagation(); handleFaceRotate(1); }}
+            onClick={() => handleFaceRotate(1)}
+          >
+            ↺ Q
+          </button>
 
-        {/* Camera toggle button */}
-        <button
-          style={{
-            ...styles.cameraButton,
-            ...(wormCameraEnabled ? styles.cameraButtonActive : {})
-          }}
-          onTouchStart={(e) => e.stopPropagation()}
-          onClick={onCameraToggle}
-        >
-          📷
-        </button>
+          {/* Pause/Resume button */}
+          <button
+            style={styles.pauseButton}
+            onTouchStart={(e) => e.stopPropagation()}
+            onClick={() => {
+              if (gameState === 'playing') onPause?.();
+              else if (gameState === 'paused') onResume?.();
+            }}
+          >
+            {gameState === 'playing' ? '⏸' : '▶'}
+          </button>
 
-        {/* Face rotation buttons */}
-        <button
-          style={styles.rotateButton}
-          onTouchStart={(e) => { e.stopPropagation(); handleFaceRotate(-1); }}
-          onClick={() => handleFaceRotate(-1)}
-        >
-          E ↻
-        </button>
+          {/* Camera toggle button */}
+          <button
+            style={{
+              ...styles.cameraButton,
+              ...(wormCameraEnabled ? styles.cameraButtonActive : {})
+            }}
+            onTouchStart={(e) => e.stopPropagation()}
+            onClick={onCameraToggle}
+          >
+            {wormCameraEnabled ? '🎥' : '👁️'}
+          </button>
+
+          {/* Face rotation buttons */}
+          <button
+            style={styles.rotateButton}
+            onTouchStart={(e) => { e.stopPropagation(); handleFaceRotate(-1); }}
+            onClick={() => handleFaceRotate(-1)}
+          >
+            E ↻
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -188,11 +219,53 @@ const styles = {
     fontSize: '24px',
     marginBottom: '8px'
   },
-  buttonBar: {
+  controlsContainer: {
     position: 'absolute',
     bottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
     left: '50%',
     transform: 'translateX(-50%)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    alignItems: 'center'
+  },
+  movementRow: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center'
+  },
+  forwardButton: {
+    width: '64px',
+    height: '64px',
+    borderRadius: '50%',
+    border: '3px solid #00ff88',
+    background: 'rgba(0, 255, 136, 0.2)',
+    color: '#00ff88',
+    fontSize: '28px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    touchAction: 'manipulation',
+    boxShadow: '0 0 20px rgba(0, 255, 136, 0.4)'
+  },
+  turnButton: {
+    width: '52px',
+    height: '52px',
+    borderRadius: '50%',
+    border: '2px solid #00aaff',
+    background: 'rgba(0, 170, 255, 0.15)',
+    color: '#00aaff',
+    fontSize: '24px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    touchAction: 'manipulation'
+  },
+  buttonBar: {
     display: 'flex',
     gap: '12px',
     alignItems: 'center'
@@ -231,8 +304,8 @@ const styles = {
     width: '56px',
     height: '56px',
     borderRadius: '50%',
-    border: '2px solid #888',
-    background: 'rgba(0, 0, 0, 0.8)',
+    border: '2px solid #ffa500',
+    background: 'rgba(255, 165, 0, 0.15)',
     color: '#fff',
     fontSize: '20px',
     cursor: 'pointer',

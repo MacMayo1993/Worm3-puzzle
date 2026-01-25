@@ -355,11 +355,15 @@ export function WormGameLoop({
     }
 
     let finalPos = nextPos;
+    let finalMoveDir = nextPos.moveDir || moveDir;
 
     if (isPositionFlipped(nextPos, cubies)) {
-      const antipodalPos = getAntipodalPosition(nextPos, cubies, size);
+      // Wormhole teleport - get antipodal position with transformed direction
+      const antipodalPos = getAntipodalPosition(nextPos, cubies, size, moveDir);
       if (antipodalPos) {
-        finalPos = { ...antipodalPos, moveDir: moveDir };
+        finalPos = antipodalPos;
+        finalMoveDir = antipodalPos.moveDir || moveDir;
+        setMoveDir(finalMoveDir); // Update direction for next move
         setWarps(w => w + 1);
         setScore(s => s + CONFIG.warpBonus);
         play('/sounds/warp.mp3');
@@ -388,7 +392,7 @@ export function WormGameLoop({
     }
 
     setWorm(prev => {
-      const newWorm = [{ ...finalPos, moveDir }, ...prev];
+      const newWorm = [{ ...finalPos, moveDir: finalMoveDir }, ...prev];
 
       if (pendingGrowth > 0) {
         setPendingGrowth(g => g - 1);
