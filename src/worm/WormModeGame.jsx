@@ -33,15 +33,13 @@ export function WormModeProvider({ children, cubies, size, animState, onRotate, 
         warps: game.warps || 0,
         tunnelsTraversed: game.tunnelsTraversed || 0,
         tunnels: game.tunnels || [],
+        speed: game.speed,
         orbsTotal: game.orbsTotal,
         wormCameraEnabled: game.wormCameraEnabled,
         targetTunnelId: game.targetTunnelId || null,
         mode: mode,
-        moveDir: game.moveDir,
         setGameState: game.setGameState,
         setWormCameraEnabled: game.setWormCameraEnabled,
-        setMoveDir: game.setMoveDir,
-        triggerMove: game.triggerMove,
         restart: game.restart
       });
     }
@@ -54,14 +52,12 @@ export function WormModeProvider({ children, cubies, size, animState, onRotate, 
     game.warps,
     game.tunnelsTraversed,
     game.tunnels,
+    game.speed,
     game.orbsTotal,
     game.wormCameraEnabled,
     game.targetTunnelId,
-    game.moveDir,
     game.setGameState,
     game.setWormCameraEnabled,
-    game.setMoveDir,
-    game.triggerMove,
     game.restart,
     mode
   ]);
@@ -130,6 +126,7 @@ export function WormModeHUD({ onQuit, gameData }) {
         orbsTotal={15}
         warps={0}
         gameState="playing"
+        speed={0.8}
         onPause={() => {}}
         onResume={() => {}}
         onRestart={() => {}}
@@ -145,11 +142,11 @@ export function WormModeHUD({ onQuit, gameData }) {
     score,
     warps,
     tunnelsTraversed,
+    speed,
     orbsTotal,
     wormCameraEnabled,
     mode,
     setGameState,
-    setWormCameraEnabled,
     restart
   } = game;
 
@@ -160,10 +157,6 @@ export function WormModeHUD({ onQuit, gameData }) {
   const handleResume = useCallback(() => {
     setGameState('playing');
   }, [setGameState]);
-
-  const handleCameraToggle = useCallback(() => {
-    setWormCameraEnabled?.(prev => !prev);
-  }, [setWormCameraEnabled]);
 
   const isTunnelMode = mode === 'tunnel';
 
@@ -176,13 +169,13 @@ export function WormModeHUD({ onQuit, gameData }) {
       warps={isTunnelMode ? tunnelsTraversed : warps}
       warpsLabel={isTunnelMode ? 'TUNNELS' : 'WARPS'}
       gameState={gameState}
+      speed={speed}
       wormCameraEnabled={wormCameraEnabled}
       mode={mode}
       onPause={handlePause}
       onResume={handleResume}
       onRestart={restart}
       onQuit={onQuit}
-      onCameraToggle={handleCameraToggle}
     />
   );
 }
@@ -239,15 +232,13 @@ export function WormModeStartScreen({ onStart, onCancel }) {
                 <li>Requires flipped stickers to create tunnels</li>
                 {isTouchDevice ? (
                   <>
-                    <li><strong>▲ button</strong> - Move forward one step</li>
                     <li><strong>Swipe</strong> - Rotate layers to align tunnels</li>
-                    <li><strong>Camera button</strong> - Toggle cube/worm view</li>
+                    <li><strong>📷 button</strong> - Toggle first-person view</li>
                   </>
                 ) : (
                   <>
-                    <li><strong>Arrow Up</strong> - Move forward one step</li>
                     <li><strong>WASD/QE</strong> - Rotate to align tunnel exits</li>
-                    <li><strong>C</strong> - Toggle cube/worm camera</li>
+                    <li><strong>C</strong> - Toggle first-person worm cam</li>
                   </>
                 )}
                 <li>Collect orbs floating inside tunnels</li>
@@ -255,20 +246,18 @@ export function WormModeStartScreen({ onStart, onCancel }) {
               </>
             ) : (
               <>
-                <li>Turn-based movement across cube surfaces</li>
+                <li>The worm auto-advances across cube surfaces</li>
                 {isTouchDevice ? (
                   <>
-                    <li><strong>▲ button</strong> - Move forward one step</li>
-                    <li><strong>↰ ↱ buttons</strong> - Turn left/right</li>
-                    <li><strong>Swipe</strong> - Rotate cube layers</li>
-                    <li><strong>Camera button</strong> - Toggle cube/worm view</li>
+                    <li><strong>Swipe</strong> - Rotate layers to steer</li>
+                    <li><strong>Q/E buttons</strong> - Rotate the face</li>
+                    <li><strong>📷 button</strong> - Toggle first-person worm cam</li>
                   </>
                 ) : (
                   <>
-                    <li><strong>Arrow Up</strong> - Move forward one step</li>
-                    <li><strong>Arrow Left/Right</strong> - Turn the worm</li>
-                    <li><strong>WASD/QE</strong> - Rotate cube layers</li>
-                    <li><strong>C</strong> - Toggle cube/worm camera</li>
+                    <li><strong>WASD</strong> - Rotate layers to steer</li>
+                    <li><strong>Q/E</strong> - Rotate the face</li>
+                    <li><strong>C</strong> - Toggle first-person worm cam</li>
                   </>
                 )}
                 <li>Collect glowing orbs to grow longer</li>

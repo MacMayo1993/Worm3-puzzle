@@ -1260,17 +1260,6 @@ export default function WORM3() {
             gameState={wormGameData?.gameState || 'playing'}
             onPause={() => wormGameData?.setGameState?.('paused')}
             onResume={() => wormGameData?.setGameState?.('playing')}
-            onMoveForward={() => wormGameData?.triggerMove?.()}
-            onTurnLeft={() => {
-              const dirs = ['up', 'right', 'down', 'left'];
-              const idx = dirs.indexOf(wormGameData?.moveDir || 'up');
-              wormGameData?.setMoveDir?.(dirs[(idx + 3) % 4]);
-            }}
-            onTurnRight={() => {
-              const dirs = ['up', 'right', 'down', 'left'];
-              const idx = dirs.indexOf(wormGameData?.moveDir || 'up');
-              wormGameData?.setMoveDir?.(dirs[(idx + 1) % 4]);
-            }}
           />
         </>
       )}
