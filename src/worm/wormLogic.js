@@ -568,66 +568,14 @@ export const isPositionFlipped = (pos, cubies) => {
 };
 
 /**
- * Direction transformation for wormhole teleports between faces
- * When you exit a wormhole, your direction needs to be oriented correctly for the new face
- * Key insight: wormholes connect antipodal faces, so we need to "flip" the direction
- * to maintain forward momentum relative to the cube
- */
-const WORMHOLE_DIR_TRANSFORM = {
-  // From front (PZ) to back (NZ): left/right flip
-  'PZ->NZ': { up: 'up', down: 'down', left: 'right', right: 'left' },
-  'NZ->PZ': { up: 'up', down: 'down', left: 'right', right: 'left' },
-
-  // From right (PX) to left (NX): left/right flip
-  'PX->NX': { up: 'up', down: 'down', left: 'right', right: 'left' },
-  'NX->PX': { up: 'up', down: 'down', left: 'right', right: 'left' },
-
-  // From top (PY) to bottom (NY): up/down flip
-  'PY->NY': { up: 'down', down: 'up', left: 'left', right: 'right' },
-  'NY->PY': { up: 'down', down: 'up', left: 'left', right: 'right' },
-
-  // Cross transitions (PZ to side faces, etc.)
-  'PZ->PX': { up: 'up', down: 'down', left: 'left', right: 'right' },
-  'PZ->NX': { up: 'up', down: 'down', left: 'left', right: 'right' },
-  'PZ->PY': { up: 'down', down: 'up', left: 'left', right: 'right' },
-  'PZ->NY': { up: 'up', down: 'down', left: 'left', right: 'right' },
-
-  'NZ->PX': { up: 'up', down: 'down', left: 'right', right: 'left' },
-  'NZ->NX': { up: 'up', down: 'down', left: 'right', right: 'left' },
-  'NZ->PY': { up: 'up', down: 'down', left: 'right', right: 'left' },
-  'NZ->NY': { up: 'down', down: 'up', left: 'right', right: 'left' },
-
-  'PX->PZ': { up: 'up', down: 'down', left: 'left', right: 'right' },
-  'PX->NZ': { up: 'up', down: 'down', left: 'right', right: 'left' },
-  'PX->PY': { up: 'right', down: 'left', left: 'up', right: 'down' },
-  'PX->NY': { up: 'left', down: 'right', left: 'down', right: 'up' },
-
-  'NX->PZ': { up: 'up', down: 'down', left: 'left', right: 'right' },
-  'NX->NZ': { up: 'up', down: 'down', left: 'right', right: 'left' },
-  'NX->PY': { up: 'left', down: 'right', left: 'down', right: 'up' },
-  'NX->NY': { up: 'right', down: 'left', left: 'up', right: 'down' },
-
-  'PY->PZ': { up: 'down', down: 'up', left: 'left', right: 'right' },
-  'PY->NZ': { up: 'up', down: 'down', left: 'right', right: 'left' },
-  'PY->PX': { up: 'left', down: 'right', left: 'down', right: 'up' },
-  'PY->NX': { up: 'right', down: 'left', left: 'up', right: 'down' },
-
-  'NY->PZ': { up: 'up', down: 'down', left: 'left', right: 'right' },
-  'NY->NZ': { up: 'down', down: 'up', left: 'right', right: 'left' },
-  'NY->PX': { up: 'right', down: 'left', left: 'up', right: 'down' },
-  'NY->NX': { up: 'left', down: 'right', left: 'down', right: 'up' }
-};
-
-/**
  * Get the antipodal position for a wormhole teleport
  * @param {Object} pos - Current position {x, y, z, dirKey}
  * @param {Array} cubies - Cube state
  * @param {number} size - Cube size
- * @param {string} currentMoveDir - Current movement direction
  * @param {Map} manifoldMap - Pre-computed manifold map (optional, will build if not provided)
- * @returns {Object|null} Antipodal position with transformed direction, or null
+ * @returns {Object|null} Antipodal position or null
  */
-export const getAntipodalPosition = (pos, cubies, size, currentMoveDir = 'up', manifoldMap = null) => {
+export const getAntipodalPosition = (pos, cubies, size, manifoldMap = null) => {
   const sticker = cubies[pos.x]?.[pos.y]?.[pos.z]?.stickers?.[pos.dirKey];
   if (!sticker) return null;
 
@@ -637,17 +585,11 @@ export const getAntipodalPosition = (pos, cubies, size, currentMoveDir = 'up', m
 
   if (!antipodal) return null;
 
-  // Calculate new movement direction for the destination face
-  const transitionKey = `${pos.dirKey}->${antipodal.dirKey}`;
-  const dirTransform = WORMHOLE_DIR_TRANSFORM[transitionKey];
-  const newMoveDir = dirTransform ? dirTransform[currentMoveDir] : currentMoveDir;
-
   return {
     x: antipodal.x,
     y: antipodal.y,
     z: antipodal.z,
-    dirKey: antipodal.dirKey,
-    moveDir: newMoveDir
+    dirKey: antipodal.dirKey
   };
 };
 
