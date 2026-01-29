@@ -377,6 +377,10 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
         flipFromColor.current = null;
         flipToColor.current = null;
         flipProgress.current = 0;
+        // Reset material color to baseColor to fix color flash after animation
+        if (meshRef.current) {
+          meshRef.current.material.color.set(baseColorRef.current);
+        }
       }
     }
 
@@ -410,6 +414,18 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
 
   const isSudokube = mode==='sudokube';
   const baseColor = isSudokube ? COLORS.white : (meta?.curr ? FACE_COLORS[meta.curr] : COLORS.black);
+
+  // Store baseColor in ref for access in useFrame animation callbacks
+  const baseColorRef = useRef(baseColor);
+  baseColorRef.current = baseColor;
+
+  // Sync material color when meta.curr changes (e.g., during cube rotation)
+  // This ensures the color updates even after imperative changes during animation
+  useEffect(() => {
+    if (meshRef.current && spinT.current <= 0) {
+      meshRef.current.material.color.set(baseColor);
+    }
+  }, [baseColor]);
   const isWormhole = meta?.flips>0 && meta?.curr!==meta?.orig;
   const hasFlipHistory = meta?.flips > 0;
 
