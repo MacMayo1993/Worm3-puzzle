@@ -289,22 +289,29 @@ export default function WORM3() {
     let raf = 0,
       last = performance.now(),
       tickAcc = 0,
-      burstAcc = 0;
+      cooldownAcc = 0;
 
-    // Propagation speed stays constant (350ms between ticks)
-    const tickPeriod = 350;
-    // Burst duration scales with level: 1s, 2s, 3s, 4s
-    const burstDuration = chaosLevel * 1000;
-    // Cooldown between bursts (same as burst duration for balance)
-    const cooldownDuration = burstDuration;
-    // Base probability scales with level: 3%, 6%, 9%, 12% per flip tally
-    const basePerTally = chaosLevel * 0.03;
+    // Chaos level settings
+    // Level 1: slow, low chance | Level 4: fast, high chance
+    const delayByLevel = [0, 500, 350, 200, 100]; // ms between chain steps
+    const baseChanceByLevel = [0, 0.03, 0.05, 0.08, 0.12]; // base % per flip tally
+    const decayByLevel = [0, 0.7, 0.8, 0.85, 0.9]; // how much strength remains each step
+    const cooldownByLevel = [0, 3000, 2000, 1500, 1000]; // ms between chains
 
-    let inBurst = true; // Start in active burst
+    const tickPeriod = delayByLevel[chaosLevel] || 350;
+    const basePerTally = baseChanceByLevel[chaosLevel] || 0.05;
+    const strengthDecay = decayByLevel[chaosLevel] || 0.8;
+    const chainCooldown = cooldownByLevel[chaosLevel] || 2000;
 
-    const step = (state) => {
+    // Chain state
+    let currentChainTile = null; // { x, y, z, dirKey } of tile to flip NEXT
+    let chainStrength = 1.0; // Decays each step, affects propagation chance
+    let inCooldown = false;
+
+    // Find a starting tile for a new chain (weighted by flip tally)
+    const findChainStart = (state) => {
       const S = state.length;
-      const unstable = [];
+      const candidates = [];
 
       for (let x = 0; x < S; x++)
         for (let y = 0; y < S; y++)
@@ -319,23 +326,125 @@ export default function WORM3() {
                 (dirKey === 'NY' && y === 0) ||
                 (dirKey === 'PZ' && z === S - 1) ||
                 (dirKey === 'NZ' && z === 0);
-              if (st.flips > 0 && st.curr !== st.orig && onEdge) unstable.push({ x, y, z, dirKey, flips: st.flips });
+              // Must be on edge, have flips, and be in wrong state
+              if (st.flips > 0 && st.curr !== st.orig && onEdge) {
+                candidates.push({ x, y, z, dirKey, flips: st.flips });
+              }
             }
           }
 
-      if (!unstable.length) return state;
+      if (!candidates.length) return null;
 
-      // Compute manifoldMap from current state to avoid stale closure
+      // Weight selection by flip tally (higher flips = more likely to start chain)
+      const totalWeight = candidates.reduce((sum, c) => sum + c.flips, 0);
+      let roll = Math.random() * totalWeight;
+      for (const c of candidates) {
+        roll -= c.flips;
+        if (roll <= 0) return { tile: c, strength: 1.0 };
+      }
+      return { tile: candidates[candidates.length - 1], strength: 1.0 };
+    };
+
+    // Propagate chain: flip current tile, then select next neighbor to move to
+    const stepChain = (state) => {
+      const S = state.length;
       const currentManifoldMap = buildManifoldGridMap(state, S);
 
-      const src = unstable[Math.floor(Math.random() * unstable.length)];
-      // Probability scales with flip tally: level% per tally
-      const pSelf = basePerTally * src.flips;
+      // If no active chain, start a new one
+      if (!currentChainTile) {
+        const start = findChainStart(state);
+        if (!start) return state; // No valid tiles
+        currentChainTile = start.tile;
+        chainStrength = start.strength;
+      }
 
-      let next = state;
-      // Only flip the source sticker (one tile at a time)
-      if (Math.random() < pSelf) {
-        next = flipStickerPair(next, S, src.x, src.y, src.z, src.dirKey, currentManifoldMap);
+      // Flip the current chain tile
+      let next = flipStickerPair(
+        state, S,
+        currentChainTile.x, currentChainTile.y, currentChainTile.z,
+        currentChainTile.dirKey, currentManifoldMap
+      );
+
+      // Decay strength after this flip
+      chainStrength *= strengthDecay;
+
+      // If strength is too low, end the chain
+      if (chainStrength < 0.1) {
+        currentChainTile = null;
+        chainStrength = 1.0;
+        inCooldown = true;
+        cooldownAcc = 0;
+        return next;
+      }
+
+      // Get manifold neighbors (crosses face boundaries)
+      const neighbors = getManifoldNeighbors(
+        currentChainTile.x, currentChainTile.y, currentChainTile.z,
+        currentChainTile.dirKey, S
+      );
+
+      // Build list of valid neighbors with their flip tallies
+      const validNeighbors = [];
+      for (const neighbor of neighbors) {
+        const nc = next[neighbor.x]?.[neighbor.y]?.[neighbor.z];
+        if (!nc) continue;
+        const nst = nc.stickers[neighbor.dirKey];
+        if (!nst) continue;
+        // Any neighbor on edge can receive propagation
+        const onEdge =
+          (neighbor.dirKey === 'PX' && neighbor.x === S - 1) ||
+          (neighbor.dirKey === 'NX' && neighbor.x === 0) ||
+          (neighbor.dirKey === 'PY' && neighbor.y === S - 1) ||
+          (neighbor.dirKey === 'NY' && neighbor.y === 0) ||
+          (neighbor.dirKey === 'PZ' && neighbor.z === S - 1) ||
+          (neighbor.dirKey === 'NZ' && neighbor.z === 0);
+        if (onEdge) {
+          validNeighbors.push({ ...neighbor, flips: nst.flips || 0 });
+        }
+      }
+
+      // Try to propagate to a neighbor
+      let nextTile = null;
+      if (validNeighbors.length > 0) {
+        // Shuffle neighbors for variety
+        validNeighbors.sort(() => Math.random() - 0.5);
+
+        for (const neighbor of validNeighbors) {
+          // Probability = chainStrength * basePerTally * neighbor's flip tally
+          // Minimum chance even for 0-flip tiles so chain can spread
+          const tallyBonus = Math.max(1, neighbor.flips);
+          const propagateChance = chainStrength * basePerTally * tallyBonus;
+
+          if (Math.random() < propagateChance) {
+            // Show cascade visual
+            const fromPos = getStickerWorldPos(
+              currentChainTile.x, currentChainTile.y, currentChainTile.z,
+              currentChainTile.dirKey, S, explosionT
+            );
+            const toPos = getStickerWorldPos(
+              neighbor.x, neighbor.y, neighbor.z,
+              neighbor.dirKey, S, explosionT
+            );
+            setCascades((prev) => [
+              ...prev,
+              { id: Date.now() + Math.random(), from: fromPos, to: toPos }
+            ]);
+
+            nextTile = neighbor;
+            break;
+          }
+        }
+      }
+
+      // Move chain to next tile or end it
+      if (nextTile) {
+        currentChainTile = nextTile;
+      } else {
+        // Chain failed to propagate, end it
+        currentChainTile = null;
+        chainStrength = 1.0;
+        inCooldown = true;
+        cooldownAcc = 0;
       }
 
       return next;
@@ -344,22 +453,17 @@ export default function WORM3() {
     const loop = (now) => {
       const dt = now - last;
       last = now;
-      burstAcc += dt;
 
-      // Toggle between burst and cooldown phases
-      if (inBurst && burstAcc >= burstDuration) {
-        inBurst = false;
-        burstAcc = 0;
-      } else if (!inBurst && burstAcc >= cooldownDuration) {
-        inBurst = true;
-        burstAcc = 0;
-      }
-
-      // Only tick propagation during active burst
-      if (inBurst) {
+      if (inCooldown) {
+        cooldownAcc += dt;
+        if (cooldownAcc >= chainCooldown) {
+          inCooldown = false;
+          cooldownAcc = 0;
+        }
+      } else {
         tickAcc += dt;
         if (tickAcc >= tickPeriod) {
-          setCubies((prev) => step(prev));
+          setCubies((prev) => stepChain(prev));
           tickAcc = 0;
         }
       }
