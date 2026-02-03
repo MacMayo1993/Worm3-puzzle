@@ -5,6 +5,25 @@ import { COLORS, FACE_COLORS } from '../utils/constants.js';
 import StickerPlane from './StickerPlane.jsx';
 import WireframeEdge from './WireframeEdge.jsx';
 
+// Stable sticker position/rotation arrays (allocated once, never recreated).
+// Prevents StickerPlane from re-rendering due to new array references.
+const STICKER_POS = {
+  PZ: [0, 0, 0.51],
+  NZ: [0, 0, -0.51],
+  PX: [0.51, 0, 0],
+  NX: [-0.51, 0, 0],
+  PY: [0, 0.51, 0],
+  NY: [0, -0.51, 0],
+};
+const STICKER_ROT = {
+  PZ: [0, 0, 0],
+  NZ: [0, Math.PI, 0],
+  PX: [0, Math.PI / 2, 0],
+  NX: [0, -Math.PI / 2, 0],
+  PY: [-Math.PI / 2, 0, 0],
+  NY: [Math.PI / 2, 0, 0],
+};
+
 // Helper functions for grid and sudokube modes
 const faceRCFor = (dirKey, x, y, z, size) => {
   if (dirKey === 'PZ') {
@@ -33,7 +52,7 @@ const faceValue = (dirKey, x, y, z, size) => {
 };
 
 const Cubie = React.forwardRef(function Cubie({
-  position, cubie, size, onPointerDown, visualMode, explosionFactor = 0
+  position, cubie, size, onPointerDown, visualMode, explosionFactor = 0, faceColors, faceTextures
 }, ref) {
   const limit = (size - 1) / 2;
   const isEdge = (p, v) => Math.abs(p - v) < 0.01;
@@ -56,6 +75,11 @@ const Cubie = React.forwardRef(function Cubie({
 
   const meta = (d) => cubie.stickers[d] || null;
 
+  const gridPos = (dirKey) => {
+    const { r, c } = faceRCFor(dirKey, cubie.x, cubie.y, cubie.z, size);
+    return { faceRow: r, faceCol: c };
+  };
+
   const overlay = (dirKey) => {
     const m = meta(dirKey); if (!m) return '';
     if (visualMode === 'grid') {
@@ -75,7 +99,7 @@ const Cubie = React.forwardRef(function Cubie({
   const getEdgeColor = (dirKey) => {
     const sticker = cubie.stickers[dirKey];
     if (!sticker) return COLORS.black;
-    return FACE_COLORS[sticker.curr];
+    return (faceColors || FACE_COLORS)[sticker.curr];
   };
 
   // Determine which edges are visible (on cube exterior)
@@ -180,7 +204,7 @@ const Cubie = React.forwardRef(function Cubie({
 
   return (
     <group position={explodedPos} ref={ref}>
-      <RoundedBox args={[0.98, 0.98, 0.98]} radius={0.08} smoothness={6} onPointerDown={handleDown}>
+      <RoundedBox args={[0.98, 0.98, 0.98]} radius={0.08} smoothness={4} onPointerDown={handleDown}>
         <meshStandardMaterial
           color={visualMode === 'wireframe' ? "#000000" : "#0a0a0a"}
           roughness={visualMode === 'wireframe' ? 0.9 : 0.25}
@@ -204,12 +228,12 @@ const Cubie = React.forwardRef(function Cubie({
       {/* Regular stickers for ALL other modes (classic, grid, sudokube) */}
       {visualMode !== 'wireframe' && (
         <>
-          {isEdge(position[2], (size - 1) / 2) && meta('PZ') && <StickerPlane meta={meta('PZ')} pos={[0, 0, 0.51]} mode={visualMode} overlay={overlay('PZ')} />}
-          {isEdge(position[2], -(size - 1) / 2) && meta('NZ') && <StickerPlane meta={meta('NZ')} pos={[0, 0, -0.51]} rot={[0, Math.PI, 0]} mode={visualMode} overlay={overlay('NZ')} />}
-          {isEdge(position[0], (size - 1) / 2) && meta('PX') && <StickerPlane meta={meta('PX')} pos={[0.51, 0, 0]} rot={[0, Math.PI / 2, 0]} mode={visualMode} overlay={overlay('PX')} />}
-          {isEdge(position[0], -(size - 1) / 2) && meta('NX') && <StickerPlane meta={meta('NX')} pos={[-0.51, 0, 0]} rot={[0, -Math.PI / 2, 0]} mode={visualMode} overlay={overlay('NX')} />}
-          {isEdge(position[1], (size - 1) / 2) && meta('PY') && <StickerPlane meta={meta('PY')} pos={[0, 0.51, 0]} rot={[-Math.PI / 2, 0, 0]} mode={visualMode} overlay={overlay('PY')} />}
-          {isEdge(position[1], -(size - 1) / 2) && meta('NY') && <StickerPlane meta={meta('NY')} pos={[0, -0.51, 0]} rot={[Math.PI / 2, 0, 0]} mode={visualMode} overlay={overlay('NY')} />}
+          {isEdge(position[2], (size - 1) / 2) && meta('PZ') && <StickerPlane meta={meta('PZ')} pos={STICKER_POS.PZ} rot={STICKER_ROT.PZ} mode={visualMode} overlay={overlay('PZ')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PZ')} />}
+          {isEdge(position[2], -(size - 1) / 2) && meta('NZ') && <StickerPlane meta={meta('NZ')} pos={STICKER_POS.NZ} rot={STICKER_ROT.NZ} mode={visualMode} overlay={overlay('NZ')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NZ')} />}
+          {isEdge(position[0], (size - 1) / 2) && meta('PX') && <StickerPlane meta={meta('PX')} pos={STICKER_POS.PX} rot={STICKER_ROT.PX} mode={visualMode} overlay={overlay('PX')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PX')} />}
+          {isEdge(position[0], -(size - 1) / 2) && meta('NX') && <StickerPlane meta={meta('NX')} pos={STICKER_POS.NX} rot={STICKER_ROT.NX} mode={visualMode} overlay={overlay('NX')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NX')} />}
+          {isEdge(position[1], (size - 1) / 2) && meta('PY') && <StickerPlane meta={meta('PY')} pos={STICKER_POS.PY} rot={STICKER_ROT.PY} mode={visualMode} overlay={overlay('PY')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PY')} />}
+          {isEdge(position[1], -(size - 1) / 2) && meta('NY') && <StickerPlane meta={meta('NY')} pos={STICKER_POS.NY} rot={STICKER_ROT.NY} mode={visualMode} overlay={overlay('NY')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NY')} />}
         </>
       )}
     </group>
