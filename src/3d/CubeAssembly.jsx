@@ -258,6 +258,7 @@ const CubeAssembly = React.memo(({
         showTunnels={showTunnels}
         manifoldMap={manifoldMap}
         cubieRefs={cubieRefs.current}
+        faceColors={faceColors}
       />
       {cascades.map(c => (
         <ChaosWave
