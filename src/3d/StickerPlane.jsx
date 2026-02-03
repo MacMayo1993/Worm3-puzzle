@@ -1,17 +1,16 @@
-import React, { useRef, useEffect, useMemo, useState } from 'react';
+import React, { useRef, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { COLORS, FACE_COLORS, ANTIPODAL_COLOR } from '../utils/constants.js';
 import { play, vibrate } from '../utils/audio.js';
 import TallyMarks from '../manifold/TallyMarks.jsx';
-import { ChaosHeatMap } from '../manifold/FlipPropagationWave.jsx';
 
 // Shared geometries for all particle/glow systems (created once, reused globally)
 const sharedParticleGeometry = new THREE.PlaneGeometry(1, 1);
-const sharedOuterRingGeometry = new THREE.RingGeometry(0.4, 0.5, 32);
-const sharedMainRingGeometry = new THREE.RingGeometry(0.2, 0.45, 32);
-const sharedInnerCircleGeometry = new THREE.CircleGeometry(0.48, 32);
+const sharedOuterRingGeometry = new THREE.RingGeometry(0.4, 0.5, 16);
+const sharedMainRingGeometry = new THREE.RingGeometry(0.2, 0.45, 16);
+const sharedInnerCircleGeometry = new THREE.CircleGeometry(0.48, 16);
 
 // Particle system for flip effect - uses persistent meshes, no recreation
 const FlipParticles = ({ active, color, onComplete }) => {
@@ -20,7 +19,7 @@ const FlipParticles = ({ active, color, onComplete }) => {
   const progressRef = useRef(0);
   const velocitiesRef = useRef([]);
   const isActiveRef = useRef(false);
-  const PARTICLE_COUNT = 24;
+  const PARTICLE_COUNT = 12;
 
   // Create materials once and cache them
   const materialsRef = useRef([]);
@@ -265,9 +264,11 @@ const Worm = ({ position, rotation, scale = 1 }) => {
   );
 };
 
-const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mode }) {
+const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mode, faceColors, faceTextures, faceRow, faceCol, faceSize }) {
+  const fc = faceColors || FACE_COLORS;
   const groupRef = useRef();
   const meshRef = useRef();
+  const geoRef = useRef();
   const ringRef = useRef();
   const glowRef = useRef();
   const spinT = useRef(0);
@@ -275,6 +276,8 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
   const pulseT = useRef(0);
   const flipFromColor = useRef(null);
   const flipToColor = useRef(null);
+  const flipFromTexture = useRef(null);
+  const flipToTexture = useRef(null);
   const flipProgress = useRef(0);
 
   // Track if we're currently in a flip animation - prevents race condition
@@ -298,15 +301,17 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
       isFlipping.current = true;
       // Store the colors for the flip animation
       // flipToColor is the ANTIPODAL color (what we're flipping TO)
-      flipFromColor.current = FACE_COLORS[prevVal];
-      flipToColor.current = FACE_COLORS[curr];
+      flipFromColor.current = fc[prevVal];
+      flipToColor.current = fc[curr];
+      flipFromTexture.current = faceTextures?.[prevVal] || null;
+      flipToTexture.current = faceTextures?.[curr] || null;
       spinT.current = 1;
       flipProgress.current = 0;
 
       // Set the glow color to the ANTIPODAL color (what we're becoming)
       // So if flipping FROM blue, we glow GREEN (the antipodal)
-      setCurrentGlowColor(FACE_COLORS[curr]);
-      setCurrentParticleColor(FACE_COLORS[curr]);
+      setCurrentGlowColor(fc[curr]);
+      setCurrentParticleColor(fc[curr]);
       setParticlesActive(true);
       setGlowActive(true);
 
@@ -317,6 +322,9 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
   }, [meta?.curr, meta?.flips]);
 
   useFrame((_, delta) => {
+    // Fast bail-out: skip entirely when nothing is animating on this sticker
+    if (spinT.current <= 0 && shakeT.current <= 0 && !ringRef.current && !glowRef.current) return;
+
     // Flip animation with SNAPPY acceleration
     if (spinT.current > 0 && groupRef.current) {
       // Faster animation speed (5x instead of 4x) for snappier feel
@@ -365,12 +373,18 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
       const scale = 1 + scalePunch * 0.2;
       groupRef.current.scale.set(scale, scale, 1);
 
-      // Animate color through the flip - switch at midpoint
+      // Animate color/texture through the flip - switch at midpoint
       if (meshRef.current && flipFromColor.current && flipToColor.current) {
         if (rawP < 0.5) {
-          meshRef.current.material.color.set(flipFromColor.current);
+          const tex = flipFromTexture.current;
+          meshRef.current.material.map = tex || null;
+          meshRef.current.material.color.set(tex ? '#ffffff' : flipFromColor.current);
+          meshRef.current.material.needsUpdate = true;
         } else {
-          meshRef.current.material.color.set(flipToColor.current);
+          const tex = flipToTexture.current;
+          meshRef.current.material.map = tex || null;
+          meshRef.current.material.color.set(tex ? '#ffffff' : flipToColor.current);
+          meshRef.current.material.needsUpdate = true;
         }
       }
 
@@ -384,10 +398,15 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
         setGlowActive(false);
         flipFromColor.current = null;
         flipToColor.current = null;
+        flipFromTexture.current = null;
+        flipToTexture.current = null;
         flipProgress.current = 0;
-        // Force set the final color correctly using current meta value
+        // Force set the final color/texture correctly using current meta value
         if (meshRef.current) {
-          meshRef.current.material.color.set(baseColorRef.current);
+          const curTex = faceTextures?.[meta?.curr] || null;
+          meshRef.current.material.map = curTex;
+          meshRef.current.material.color.set(curTex ? '#ffffff' : baseColorRef.current);
+          meshRef.current.material.needsUpdate = true;
         }
       }
     }
@@ -421,25 +440,48 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
   });
 
   const isSudokube = mode==='sudokube';
-  const baseColor = isSudokube ? COLORS.white : (meta?.curr ? FACE_COLORS[meta.curr] : COLORS.black);
+  const currentTexture = faceTextures?.[meta?.curr] || null;
+  const baseColor = isSudokube ? COLORS.white : (meta?.curr ? fc[meta.curr] : COLORS.black);
+  const materialColor = currentTexture ? '#ffffff' : baseColor;
 
   // Store baseColor in ref for access in useFrame animation callbacks
-  const baseColorRef = useRef(baseColor);
-  baseColorRef.current = baseColor;
+  const baseColorRef = useRef(materialColor);
+  baseColorRef.current = materialColor;
 
-  // Sync material color when meta.curr changes (e.g., during cube rotation)
-  // Only apply if not currently in a flip animation to prevent race condition
-  useEffect(() => {
-    if (meshRef.current && !isFlipping.current) {
-      meshRef.current.material.color.set(baseColor);
+  // Set up UVs to show the correct portion of the face texture
+  useLayoutEffect(() => {
+    if (!geoRef.current || faceRow == null || faceCol == null || !faceSize) return;
+    const uvs = geoRef.current.attributes.uv;
+    if (!currentTexture) {
+      // Reset to default UVs
+      uvs.setXY(0, 0, 1); uvs.setXY(1, 1, 1);
+      uvs.setXY(2, 0, 0); uvs.setXY(3, 1, 0);
+    } else {
+      const s = faceSize;
+      const u0 = faceCol / s, u1 = (faceCol + 1) / s;
+      const v0 = (s - 1 - faceRow) / s, v1 = (s - faceRow) / s;
+      uvs.setXY(0, u0, v1); uvs.setXY(1, u1, v1);
+      uvs.setXY(2, u0, v0); uvs.setXY(3, u1, v0);
     }
-  }, [baseColor]);
+    uvs.needsUpdate = true;
+  }, [currentTexture, faceRow, faceCol, faceSize]);
+
+  // Sync material color/texture when meta.curr changes (e.g., during cube rotation).
+  // Uses useLayoutEffect so the color updates BEFORE the browser paints,
+  // preventing a 1-frame flash of the wrong color after rotation.
+  useLayoutEffect(() => {
+    if (meshRef.current && !isFlipping.current) {
+      meshRef.current.material.color.set(materialColor);
+      meshRef.current.material.map = currentTexture;
+      meshRef.current.material.needsUpdate = true;
+    }
+  }, [materialColor, currentTexture]);
   const isWormhole = meta?.flips>0 && meta?.curr!==meta?.orig;
   const hasFlipHistory = meta?.flips > 0;
 
   const trackerRadius = Math.min(0.35, 0.06 + (meta?.flips ?? 0) * 0.012);
-  const origColor = meta?.orig ? FACE_COLORS[meta.orig] : COLORS.black;
-  const antipodalColor = meta?.orig ? FACE_COLORS[ANTIPODAL_COLOR[meta.orig]] : COLORS.black;
+  const origColor = meta?.orig ? fc[meta.orig] : COLORS.black;
+  const antipodalColor = meta?.orig ? fc[ANTIPODAL_COLOR[meta.orig]] : COLORS.black;
 
   // Check if colors are white - don't show white indicators on non-white tiles
   const currIsWhite = meta?.curr === 3;
@@ -451,24 +493,16 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
   return (
     <group position={pos} rotation={rot} ref={groupRef}>
       <mesh ref={meshRef}>
-        <planeGeometry args={[0.85,0.85]} />
+        <planeGeometry ref={geoRef} args={[0.85,0.85]} />
         <meshStandardMaterial
-          color={baseColor}
+          color={materialColor}
+          map={currentTexture}
           side={THREE.DoubleSide}
           roughness={0.3}
           metalness={0.05}
           envMapIntensity={0.3}
         />
       </mesh>
-
-      {/* Chaos heat map overlay - shows flip intensity */}
-      {!isSudokube && (
-        <ChaosHeatMap
-          position={[0, 0, 0.005]}
-          flips={meta?.flips ?? 0}
-          maxFlips={8}
-        />
-      )}
 
       {/* Tally Marks - skip if origColor is white on non-white tile */}
       {!isSudokube && hasFlipHistory && !(origIsWhite && !currIsWhite) && (
@@ -484,13 +518,13 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
         <>
           {!(origIsWhite && !currIsWhite) && (
             <mesh position={[0,0,0.006]}>
-              <ringGeometry args={[0.38, 0.41, 32]} />
+              <ringGeometry args={[0.38, 0.41, 16]} />
               <meshBasicMaterial color={origColor} />
             </mesh>
           )}
           {!(antipodalIsWhite && !currIsWhite) && (
             <mesh position={[0,0,0.007]}>
-              <ringGeometry args={[0.35, 0.38, 32]} />
+              <ringGeometry args={[0.35, 0.38, 16]} />
               <meshBasicMaterial color={antipodalColor} />
             </mesh>
           )}
@@ -500,11 +534,11 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
       {!isSudokube && isWormhole && (
         <>
           <mesh ref={ringRef} position={[0,0,0.02]}>
-            <ringGeometry args={[0.36,0.40,32]} />
+            <ringGeometry args={[0.36,0.40,16]} />
             <meshBasicMaterial color="#dda15e" transparent opacity={0.85} />
           </mesh>
           <mesh ref={glowRef} position={[0,0,0.015]}>
-            <circleGeometry args={[0.44,32]} />
+            <circleGeometry args={[0.44,16]} />
             <meshBasicMaterial
               color="#bc6c25"
               transparent
@@ -513,9 +547,9 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
             />
           </mesh>
 
-          {/* WORM creatures - number equals flip count (max 12) */}
-          {Array.from({ length: Math.min(meta?.flips ?? 0, 12) }, (_, i) => {
-            const count = Math.min(meta?.flips ?? 0, 12);
+          {/* WORM creatures - number equals flip count (max 4) */}
+          {Array.from({ length: Math.min(meta?.flips ?? 0, 4) }, (_, i) => {
+            const count = Math.min(meta?.flips ?? 0, 4);
             const angle = (i / count) * Math.PI * 2;
             const radius = count <= 4 ? 0.25 : 0.28; // Spread out more if many worms
             const x = Math.cos(angle) * radius;
@@ -533,18 +567,22 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
         </>
       )}
 
-      {/* Antipodal glow fill effect during flip */}
-      <AntipodalGlowFill
-        active={glowActive}
-        color={currentGlowColor}
-      />
+      {/* Antipodal glow fill effect during flip - only mounted when active */}
+      {glowActive && (
+        <AntipodalGlowFill
+          active={glowActive}
+          color={currentGlowColor}
+        />
+      )}
 
-      {/* Particle burst effect during flip */}
-      <FlipParticles
-        active={particlesActive}
-        color={currentParticleColor}
-        onComplete={() => setParticlesActive(false)}
-      />
+      {/* Particle burst effect during flip - only mounted when active */}
+      {particlesActive && (
+        <FlipParticles
+          active={particlesActive}
+          color={currentParticleColor}
+          onComplete={() => setParticlesActive(false)}
+        />
+      )}
 
       {overlay && (
         <Text position={[0,0,0.03]} fontSize={0.17} color="black" anchorX="center" anchorY="middle">
