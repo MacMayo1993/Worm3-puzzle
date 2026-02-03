@@ -12,8 +12,12 @@ const TopMenuBar = ({
   cubies,
   onShowHelp,
   onShowSettings,
-  achievedWins = { rubiks: false, sudokube: false, ultimate: false }
+  achievedWins = { rubiks: false, sudokube: false, ultimate: false },
+  faceColors,
+  showStats = true,
+  showFaceProgress = true
 }) => {
+  const fc = faceColors || FACE_COLORS;
   const [time, setTime] = useState(0);
   const startTime = useRef(Date.now());
 
@@ -111,41 +115,43 @@ const TopMenuBar = ({
         </div>
 
         {/* Stats Panel - Library Checkout Card */}
-        <div className="ui-element stats-panel" style={{
-          padding: '8px 4px',
-          display: 'flex',
-          gap: '1px',
-          background: colors.background,
-          border: `1px solid ${colors.divider}`
-        }}>
-          {[
-            { label: 'Moves', val: moves, color: colors.primaryLight },
-            { label: 'Flips', val: metrics.flips, color: colors.accent },
-            { label: 'Pairs', val: metrics.wormholes, color: colors.secondary },
-            { label: 'Time', val: formatTime(time), color: colors.text }
-          ].map((stat, i) => (
-            <div key={stat.label} style={{
-              padding: '4px 14px',
-              borderRight: i < 3 ? `1px solid ${colors.divider}` : 'none',
-              textAlign: 'center'
-            }}>
-              <div style={{
-                fontSize: '9px',
-                textTransform: 'uppercase',
-                color: colors.textMuted,
-                letterSpacing: '0.1em',
-                marginBottom: '2px',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
-              }}>{stat.label}</div>
-              <div style={{
-                fontSize: '18px',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-                fontWeight: 600,
-                color: stat.color
-              }}>{stat.val}</div>
-            </div>
-          ))}
-        </div>
+        {showStats && (
+          <div className="ui-element stats-panel" style={{
+            padding: '8px 4px',
+            display: 'flex',
+            gap: '1px',
+            background: colors.background,
+            border: `1px solid ${colors.divider}`
+          }}>
+            {[
+              { label: 'Moves', val: moves, color: colors.primaryLight },
+              { label: 'Flips', val: metrics.flips, color: colors.accent },
+              { label: 'Pairs', val: metrics.wormholes, color: colors.secondary },
+              { label: 'Time', val: formatTime(time), color: colors.text }
+            ].map((stat, i) => (
+              <div key={stat.label} style={{
+                padding: '4px 14px',
+                borderRight: i < 3 ? `1px solid ${colors.divider}` : 'none',
+                textAlign: 'center'
+              }}>
+                <div style={{
+                  fontSize: '9px',
+                  textTransform: 'uppercase',
+                  color: colors.textMuted,
+                  letterSpacing: '0.1em',
+                  marginBottom: '2px',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                }}>{stat.label}</div>
+                <div style={{
+                  fontSize: '18px',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                  fontWeight: 600,
+                  color: stat.color
+                }}>{stat.val}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Center Section - Mode & Status Tags */}
@@ -355,38 +361,40 @@ const TopMenuBar = ({
         </div>
 
         {/* Face Progress - Modern Bar Chart */}
-        <div className="ui-element" style={{ padding: '8px 12px', background: colors.background }}>
-          <div style={{
-            fontSize: '9px',
-            color: colors.textMuted,
-            marginBottom: '6px',
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
-          }}>Faces</div>
-          <div style={{ display: 'flex', gap: '4px' }}>
-            {faceStats.map(f => (
-              <div key={f.face} style={{
-                width: '7px',
-                height: '26px',
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                borderRadius: '3px',
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column-reverse'
-              }}>
-                <div style={{
-                  width: '100%',
-                  height: `${f.percent}%`,
-                  background: FACE_COLORS[f.face],
-                  transition: 'height 0.3s ease',
-                  opacity: 0.9
-                }} />
-              </div>
-            ))}
+        {showFaceProgress && (
+          <div className="ui-element" style={{ padding: '8px 12px', background: colors.background }}>
+            <div style={{
+              fontSize: '9px',
+              color: colors.textMuted,
+              marginBottom: '6px',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+            }}>Faces</div>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {faceStats.map(f => (
+                <div key={f.face} style={{
+                  width: '7px',
+                  height: '26px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  borderRadius: '3px',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column-reverse'
+                }}>
+                  <div style={{
+                    width: '100%',
+                    height: `${f.percent}%`,
+                    background: fc[f.face],
+                    transition: 'height 0.3s ease',
+                    opacity: 0.9
+                  }} />
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Quick Actions - Modern Buttons */}
         <div style={{ display: 'flex', gap: '6px' }}>
