@@ -4,7 +4,8 @@ import { FACE_COLORS } from '../utils/constants.js';
 import { getManifoldGridId } from '../game/coordinates.js';
 import { findAntipodalStickerByGrid } from '../game/manifoldLogic.js';
 
-const WormholeNetwork = ({ cubies, size, showTunnels, manifoldMap, cubieRefs }) => {
+const WormholeNetwork = ({ cubies, size, showTunnels, manifoldMap, cubieRefs, faceColors }) => {
+  const fc = faceColors || FACE_COLORS;
   const tunnelData = useMemo(() => {
     if (!showTunnels) return [];
     // Guard against size/cubies mismatch during size transitions
@@ -39,15 +40,15 @@ const WormholeNetwork = ({ cubies, size, showTunnels, manifoldMap, cubieRefs }) 
               dirKey2: antipodalLoc.dirKey,
               flips: sticker.flips,
               intensity: Math.min(sticker.flips / 10, 1),
-              color1: FACE_COLORS[sticker.orig],
-              color2: FACE_COLORS[antipodalLoc.sticker.orig]
+              color1: fc[sticker.orig],
+              color2: fc[antipodalLoc.sticker.orig]
             });
           });
         }
       }
     }
     return connections;
-  }, [cubies, size, showTunnels, manifoldMap]);
+  }, [cubies, size, showTunnels, manifoldMap, fc]);
 
   if (!showTunnels) return null;
 
