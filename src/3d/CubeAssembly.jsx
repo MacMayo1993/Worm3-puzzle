@@ -1,6 +1,6 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+import React, { useRef, useState, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { TrackballControls } from '@react-three/drei';
 import * as THREE from 'three';
 import Cubie from './Cubie.jsx';
 import DragGuide from './DragGuide.jsx';
@@ -10,16 +10,28 @@ import ChaosWave from '../manifold/ChaosWave.jsx';
 import FlipPropagationWave from '../manifold/FlipPropagationWave.jsx';
 import { vibrate } from '../utils/audio.js';
 
-const CubeAssembly = ({
+// Reusable axis vectors and quaternion (allocated once, never recreated)
+const _axisCol = new THREE.Vector3(1, 0, 0);
+const _axisRow = new THREE.Vector3(0, 1, 0);
+const _axisDepth = new THREE.Vector3(0, 0, 1);
+const _rotQuat = new THREE.Quaternion();
+
+const CubeAssembly = React.memo(({
   size, cubies, onMove, onTapFlip, visualMode, animState, onAnimComplete,
   showTunnels, explosionFactor, cascades, onCascadeComplete, manifoldMap,
-  cursor, showCursor, flipMode, onSelectTile, flipWaveOrigins, onFlipWaveComplete
+  cursor, showCursor, flipMode, onSelectTile, flipWaveOrigins, onFlipWaveComplete,
+  faceColors, faceTextures
 }) => {
   const cubieRefs = useRef([]);
   const controlsRef = useRef();
   const { camera } = useThree();
   const [dragStart, setDragStart] = useState(null);
   const [activeDir, setActiveDir] = useState(null);
+
+  // Pre-computed set of ref indices that belong to the current animation slice.
+  // Computed ONCE when animation starts from the canonical grid positions,
+  // so it's immune to floating-point drift from incremental rotations.
+  const sliceIndicesRef = useRef(null);
 
   const getBasis = () => {
     const f = new THREE.Vector3();
@@ -51,7 +63,7 @@ const CubeAssembly = ({
     }
     // Normal slice rotation
     const { right, upScreen } = getBasis();
-    const sw = new THREE.Vector3().addScaledVector(right, dx).addScaledVector(upScreen, dy); // Fixed: removed negative sign
+    const sw = new THREE.Vector3().addScaledVector(right, dx).addScaledVector(upScreen, dy);
     const t = sw.clone().projectOnPlane(faceN);
     if (t.lengthSq() < 1e-6) return null;
     const ra = new THREE.Vector3().crossVectors(t, faceN).normalize();
@@ -68,9 +80,21 @@ const CubeAssembly = ({
     return n.z >= 0 ? 'PZ' : 'NZ';
   };
 
-  const onPointerDown = ({ pos, worldPos, event }) => {
-    if (animState) return;
-    // Prevent context menu on right click
+  // Stable callback ref pattern: avoids recreating the function on every render,
+  // which would defeat React.memo on all Cubie children.
+  const animStateRef = useRef(animState);
+  animStateRef.current = animState;
+  const flipModeRef = useRef(flipMode);
+  flipModeRef.current = flipMode;
+  const onMoveRef = useRef(onMove);
+  onMoveRef.current = onMove;
+  const onTapFlipRef = useRef(onTapFlip);
+  onTapFlipRef.current = onTapFlip;
+  const onSelectTileRef = useRef(onSelectTile);
+  onSelectTileRef.current = onSelectTile;
+
+  const onPointerDown = useCallback(({ pos, worldPos, event }) => {
+    if (animStateRef.current) return;
     if (event.button === 2) event.preventDefault();
     setDragStart({
       pos, worldPos, event,
@@ -78,10 +102,10 @@ const CubeAssembly = ({
       screenY: event.clientY,
       n: normalFromEvent(event),
       shiftKey: event.shiftKey,
-      isRightClick: event.button === 2 // Track right click
+      isRightClick: event.button === 2
     });
     if (controlsRef.current) controlsRef.current.enabled = false;
-  };
+  }, []);
 
   useEffect(() => {
     const move = e => {
@@ -96,21 +120,17 @@ const CubeAssembly = ({
       const dx = e.clientX - dragStart.screenX, dy = e.clientY - dragStart.screenY;
       const dist = Math.hypot(dx, dy);
       if (dist >= 10) {
-        const m = mapSwipe(dragStart.n, dx, dy, dragStart.shiftKey); // Pass shiftKey for face twist
-        if (m) onMove(m.axis, m.dir, dragStart.pos);
+        const m = mapSwipe(dragStart.n, dx, dy, dragStart.shiftKey);
+        if (m) onMoveRef.current(m.axis, m.dir, dragStart.pos);
       } else {
         const dirKey = dirFromNormal(dragStart.n);
         if (dragStart.isRightClick) {
-          // Right click = flip (only if flipMode is on)
-          if (flipMode) onTapFlip(dragStart.pos, dirKey);
+          if (flipModeRef.current) onTapFlipRef.current(dragStart.pos, dirKey);
         } else {
-          // Left click/tap behavior depends on flipMode
-          if (flipMode) {
-            // When flip mode is enabled, tap/left-click performs flip (mobile-friendly)
-            onTapFlip(dragStart.pos, dirKey);
+          if (flipModeRef.current) {
+            onTapFlipRef.current(dragStart.pos, dirKey);
           } else {
-            // When flip mode is disabled, tap/left-click selects tile
-            if (onSelectTile) onSelectTile(dragStart.pos, dirKey);
+            if (onSelectTileRef.current) onSelectTileRef.current(dragStart.pos, dirKey);
           }
         }
       }
@@ -124,7 +144,13 @@ const CubeAssembly = ({
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
     };
-  }, [dragStart, onMove, onTapFlip, flipMode, onSelectTile]);
+  }, [dragStart]);
+
+  // Store refs for values accessed in useFrame to avoid stale closures
+  const onAnimCompleteRef = useRef(onAnimComplete);
+  onAnimCompleteRef.current = onAnimComplete;
+  const explosionFactorRef = useRef(explosionFactor);
+  explosionFactorRef.current = explosionFactor;
 
   useFrame((_, delta) => {
     if (!animState) return;
@@ -133,49 +159,91 @@ const CubeAssembly = ({
     const ease = newT < 0.5 ? 4 * newT ** 3 : 1 - (-2 * newT + 2) ** 3 / 2;
     const prev = (t ?? 0) < 0.5 ? 4 * (t ?? 0) ** 3 : 1 - (-2 * (t ?? 0) + 2) ** 3 / 2;
     const dRot = (ease - prev) * (Math.PI / 2);
-    const worldAxis = axis === 'col' ? new THREE.Vector3(1, 0, 0) : axis === 'row' ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(0, 0, 1);
-    const k = (size - 1) / 2;
+    const worldAxis = axis === 'col' ? _axisCol : axis === 'row' ? _axisRow : _axisDepth;
 
-    const expansionFactor = 1 + explosionFactor * 1.8;
+    // On animation start (t === 0 or undefined), pre-compute which ref indices are in the slice
+    // from canonical grid positions. This avoids reading back from animated Three.js positions
+    // which drift due to floating-point accumulation and can cause cubies to flicker/swap.
+    if ((t ?? 0) === 0 && !sliceIndicesRef.current) {
+      const k = (size - 1) / 2;
+      const indices = new Set();
+      items.forEach((it, idx) => {
+        const gx = Math.round(it.pos[0] + k);
+        const gy = Math.round(it.pos[1] + k);
+        const gz = Math.round(it.pos[2] + k);
+        const inSlice = (axis === 'col' && gx === sliceIndex) ||
+                        (axis === 'row' && gy === sliceIndex) ||
+                        (axis === 'depth' && gz === sliceIndex);
+        if (inSlice) indices.add(idx);
+      });
+      sliceIndicesRef.current = indices;
+    }
 
-    cubieRefs.current.forEach(g => {
-      if (!g) return;
-      const gx = Math.round(g.position.x / expansionFactor + k);
-      const gy = Math.round(g.position.y / expansionFactor + k);
-      const gz = Math.round(g.position.z / expansionFactor + k);
-      const inSlice = (axis === 'col' && gx === sliceIndex) || (axis === 'row' && gy === sliceIndex) || (axis === 'depth' && gz === sliceIndex);
-      if (inSlice) {
+    const sliceSet = sliceIndicesRef.current;
+    if (sliceSet) {
+      cubieRefs.current.forEach((g, idx) => {
+        if (!g || !sliceSet.has(idx)) return;
         g.position.applyAxisAngle(worldAxis, dRot * dir);
         g.rotateOnWorldAxis(worldAxis, dRot * dir);
-      }
-    });
+      });
+    }
+
     const wasComplete = (t ?? 0) >= 1;
     animState.t = newT;
-    if (newT >= 1 && !wasComplete) { onAnimComplete(); vibrate(14); }
+    if (newT >= 1 && !wasComplete) {
+      sliceIndicesRef.current = null; // Clear for next animation
+      onAnimCompleteRef.current();
+      vibrate(14);
+    }
   });
 
+  // Stable ref callbacks so that passing ref={fn} doesn't defeat React.memo on Cubie.
+  // We create one callback per index, memoized by size.
+  const maxCubies = size * size * size;
+  const cubieRefCallbacks = useMemo(() => {
+    return Array.from({ length: maxCubies }, (_, idx) => (el) => {
+      cubieRefs.current[idx] = el;
+    });
+  }, [maxCubies]);
+
   const k = (size - 1) / 2;
+
+  // Cache position arrays so they're stable references across cubies updates.
+  // Only recomputed when size changes, not on every rotation.
+  const positionCache = useMemo(() => {
+    const cache = [];
+    for (let x = 0; x < size; x++) for (let y = 0; y < size; y++) for (let z = 0; z < size; z++) {
+      cache.push([x - k, y - k, z - k]);
+    }
+    return cache;
+  }, [size, k]);
+
   const items = useMemo(() => {
     // Guard against size/cubies mismatch during size transitions
     if (cubies.length !== size) return [];
     const arr = []; let i = 0;
     for (let x = 0; x < size; x++) for (let y = 0; y < size; y++) for (let z = 0; z < size; z++) {
-      arr.push({ key: i++, pos: [x - k, y - k, z - k], cubie: cubies[x][y][z] });
+      arr.push({ key: i, pos: positionCache[i], cubie: cubies[x][y][z] });
+      i++;
     }
     return arr;
-  }, [cubies, size, k]);
+  }, [cubies, size, k, positionCache]);
 
-  useEffect(() => {
+  // Reset cubie positions/rotations when animation ends or cubies change.
+  // Uses useLayoutEffect so the reset happens BEFORE the browser paints,
+  // preventing a 1-frame glitch where cubies show new colors at old positions.
+  useLayoutEffect(() => {
     if (!animState) {
+      sliceIndicesRef.current = null;
+      const expansionFactor = 1 + explosionFactor * 1.8;
       items.forEach((it, idx) => {
         const g = cubieRefs.current[idx];
         if (g) {
-          const exploded = [
-            it.pos[0] * (1 + explosionFactor * 1.8),
-            it.pos[1] * (1 + explosionFactor * 1.8),
-            it.pos[2] * (1 + explosionFactor * 1.8)
-          ];
-          g.position.set(...exploded);
+          g.position.set(
+            it.pos[0] * expansionFactor,
+            it.pos[1] * expansionFactor,
+            it.pos[2] * expansionFactor
+          );
           g.rotation.set(0, 0, 0);
         }
       });
@@ -208,13 +276,15 @@ const CubeAssembly = ({
       {items.map((it, idx) => (
         <Cubie
           key={it.key}
-          ref={el => (cubieRefs.current[idx] = el)}
+          ref={cubieRefCallbacks[idx]}
           position={it.pos}
           cubie={it.cubie}
           size={size}
           visualMode={visualMode}
           onPointerDown={onPointerDown}
           explosionFactor={explosionFactor}
+          faceColors={faceColors}
+          faceTextures={faceTextures}
         />
       ))}
       {showCursor && cursor && (
@@ -225,22 +295,19 @@ const CubeAssembly = ({
         />
       )}
       {dragStart && !animState && <DragGuide position={dragStart.worldPos} activeDir={activeDir} />}
-      <OrbitControls
+      <TrackballControls
         ref={controlsRef}
-        enablePan={false}
+        noPan={true}
+        noZoom={false}
         minDistance={5}
         maxDistance={28}
         enabled={!animState && !dragStart}
-        enableDamping={true}
-        dampingFactor={0.05}
-        rotateSpeed={0.8}
-        minPolarAngle={-Infinity}
-        maxPolarAngle={Infinity}
-        minAzimuthAngle={-Infinity}
-        maxAzimuthAngle={Infinity}
+        staticMoving={false}
+        dynamicDampingFactor={0.05}
+        rotateSpeed={1.6}
       />
     </group>
   );
-};
+});
 
 export default CubeAssembly;
