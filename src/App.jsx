@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useState, useMemo, useRef, useEffect, Suspense } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import './App.css';
@@ -13,11 +13,14 @@ import { rotateSliceCubies } from './game/cubeRotation.js';
 import { buildManifoldGridMap, flipStickerPair, findAntipodalStickerByGrid, getManifoldNeighbors } from './game/manifoldLogic.js';
 import { detectWinConditions } from './game/winDetection.js';
 import { getStickerWorldPos } from './game/coordinates.js';
+import * as THREE from 'three';
 import { FACE_COLORS, ANTIPODAL_COLOR } from './utils/constants.js';
+import { DEFAULT_SETTINGS, resolveColors } from './utils/colorSchemes.js';
 
 // 3D components
 import CubeAssembly from './3d/CubeAssembly.jsx';
 import BlackHoleEnvironment from './3d/BlackHoleEnvironment.jsx';
+import { StarfieldEnvironment, NebulaSkyEnvironment } from './3d/BackgroundEnvironments.jsx';
 
 // WORM mode
 import {
@@ -38,6 +41,7 @@ import VictoryScreen from './components/screens/VictoryScreen.jsx';
 import Tutorial from './components/screens/Tutorial.jsx';
 import FirstFlipTutorial from './components/screens/FirstFlipTutorial.jsx';
 import RotationPreview from './components/overlays/RotationPreview.jsx';
+import CubeNet from './components/CubeNet.jsx';
 
 export default function WORM3() {
   const [showWelcome, setShowWelcome] = useState(true);
@@ -94,11 +98,76 @@ export default function WORM3() {
   const [wormModeActive, setWormModeActive] = useState(false);
   const [showWormModeStart, setShowWormModeStart] = useState(false);
   const [wormGameData, setWormGameData] = useState(null); // Game state from inside Canvas
+  const [showNetPanel, setShowNetPanel] = useState(false);
+
+  // Settings state (persisted to localStorage)
+  const [settings, setSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('worm3_settings');
+      if (saved) return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
+    } catch {}
+    return { ...DEFAULT_SETTINGS };
+  });
+
+  // Persist settings to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('worm3_settings', JSON.stringify(settings));
+    } catch {}
+  }, [settings]);
+
+  // Resolve face colors from settings
+  const resolvedColors = useMemo(() => resolveColors(settings), [settings]);
+
+  // Face image textures (not persisted — session only)
+  const [faceImages, setFaceImages] = useState({}); // { faceId: dataURL }
+  const [faceTextures, setFaceTextures] = useState({}); // { faceId: THREE.Texture }
+
+  useEffect(() => {
+    const loader = new THREE.TextureLoader();
+    const textures = {};
+    const entries = Object.entries(faceImages);
+    if (entries.length === 0) {
+      setFaceTextures({});
+      return;
+    }
+    let loaded = 0;
+    for (const [faceId, url] of entries) {
+      loader.load(url, (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.minFilter = THREE.LinearFilter;
+        tex.magFilter = THREE.LinearFilter;
+        textures[parseInt(faceId)] = tex;
+        loaded++;
+        if (loaded === entries.length) {
+          setFaceTextures({ ...textures });
+        }
+      });
+    }
+    return () => {
+      Object.values(textures).forEach(t => t.dispose());
+    };
+  }, [faceImages]);
+
+  const handleFaceImage = useCallback((faceId, dataURL) => {
+    if (dataURL) {
+      setFaceImages(prev => ({ ...prev, [faceId]: dataURL }));
+    } else {
+      setFaceImages(prev => {
+        const next = { ...prev };
+        delete next[faceId];
+        return next;
+      });
+    }
+  }, []);
 
   const [upcomingRotation, setUpcomingRotation] = useState(null); // { axis, dir, sliceIndex }
   const [rotationCountdown, setRotationCountdown] = useState(0); // Time until next rotation (ms)
   const cubiesRef = useRef(cubies); // Ref to track current cubies for auto-rotate effect
   cubiesRef.current = cubies; // Keep ref updated
+
+  const resolvedColorsRef = useRef(resolvedColors);
+  resolvedColorsRef.current = resolvedColors;
 
   const handleWelcomeComplete = () => {
     setShowWelcome(false);
@@ -115,18 +184,31 @@ export default function WORM3() {
     } catch {}
   };
 
+  // Only run explosion rAF when there's actual animation to do
+  // (exploded=true and t<1, or exploded=false and t>0)
+  const explosionTRef = useRef(0);
   useEffect(() => {
+    // Don't start the loop if there's nothing to animate
+    if (exploded && explosionTRef.current >= 1) return;
+    if (!exploded && explosionTRef.current <= 0) return;
+
     let raf;
     const animate = () => {
       setExplosionT((t) => {
-        if (exploded && t < 1) return Math.min(1, t + 0.05);
-        if (!exploded && t > 0) return Math.max(0, t - 0.05);
-        return t;
+        let next = t;
+        if (exploded && t < 1) next = Math.min(1, t + 0.05);
+        else if (!exploded && t > 0) next = Math.max(0, t - 0.05);
+        explosionTRef.current = next;
+        return next;
       });
-      raf = requestAnimationFrame(animate);
+      // Continue only while there's still animation to do
+      const curr = explosionTRef.current;
+      if ((exploded && curr < 1) || (!exploded && curr > 0)) {
+        raf = requestAnimationFrame(animate);
+      }
     };
     raf = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(raf);
+    return () => { if (raf) cancelAnimationFrame(raf); };
   }, [exploded]);
 
   const manifoldMap = useMemo(() => {
@@ -249,33 +331,11 @@ export default function WORM3() {
       const src = unstable[Math.floor(Math.random() * unstable.length)];
       // Probability scales with flip tally: level% per tally
       const pSelf = basePerTally * src.flips;
-      const pN = basePerTally * src.flips * 0.6;
 
       let next = state;
+      // Only flip the source sticker (one tile at a time)
       if (Math.random() < pSelf) {
         next = flipStickerPair(next, S, src.x, src.y, src.z, src.dirKey, currentManifoldMap);
-      }
-
-      // Get manifold neighbors (includes cross-face neighbors at edges)
-      const neighbors = getManifoldNeighbors(src.x, src.y, src.z, src.dirKey, S);
-
-      for (const neighbor of neighbors) {
-        if (Math.random() < pN) {
-          // Use the neighbor's dirKey (may be different face for cross-face propagation)
-          next = flipStickerPair(next, S, neighbor.x, neighbor.y, neighbor.z, neighbor.dirKey, currentManifoldMap);
-
-          const fromPos = getStickerWorldPos(src.x, src.y, src.z, src.dirKey, S, explosionT);
-          const toPos = getStickerWorldPos(neighbor.x, neighbor.y, neighbor.z, neighbor.dirKey, S, explosionT);
-
-          setCascades((prev) => [
-            ...prev,
-            {
-              id: Date.now() + Math.random(),
-              from: fromPos,
-              to: toPos
-            }
-          ]);
-        }
       }
 
       return next;
@@ -387,7 +447,9 @@ export default function WORM3() {
           if (upcomingRotation) {
             const { axis, dir, sliceIndex } = upcomingRotation;
             setAnimState({ axis, dir, sliceIndex, t: 0 });
-            setPendingMove({ axis, dir, sliceIndex });
+            const move = { axis, dir, sliceIndex };
+            setPendingMove(move);
+            pendingMoveRef.current = move;
           }
           // Generate next rotation
           setUpcomingRotation(generateRandomRotation(size));
@@ -411,63 +473,69 @@ export default function WORM3() {
     return () => cancelAnimationFrame(raf);
   }, [autoRotateEnabled, chaosMode, size, animState, upcomingRotation]);
 
-  const handleAnimComplete = () => {
-    if (pendingMove) {
-      const { axis, dir, sliceIndex } = pendingMove;
+  const pendingMoveRef = useRef(null);
+
+  const handleAnimComplete = useCallback(() => {
+    const pm = pendingMoveRef.current;
+    if (pm) {
+      const { axis, dir, sliceIndex } = pm;
       setCubies((prev) => rotateSliceCubies(prev, size, axis, sliceIndex, dir));
       setMoves((m) => m + 1);
       play('/sounds/rotate.mp3');
     }
     setAnimState(null);
     setPendingMove(null);
-  };
+    pendingMoveRef.current = null;
+  }, [size]);
 
-  const onMove = (axis, dir, sel) => {
+  const onMove = useCallback((axis, dir, sel) => {
     const sliceIndex = axis === 'col' ? sel.x : axis === 'row' ? sel.y : sel.z;
     setAnimState({ axis, dir, sliceIndex, t: 0 });
-    setPendingMove({ axis, dir, sliceIndex });
-  };
+    const move = { axis, dir, sliceIndex };
+    setPendingMove(move);
+    pendingMoveRef.current = move;
+  }, []);
 
-  const onTapFlip = (pos, dirKey) => {
+  const getRotationForDir = useCallback((dir) => {
+    switch (dir) {
+      case 'PX': return [0, Math.PI / 2, 0];
+      case 'NX': return [0, -Math.PI / 2, 0];
+      case 'PY': return [-Math.PI / 2, 0, 0];
+      case 'NY': return [Math.PI / 2, 0, 0];
+      case 'PZ': return [0, 0, 0];
+      case 'NZ': return [0, Math.PI, 0];
+      default: return [0, 0, 0];
+    }
+  }, []);
+
+  const onTapFlip = useCallback((pos, dirKey) => {
+    // Read current values from refs to avoid stale closures
+    const currentCubies = cubiesRef.current;
+    const currentSize = currentCubies.length;
+    const currentExplosionT = explosionTRef.current;
+
     // Calculate wave origins before updating state
-    const currentManifoldMap = buildManifoldGridMap(cubies, size);
-    const sticker = cubies[pos.x]?.[pos.y]?.[pos.z]?.stickers?.[dirKey];
+    const currentManifoldMap = buildManifoldGridMap(currentCubies, currentSize);
+    const sticker = currentCubies[pos.x]?.[pos.y]?.[pos.z]?.stickers?.[dirKey];
 
     if (sticker) {
-      // Get the antipodal sticker location
-      const antipodalLoc = findAntipodalStickerByGrid(currentManifoldMap, sticker, size);
+      const antipodalLoc = findAntipodalStickerByGrid(currentManifoldMap, sticker, currentSize);
 
-      // Calculate rotation based on face direction
-      const getRotationForDir = (dir) => {
-        switch (dir) {
-          case 'PX': return [0, Math.PI / 2, 0];
-          case 'NX': return [0, -Math.PI / 2, 0];
-          case 'PY': return [-Math.PI / 2, 0, 0];
-          case 'NY': return [Math.PI / 2, 0, 0];
-          case 'PZ': return [0, 0, 0];
-          case 'NZ': return [0, Math.PI, 0];
-          default: return [0, 0, 0];
-        }
-      };
-
-      // Build wave origins from both positions
       const origins = [];
-      const antipodalColor = FACE_COLORS[ANTIPODAL_COLOR[sticker.curr]];
+      const antipodalColor = resolvedColorsRef.current[ANTIPODAL_COLOR[sticker.curr]];
 
-      // Origin 1: The clicked sticker
       origins.push({
-        position: getStickerWorldPos(pos.x, pos.y, pos.z, dirKey, size, explosionT),
+        position: getStickerWorldPos(pos.x, pos.y, pos.z, dirKey, currentSize, currentExplosionT),
         rotation: getRotationForDir(dirKey),
         color: antipodalColor,
         id: Date.now()
       });
 
-      // Origin 2: The antipodal pair
       if (antipodalLoc) {
-        const antipodalSticker = cubies[antipodalLoc.x]?.[antipodalLoc.y]?.[antipodalLoc.z]?.stickers?.[antipodalLoc.dirKey];
-        const pairAntipodalColor = FACE_COLORS[ANTIPODAL_COLOR[antipodalSticker?.curr || 1]];
+        const antipodalSticker = currentCubies[antipodalLoc.x]?.[antipodalLoc.y]?.[antipodalLoc.z]?.stickers?.[antipodalLoc.dirKey];
+        const pairAntipodalColor = resolvedColorsRef.current[ANTIPODAL_COLOR[antipodalSticker?.curr || 1]];
         origins.push({
-          position: getStickerWorldPos(antipodalLoc.x, antipodalLoc.y, antipodalLoc.z, antipodalLoc.dirKey, size, explosionT),
+          position: getStickerWorldPos(antipodalLoc.x, antipodalLoc.y, antipodalLoc.z, antipodalLoc.dirKey, currentSize, currentExplosionT),
           rotation: getRotationForDir(antipodalLoc.dirKey),
           color: pairAntipodalColor,
           id: Date.now() + 1
@@ -478,9 +546,8 @@ export default function WORM3() {
     }
 
     setCubies((prev) => {
-      // Compute manifoldMap from current state to avoid stale closure
-      const freshManifoldMap = buildManifoldGridMap(prev, size);
-      return flipStickerPair(prev, size, pos.x, pos.y, pos.z, dirKey, freshManifoldMap);
+      const freshManifoldMap = buildManifoldGridMap(prev, prev.length);
+      return flipStickerPair(prev, prev.length, pos.x, pos.y, pos.z, dirKey, freshManifoldMap);
     });
     setMoves((m) => m + 1);
 
@@ -496,15 +563,15 @@ export default function WORM3() {
       // Small delay so user sees the flip animation first
       setTimeout(() => setShowFirstFlipTutorial(true), 600);
     }
-  };
+  }, [getRotationForDir, hasFlippedOnce]);
 
-  const onFlipWaveComplete = () => {
+  const onFlipWaveComplete = useCallback(() => {
     setFlipWaveOrigins([]);
-  };
+  }, []);
 
-  const onCascadeComplete = (id) => {
+  const onCascadeComplete = useCallback((id) => {
     setCascades((prev) => prev.filter((c) => c.id !== id));
-  };
+  }, []);
 
   const shuffle = () => {
     let state = makeCubies(size);
@@ -548,10 +615,12 @@ export default function WORM3() {
     setWormModeActive(false);
   };
 
-  const onWormRotate = (axis, dir, sliceIndex) => {
+  const onWormRotate = useCallback((axis, dir, sliceIndex) => {
     setAnimState({ axis, dir, sliceIndex, t: 0 });
-    setPendingMove({ axis, dir, sliceIndex });
-  };
+    const move = { axis, dir, sliceIndex };
+    setPendingMove(move);
+    pendingMoveRef.current = move;
+  }, []);
 
   // Victory screen handlers
   const handleVictoryContinue = () => {
@@ -612,11 +681,11 @@ export default function WORM3() {
   };
 
   // Handle tile selection (left click)
-  const handleSelectTile = (pos, dirKey) => {
+  const handleSelectTile = useCallback((pos, dirKey) => {
     const newCursor = cubePosToCursor(pos, dirKey);
     setCursor(newCursor);
     setShowCursor(true);
-  };
+  }, [size]);
 
   // Move cursor with face wrapping
   const moveCursor = (direction) => {
@@ -1008,6 +1077,9 @@ export default function WORM3() {
         case 'x': // Changed from 'e' - toggle exploded view
           setExploded((ex) => !ex);
           break;
+        case 'n':
+          setShowNetPanel((p) => !p);
+          break;
         case 'v':
           setVisualMode((v) => (v === 'classic' ? 'grid' : v === 'grid' ? 'sudokube' : v === 'sudokube' ? 'wireframe' : 'classic'));
           break;
@@ -1033,7 +1105,7 @@ export default function WORM3() {
   }
 
   return (
-    <div className="full-screen">
+    <div className={`full-screen${settings.backgroundTheme === 'dark' ? ' bg-dark' : settings.backgroundTheme === 'midnight' ? ' bg-midnight' : ''}`}>
       {showTutorial && <Tutorial onClose={closeTutorial} />}
 
       <div className="canvas-container" onContextMenu={(e) => e.preventDefault()}>
@@ -1051,7 +1123,9 @@ export default function WORM3() {
             </>
           )}
           <Suspense fallback={null}>
-            <BlackHoleEnvironment flipTrigger={blackHolePulse} />
+            {settings.backgroundTheme === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
+            {settings.backgroundTheme === 'starfield' && <StarfieldEnvironment flipTrigger={blackHolePulse} />}
+            {settings.backgroundTheme === 'nebula' && <NebulaSkyEnvironment flipTrigger={blackHolePulse} />}
             <Environment preset="city" />
 
             {/* WORM Mode - wraps everything when active */}
@@ -1089,6 +1163,7 @@ export default function WORM3() {
                   onSelectTile={handleSelectTile}
                   flipWaveOrigins={flipWaveOrigins}
                   onFlipWaveComplete={onFlipWaveComplete}
+                  faceColors={resolvedColors} faceTextures={faceTextures}
                 />
               </WormModeProvider>
             ) : (
@@ -1112,6 +1187,7 @@ export default function WORM3() {
               onSelectTile={handleSelectTile}
               flipWaveOrigins={flipWaveOrigins}
               onFlipWaveComplete={onFlipWaveComplete}
+              faceColors={resolvedColors} faceTextures={faceTextures}
             />
             )}
           </Suspense>
@@ -1131,6 +1207,9 @@ export default function WORM3() {
           onShowHelp={() => setShowHelp(true)}
           onShowSettings={() => setShowSettings(true)}
           achievedWins={achievedWins}
+          faceColors={resolvedColors} faceTextures={faceTextures}
+          showStats={settings.showStats}
+          showFaceProgress={settings.showFaceProgress}
         />
 
         {/* Auto-rotate Preview */}
@@ -1177,6 +1256,9 @@ export default function WORM3() {
               <button className={`btn-compact text ${showTunnels ? 'active' : ''}`} onClick={() => setShowTunnels(!showTunnels)}>
                 TUNNELS
               </button>
+              <button className={`btn-compact text ${showNetPanel ? 'active' : ''}`} onClick={() => setShowNetPanel(!showNetPanel)}>
+                NET
+              </button>
               <button
                 className="btn-compact text"
                 onClick={() =>
@@ -1209,20 +1291,22 @@ export default function WORM3() {
           </div>
 
           {/* Manifold Selector - Vintage Educational Footer */}
-          <div
-            className="manifold-selector"
-            style={{
-              fontFamily: 'Georgia, serif',
-              fontSize: '10px',
-              color: '#9c6644',
-              letterSpacing: '0.2em',
-              textTransform: 'uppercase',
-              opacity: 0.6,
-              pointerEvents: 'auto'
-            }}
-          >
-            Standard Euclidean ——— <span style={{ color: '#bc6c25', fontWeight: 600 }}>Antipodal Projection</span> ——— Real Projective Plane
-          </div>
+          {settings.showManifoldFooter && (
+            <div
+              className="manifold-selector"
+              style={{
+                fontFamily: 'Georgia, serif',
+                fontSize: '10px',
+                color: '#9c6644',
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+                opacity: 0.6,
+                pointerEvents: 'auto'
+              }}
+            >
+              Standard Euclidean ——— <span style={{ color: '#bc6c25', fontWeight: 600 }}>Antipodal Projection</span> ——— Real Projective Plane
+            </div>
+          )}
         </div>
       </div>
 
@@ -1234,7 +1318,7 @@ export default function WORM3() {
           }}
         />
       )}
-      {showSettings && <SettingsMenu onClose={() => setShowSettings(false)} settings={{}} onSettingsChange={() => {}} />}
+      {showSettings && <SettingsMenu onClose={() => setShowSettings(false)} settings={settings} onSettingsChange={setSettings} faceImages={faceImages} onFaceImage={handleFaceImage} />}
       {showHelp && <HelpMenu onClose={() => setShowHelp(false)} />}
       {showFirstFlipTutorial && <FirstFlipTutorial onClose={() => setShowFirstFlipTutorial(false)} />}
 
@@ -1262,6 +1346,18 @@ export default function WORM3() {
             onResume={() => wormGameData?.setGameState?.('playing')}
           />
         </>
+      )}
+
+      {/* Net View Side Panel */}
+      {showNetPanel && (
+        <CubeNet
+          cubies={cubies}
+          size={size}
+          onTapFlip={onTapFlip}
+          flipMode={flipMode}
+          onClose={() => setShowNetPanel(false)}
+          faceColors={resolvedColors} faceTextures={faceTextures}
+        />
       )}
     </div>
   );
