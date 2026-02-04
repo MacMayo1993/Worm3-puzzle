@@ -6,7 +6,7 @@ import './App.css';
 
 // Utils
 import { play } from './utils/audio.js';
-import { getLevel, completeLevel, loadProgress } from './utils/levels.js';
+import { getLevel, getNextLevel, completeLevel, loadProgress } from './utils/levels.js';
 
 // Game logic
 import { makeCubies } from './game/cubeState.js';
@@ -795,6 +795,20 @@ export default function WORM3() {
     }
   };
 
+  const handleNextLevel = () => {
+    // Mark current level as completed
+    if (currentLevel) {
+      completeLevel(currentLevel);
+    }
+    // Get next level
+    const nextLevelData = getNextLevel(currentLevel);
+    if (nextLevelData) {
+      // Load next level
+      handleLevelSelect(nextLevelData.id);
+    }
+    setVictory(null);
+  };
+
   // Level selection handlers
   const handleShowLevelSelect = () => {
     setShowMainMenu(false);
@@ -1299,36 +1313,48 @@ export default function WORM3() {
         return;
       }
 
-      // F - flip at cursor (only if flipMode is on)
+      // F - flip at cursor (only if flipMode is on and allowed by level)
       if (key === 'f') {
         e.preventDefault();
-        if (flipMode) performCursorFlip();
+        if (flipMode && (!currentLevelData || currentLevelData.features.flips)) {
+          performCursorFlip();
+        }
         return;
       }
 
-      // Other shortcuts
+      // Other shortcuts - respect level feature restrictions
       switch (key) {
         case 'h':
         case '?':
           setShowHelp((h) => !h);
           break;
-        case 'g': // Changed from 'f' - toggle flip mode for mouse
-          setFlipMode((f) => !f);
+        case 'g': // Toggle flip mode for mouse - gated by level
+          if (!currentLevelData || currentLevelData.features.flips) {
+            setFlipMode((f) => !f);
+          }
           break;
-        case 't':
-          setShowTunnels((t) => !t);
+        case 't': // Tunnels - gated by level
+          if (!currentLevelData || currentLevelData.features.tunnels) {
+            setShowTunnels((t) => !t);
+          }
           break;
-        case 'x': // Changed from 'e' - toggle exploded view
-          setExploded((ex) => !ex);
+        case 'x': // Explode view - gated by level
+          if (!currentLevelData || currentLevelData.features.explode) {
+            setExploded((ex) => !ex);
+          }
           break;
-        case 'n':
-          setShowNetPanel((p) => !p);
+        case 'n': // Net view - gated by level
+          if (!currentLevelData || currentLevelData.features.net) {
+            setShowNetPanel((p) => !p);
+          }
           break;
         case 'v':
           setVisualMode((v) => (v === 'classic' ? 'grid' : v === 'grid' ? 'sudokube' : v === 'sudokube' ? 'wireframe' : 'classic'));
           break;
-        case 'c':
-          setChaosLevel((l) => (l > 0 ? 0 : 1));
+        case 'c': // Chaos - gated by level
+          if (!currentLevelData || currentLevelData.features.chaos) {
+            setChaosLevel((l) => (l > 0 ? 0 : 1));
+          }
           break;
         case 'escape':
           setShowHelp(false);
@@ -1340,7 +1366,7 @@ export default function WORM3() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cursor, animState, size, flipMode, showLevelTutorial]);
+  }, [cursor, animState, size, flipMode, showLevelTutorial, currentLevelData]);
 
   const cameraZ = { 2: 8, 3: 10, 4: 14, 5: 18 }[size] || 10;
 
@@ -1471,20 +1497,52 @@ export default function WORM3() {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
           <div className="controls-compact ui-element">
             <div className="controls-row">
-              <button className={`btn-compact text ${flipMode ? 'active' : ''}`} onClick={() => setFlipMode(!flipMode)}>
+              {/* FLIP - gated by level.features.flips */}
+              <button
+                className={`btn-compact text ${flipMode ? 'active' : ''} ${currentLevelData && !currentLevelData.features.flips ? 'locked' : ''}`}
+                onClick={() => {
+                  if (currentLevelData && !currentLevelData.features.flips) return;
+                  setFlipMode(!flipMode);
+                }}
+                disabled={currentLevelData && !currentLevelData.features.flips}
+                title={currentLevelData && !currentLevelData.features.flips ? 'Unlock in a later level' : 'Toggle flip mode (G)'}
+              >
+                {currentLevelData && !currentLevelData.features.flips && <span className="lock-icon">🔒</span>}
                 FLIP
               </button>
-              <button className={`btn-compact text ${chaosMode ? 'chaos' : ''}`} onClick={() => setChaosLevel((l) => (l > 0 ? 0 : 1))}>
+              {/* CHAOS - gated by level.features.chaos */}
+              <button
+                className={`btn-compact text ${chaosMode ? 'chaos' : ''} ${currentLevelData && !currentLevelData.features.chaos ? 'locked' : ''}`}
+                onClick={() => {
+                  if (currentLevelData && !currentLevelData.features.chaos) return;
+                  setChaosLevel((l) => (l > 0 ? 0 : 1));
+                }}
+                disabled={currentLevelData && !currentLevelData.features.chaos}
+                title={currentLevelData && !currentLevelData.features.chaos ? 'Unlock in a later level' : 'Toggle chaos mode (C)'}
+              >
+                {currentLevelData && !currentLevelData.features.chaos && <span className="lock-icon">🔒</span>}
                 CHAOS
               </button>
-              {chaosMode && (
+              {chaosMode && currentLevelData?.features.chaos !== false && (
                 <>
                   <div className="chaos-levels">
-                    {[1, 2, 3, 4].map((l) => (
-                      <button key={l} className={`btn-level ${chaosLevel === l ? 'active' : ''}`} onClick={() => setChaosLevel(l)}>
-                        L{l}
-                      </button>
-                    ))}
+                    {[1, 2, 3, 4].map((l) => {
+                      // Gate chaos levels based on level's max chaos
+                      const maxChaos = currentLevelData?.chaosLevel || 4;
+                      const isLocked = currentLevelData && l > maxChaos;
+                      return (
+                        <button
+                          key={l}
+                          className={`btn-level ${chaosLevel === l ? 'active' : ''} ${isLocked ? 'locked' : ''}`}
+                          onClick={() => !isLocked && setChaosLevel(l)}
+                          disabled={isLocked}
+                          title={isLocked ? `Unlock at a higher level` : `Chaos level ${l}`}
+                        >
+                          {isLocked && <span className="lock-icon-small">🔒</span>}
+                          L{l}
+                        </button>
+                      );
+                    })}
                   </div>
                   <button
                     className={`btn-compact text ${autoRotateEnabled ? 'active' : ''}`}
@@ -1495,13 +1553,43 @@ export default function WORM3() {
                   </button>
                 </>
               )}
-              <button className={`btn-compact text ${exploded ? 'active' : ''}`} onClick={() => setExploded(!exploded)}>
+              {/* EXPLODE - gated by level.features.explode */}
+              <button
+                className={`btn-compact text ${exploded ? 'active' : ''} ${currentLevelData && !currentLevelData.features.explode ? 'locked' : ''}`}
+                onClick={() => {
+                  if (currentLevelData && !currentLevelData.features.explode) return;
+                  setExploded(!exploded);
+                }}
+                disabled={currentLevelData && !currentLevelData.features.explode}
+                title={currentLevelData && !currentLevelData.features.explode ? 'Unlock in a later level' : 'Toggle explode view (X)'}
+              >
+                {currentLevelData && !currentLevelData.features.explode && <span className="lock-icon">🔒</span>}
                 EXPLODE
               </button>
-              <button className={`btn-compact text ${showTunnels ? 'active' : ''}`} onClick={() => setShowTunnels(!showTunnels)}>
+              {/* TUNNELS - gated by level.features.tunnels */}
+              <button
+                className={`btn-compact text ${showTunnels ? 'active' : ''} ${currentLevelData && !currentLevelData.features.tunnels ? 'locked' : ''}`}
+                onClick={() => {
+                  if (currentLevelData && !currentLevelData.features.tunnels) return;
+                  setShowTunnels(!showTunnels);
+                }}
+                disabled={currentLevelData && !currentLevelData.features.tunnels}
+                title={currentLevelData && !currentLevelData.features.tunnels ? 'Unlock in a later level' : 'Toggle tunnels (T)'}
+              >
+                {currentLevelData && !currentLevelData.features.tunnels && <span className="lock-icon">🔒</span>}
                 TUNNELS
               </button>
-              <button className={`btn-compact text ${showNetPanel ? 'active' : ''}`} onClick={() => setShowNetPanel(!showNetPanel)}>
+              {/* NET - gated by level.features.net */}
+              <button
+                className={`btn-compact text ${showNetPanel ? 'active' : ''} ${currentLevelData && !currentLevelData.features.net ? 'locked' : ''}`}
+                onClick={() => {
+                  if (currentLevelData && !currentLevelData.features.net) return;
+                  setShowNetPanel(!showNetPanel);
+                }}
+                disabled={currentLevelData && !currentLevelData.features.net}
+                title={currentLevelData && !currentLevelData.features.net ? 'Unlock in a later level' : 'Toggle net view (N)'}
+              >
+                {currentLevelData && !currentLevelData.features.net && <span className="lock-icon">🔒</span>}
                 NET
               </button>
               <button
@@ -1512,14 +1600,25 @@ export default function WORM3() {
               >
                 {visualMode.toUpperCase()}
               </button>
-              <select className="btn-compact" value={size} onChange={(e) => setSize(Number(e.target.value))} style={{ fontFamily: "'Courier New', monospace" }}>
-                {[3, 4, 5].map((n) => (
+              {/* Size selector - disabled when playing a specific level */}
+              <select
+                className={`btn-compact ${currentLevelData ? 'locked' : ''}`}
+                value={size}
+                onChange={(e) => {
+                  if (currentLevelData) return;
+                  setSize(Number(e.target.value));
+                }}
+                disabled={!!currentLevelData}
+                style={{ fontFamily: "'Courier New', monospace" }}
+                title={currentLevelData ? 'Size is fixed for this level' : 'Change cube size'}
+              >
+                {[2, 3, 4, 5].map((n) => (
                   <option key={n} value={n}>
                     {n}×{n}
                   </option>
                 ))}
               </select>
-              <button className="btn-compact shuffle text" onClick={shuffle}>
+              <button className="btn-compact shuffle text" onClick={currentLevelData ? shuffleForLevel : shuffle}>
                 SHUFFLE
               </button>
               <button className="btn-compact reset text" onClick={reset}>
@@ -1546,6 +1645,20 @@ export default function WORM3() {
               >
                 WORM
               </button>
+              {/* Exit Level / Freeplay button */}
+              {currentLevelData && (
+                <button
+                  className="btn-compact text freeplay"
+                  onClick={() => {
+                    setCurrentLevel(null);
+                    setCurrentLevelData(null);
+                    // Keep current settings but allow full freedom
+                  }}
+                  title="Exit level mode and enable all features"
+                >
+                  FREEPLAY
+                </button>
+              )}
             </div>
           </div>
 
@@ -1568,6 +1681,14 @@ export default function WORM3() {
           )}
         </div>
       </div>
+
+      {/* Level Badge - shows current level when playing */}
+      {currentLevelData && !showMainMenu && !showLevelSelect && !victory && (
+        <div className="level-badge">
+          <span className="level-badge-number">{currentLevel}</span>
+          <span className="level-badge-name">{currentLevelData.name}</span>
+        </div>
+      )}
 
       {showMainMenu && (
         <MainMenu
@@ -1600,7 +1721,19 @@ export default function WORM3() {
       )}
 
       {/* Victory Screen - highest z-index */}
-      {victory && <VictoryScreen winType={victory} moves={moves} time={gameTime} onContinue={handleVictoryContinue} onNewGame={handleVictoryNewGame} />}
+      {victory && (
+        <VictoryScreen
+          winType={victory}
+          moves={moves}
+          time={gameTime}
+          onContinue={handleVictoryContinue}
+          onNewGame={handleVictoryNewGame}
+          currentLevel={currentLevel}
+          levelData={currentLevelData}
+          onNextLevel={handleNextLevel}
+          hasNextLevel={currentLevel && currentLevel < 10}
+        />
+      )}
 
       {/* Level 10 Epic Cutscene */}
       {showCutscene && currentLevel === 10 && (

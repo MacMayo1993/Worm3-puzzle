@@ -1616,3 +1616,175 @@ body {
     max-width: 500px;
   }
 }
+
+/* ========================================
+   Level Progression - Feature Gating Styles
+   ======================================== */
+
+/* Locked button styling */
+.btn-compact.locked,
+.btn-level.locked,
+select.locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+  position: relative;
+  background: rgba(40, 45, 60, 0.5) !important;
+  border-color: rgba(100, 100, 120, 0.3) !important;
+  color: rgba(200, 200, 210, 0.5) !important;
+}
+
+.btn-compact.locked:hover,
+.btn-level.locked:hover,
+select.locked:hover {
+  transform: none;
+  box-shadow: none;
+  background: rgba(40, 45, 60, 0.5) !important;
+}
+
+/* Lock icon positioning */
+.lock-icon {
+  font-size: 0.6rem;
+  margin-right: 4px;
+  opacity: 0.7;
+}
+
+.lock-icon-small {
+  font-size: 0.5rem;
+  margin-right: 2px;
+  opacity: 0.7;
+}
+
+/* Locked button tooltip effect */
+.btn-compact.locked::after,
+.btn-level.locked::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  background: rgba(20, 25, 40, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 100;
+  margin-bottom: 8px;
+}
+
+.btn-compact.locked:hover::after,
+.btn-level.locked:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-4px);
+}
+
+/* Freeplay button styling */
+.btn-compact.freeplay {
+  background: rgba(139, 92, 246, 0.7);
+  border-color: rgba(167, 139, 250, 0.5);
+  color: #ffffff;
+}
+
+.btn-compact.freeplay:hover {
+  background: rgba(139, 92, 246, 0.85);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
+/* Level indicator badge */
+.level-badge {
+  position: fixed;
+  top: 80px;
+  left: 24px;
+  background: rgba(30, 35, 50, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 16px;
+  backdrop-filter: blur(12px);
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.level-badge-number {
+  font-family: 'Courier New', monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: rgba(59, 130, 246, 0.9);
+  line-height: 1;
+}
+
+.level-badge-name {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Animation for feature unlock */
+@keyframes feature-unlock {
+  0% {
+    opacity: 0.4;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: none;
+  }
+}
+
+.btn-compact.unlocking {
+  animation: feature-unlock 0.6s ease-out;
+}
+
+/* Disabled select styling */
+select.btn-compact:disabled {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: none;
+}
+
+/* Mobile adjustments for locked buttons */
+@media (max-width: 768px) {
+  .lock-icon {
+    font-size: 0.5rem;
+    margin-right: 2px;
+  }
+
+  .lock-icon-small {
+    display: none;
+  }
+
+  .btn-compact.locked::after,
+  .btn-level.locked::after {
+    display: none; /* Hide tooltip on mobile */
+  }
+
+  .level-badge {
+    top: auto;
+    bottom: 140px;
+    bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+    left: 12px;
+    padding: 6px 10px;
+  }
+
+  .level-badge-number {
+    font-size: 16px;
+  }
+
+  .level-badge-name {
+    font-size: 10px;
+  }
+}
