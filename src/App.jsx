@@ -1509,14 +1509,21 @@ export default function WORM3() {
           onReset={reset}
           showNetPanel={showNetPanel}
           onToggleNet={() => setShowNetPanel(!showNetPanel)}
+          onRotate={{
+            up: () => performCursorRotation('up'),
+            down: () => performCursorRotation('down'),
+            left: () => performCursorRotation('left'),
+            right: () => performCursorRotation('right'),
+            cw: () => performCursorRotation('cw'),
+            ccw: () => performCursorRotation('ccw')
+          }}
         />
       )}
 
       {/* Mobile Touch Hint - Shows once to guide users */}
       {showMobileTouchHint && !showWelcome && !showTutorial && !showMainMenu && (
         <div className="mobile-touch-hint">
-          Swipe on cube to rotate slices<br/>
-          Tap tiles to flip (when Flip mode is on)
+          Use D-pad to rotate slices • Tap tiles to flip
         </div>
       )}
     </div>
