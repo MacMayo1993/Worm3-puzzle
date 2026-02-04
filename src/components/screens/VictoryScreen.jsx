@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
 
-const VictoryScreen = ({ winType, moves, time, onContinue, onNewGame }) => {
+const VictoryScreen = ({
+  winType,
+  moves,
+  time,
+  onContinue,
+  onNewGame,
+  currentLevel = null,
+  levelData = null,
+  onNextLevel = null,
+  hasNextLevel = false
+}) => {
   const [showConfetti, setShowConfetti] = useState(true);
 
   const formatTime = (s) => {
@@ -8,6 +18,9 @@ const VictoryScreen = ({ winType, moves, time, onContinue, onNewGame }) => {
     const secs = s % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Use level-specific win message if available
+  const levelWinMessage = levelData?.winMessage;
 
   const winConfig = {
     rubiks: {
@@ -180,8 +193,31 @@ const VictoryScreen = ({ winType, moves, time, onContinue, onNewGame }) => {
           lineHeight: 1.7,
           fontFamily: 'Georgia, serif'
         }}>
-          {config.description}
+          {levelWinMessage || config.description}
         </p>
+
+        {/* Level indicator when playing a level */}
+        {currentLevel && (
+          <div style={{
+            display: 'inline-block',
+            marginBottom: '20px',
+            padding: '8px 20px',
+            background: `${config.color}15`,
+            borderRadius: '20px',
+            border: `1px solid ${config.color}30`
+          }}>
+            <span style={{
+              fontSize: '13px',
+              fontWeight: 600,
+              color: config.color,
+              fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em'
+            }}>
+              Level {currentLevel} Complete
+            </span>
+          </div>
+        )}
 
         {/* Stats */}
         <div style={{
@@ -231,7 +267,7 @@ const VictoryScreen = ({ winType, moves, time, onContinue, onNewGame }) => {
         </div>
 
         {/* Buttons */}
-        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <button
             onClick={onContinue}
             style={{
@@ -255,10 +291,45 @@ const VictoryScreen = ({ winType, moves, time, onContinue, onNewGame }) => {
           >
             Keep Playing
           </button>
+          {/* Next Level button - shown when playing a level and there's a next level */}
+          {hasNextLevel && onNextLevel && (
+            <button
+              onClick={onNextLevel}
+              style={{
+                background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                border: 'none',
+                color: '#ffffff',
+                fontSize: '16px',
+                fontWeight: 600,
+                padding: '12px 28px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
+                fontFamily: 'Georgia, serif',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={e => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.5)';
+              }}
+              onMouseLeave={e => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
+              }}
+            >
+              Next Level
+              <span style={{ fontSize: '18px' }}>→</span>
+            </button>
+          )}
           <button
             onClick={onNewGame}
             style={{
-              background: `linear-gradient(135deg, ${config.gradientFrom}, ${config.gradientTo})`,
+              background: hasNextLevel
+                ? 'rgba(100, 116, 139, 0.7)'
+                : `linear-gradient(135deg, ${config.gradientFrom}, ${config.gradientTo})`,
               border: 'none',
               color: '#ffffff',
               fontSize: '16px',
@@ -266,20 +337,26 @@ const VictoryScreen = ({ winType, moves, time, onContinue, onNewGame }) => {
               padding: '12px 28px',
               borderRadius: '6px',
               cursor: 'pointer',
-              boxShadow: `0 4px 12px ${config.color}40`,
+              boxShadow: hasNextLevel
+                ? '0 4px 12px rgba(100, 116, 139, 0.3)'
+                : `0 4px 12px ${config.color}40`,
               fontFamily: 'Georgia, serif',
               transition: 'all 0.2s'
             }}
             onMouseEnter={e => {
               e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = `0 6px 20px ${config.color}50`;
+              e.target.style.boxShadow = hasNextLevel
+                ? '0 6px 20px rgba(100, 116, 139, 0.4)'
+                : `0 6px 20px ${config.color}50`;
             }}
             onMouseLeave={e => {
               e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = `0 4px 12px ${config.color}40`;
+              e.target.style.boxShadow = hasNextLevel
+                ? '0 4px 12px rgba(100, 116, 139, 0.3)'
+                : `0 4px 12px ${config.color}40`;
             }}
           >
-            New Puzzle
+            {currentLevel ? 'Retry Level' : 'New Puzzle'}
           </button>
         </div>
 
