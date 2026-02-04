@@ -1228,6 +1228,66 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
+/* Tile Style Grid */
+.tile-style-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.tile-style-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.tile-style-preview {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.tile-style-face-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.7);
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tile-style-select {
+  width: 100%;
+  padding: 4px 6px;
+  font-size: 11px;
+  background: rgba(30, 35, 50, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.tile-style-select:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.tile-style-select:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.6);
+}
+
+.tile-style-select option {
+  background: #1e2332;
+  color: rgba(255, 255, 255, 0.9);
+}
+
 /* Color Picker Grid */
 .color-picker-grid {
   display: grid;
