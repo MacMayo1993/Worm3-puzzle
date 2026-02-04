@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 /**
  * Mobile-optimized floating controls for touch devices
- * Provides quick access to settings, help, rotation controls, and essential game controls
+ * Provides quick access to settings, help, and essential game controls
  */
 const MobileControls = ({
   onShowSettings,
@@ -17,8 +17,8 @@ const MobileControls = ({
   onReset,
   showNetPanel,
   onToggleNet,
-  // Rotation controls
-  onRotate // { up, down, left, right, cw, ccw }
+  onRotateCW,
+  onRotateCCW
 }) => {
   const [expanded, setExpanded] = useState(false);
 
@@ -60,175 +60,12 @@ const MobileControls = ({
     borderColor: 'rgba(96, 165, 250, 0.5)'
   };
 
-  // D-pad button style
-  const dpadButtonStyle = {
-    width: '52px',
-    height: '52px',
-    borderRadius: '12px',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    background: 'rgba(40, 45, 60, 0.95)',
-    backdropFilter: 'blur(12px)',
-    color: 'rgba(255, 255, 255, 0.95)',
-    fontSize: '20px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0 3px 12px rgba(0, 0, 0, 0.4)',
-    transition: 'all 0.1s ease',
-    WebkitTapHighlightColor: 'transparent',
-    touchAction: 'manipulation',
-    userSelect: 'none'
-  };
-
-  // Rotation button style (CW/CCW)
-  const rotateButtonStyle = {
-    ...dpadButtonStyle,
-    width: '48px',
-    height: '48px',
-    borderRadius: '50%',
-    background: 'rgba(59, 130, 246, 0.7)',
-    borderColor: 'rgba(96, 165, 250, 0.4)'
-  };
-
-  const handleButtonPress = (style) => ({
-    ...style,
-    transform: 'scale(0.95)',
-    boxShadow: '0 1px 6px rgba(0, 0, 0, 0.3)'
-  });
-
   return (
     <>
-      {/* Left side - Rotation D-Pad */}
-      {onRotate && (
-        <div style={{
-          position: 'fixed',
-          bottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
-          left: '16px',
-          zIndex: 500,
-          pointerEvents: 'auto'
-        }}>
-          {/* D-Pad Container */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '52px 52px 52px',
-            gridTemplateRows: '52px 52px 52px',
-            gap: '4px',
-            background: 'rgba(20, 25, 35, 0.85)',
-            borderRadius: '16px',
-            padding: '8px',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: '0 4px 24px rgba(0, 0, 0, 0.5)'
-          }}>
-            {/* Row 1: CCW, Up, CW */}
-            <button
-              onClick={onRotate.ccw}
-              style={rotateButtonStyle}
-              aria-label="Rotate face counter-clockwise"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 12a9 9 0 1 0 9-9"/>
-                <polyline points="3 3 3 12 12 12"/>
-              </svg>
-            </button>
-            <button
-              onClick={onRotate.up}
-              style={dpadButtonStyle}
-              aria-label="Rotate slice up"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 4l-8 8h5v8h6v-8h5z"/>
-              </svg>
-            </button>
-            <button
-              onClick={onRotate.cw}
-              style={rotateButtonStyle}
-              aria-label="Rotate face clockwise"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 12a9 9 0 1 1-9-9"/>
-                <polyline points="21 3 21 12 12 12"/>
-              </svg>
-            </button>
-
-            {/* Row 2: Left, Center label, Right */}
-            <button
-              onClick={onRotate.left}
-              style={dpadButtonStyle}
-              aria-label="Rotate slice left"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M4 12l8-8v5h8v6h-8v5z"/>
-              </svg>
-            </button>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '9px',
-              fontWeight: '600',
-              color: 'rgba(255, 255, 255, 0.4)',
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase'
-            }}>
-              ROTATE
-            </div>
-            <button
-              onClick={onRotate.right}
-              style={dpadButtonStyle}
-              aria-label="Rotate slice right"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M20 12l-8-8v5H4v6h8v5z"/>
-              </svg>
-            </button>
-
-            {/* Row 3: Empty, Down, Empty with flip indicator */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '8px',
-              fontWeight: '500',
-              color: flipMode ? 'rgba(59, 130, 246, 0.9)' : 'rgba(255, 255, 255, 0.3)',
-              textTransform: 'uppercase'
-            }}>
-              {flipMode ? 'TAP=FLIP' : ''}
-            </div>
-            <button
-              onClick={onRotate.down}
-              style={dpadButtonStyle}
-              aria-label="Rotate slice down"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 20l8-8h-5V4H9v8H4z"/>
-              </svg>
-            </button>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              {/* Pinch to zoom hint when exploded */}
-              {exploded && (
-                <span style={{
-                  fontSize: '8px',
-                  color: 'rgba(255, 255, 255, 0.4)',
-                  textAlign: 'center'
-                }}>
-                  PINCH<br/>ZOOM
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Right side - Settings FAB */}
       <div style={{
         position: 'fixed',
-        bottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
+        bottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
         right: '16px',
         zIndex: 500,
         display: 'flex',
@@ -243,12 +80,7 @@ const MobileControls = ({
             display: 'flex',
             flexDirection: 'column',
             gap: '8px',
-            animation: 'fadeInUp 0.2s ease',
-            background: 'rgba(20, 25, 35, 0.9)',
-            borderRadius: '16px',
-            padding: '10px',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: '0 4px 24px rgba(0, 0, 0, 0.5)'
+            animation: 'fadeInUp 0.2s ease'
           }}>
             {/* Help */}
             <button
@@ -258,6 +90,34 @@ const MobileControls = ({
             >
               ?
             </button>
+
+            {/* CW rotation */}
+            {onRotateCW && (
+              <button
+                onClick={onRotateCW}
+                style={smallButtonStyle}
+                aria-label="Rotate clockwise"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12a9 9 0 1 1-9-9"/>
+                  <polyline points="21 3 21 12 12 12"/>
+                </svg>
+              </button>
+            )}
+
+            {/* CCW rotation */}
+            {onRotateCCW && (
+              <button
+                onClick={onRotateCCW}
+                style={smallButtonStyle}
+                aria-label="Rotate counter-clockwise"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 12a9 9 0 1 0 9-9"/>
+                  <polyline points="3 3 3 12 12 12"/>
+                </svg>
+              </button>
+            )}
 
             {/* Flip toggle */}
             <button
