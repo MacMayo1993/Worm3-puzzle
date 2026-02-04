@@ -406,11 +406,11 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
         flipProgress.current = 0;
         // Force set the final color/texture correctly
         // Only for standard materials (shader materials handle color via uniforms)
-        // Texture stays with original face (meta.orig)
+        // Texture follows the displayed face (meta.curr)
         if (meshRef.current?.material?.color) {
-          const origTex = faceTextures?.[meta?.orig] || null;
-          meshRef.current.material.map = origTex;
-          meshRef.current.material.color.set(origTex ? '#ffffff' : baseColorRef.current);
+          const currTex = faceTextures?.[meta?.curr] || null;
+          meshRef.current.material.map = currTex;
+          meshRef.current.material.color.set(currTex ? '#ffffff' : baseColorRef.current);
           meshRef.current.material.needsUpdate = true;
         }
       }
