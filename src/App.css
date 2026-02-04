@@ -698,83 +698,84 @@ body {
   }
 
   .controls-row {
-    gap: 0.3rem;
-    padding: 0.4rem 0.5rem;
+    gap: 0.25rem;
+    padding: 0.35rem 0.4rem;
+    max-width: calc(100vw - 80px); /* Leave room for FAB */
   }
 
   .btn-compact {
-    padding: 0.35rem 0.5rem;
-    font-size: 0.55rem;
+    padding: 0.3rem 0.4rem;
+    font-size: 0.5rem;
     min-width: auto;
   }
 
   .btn-compact.text {
-    min-width: 50px;
+    min-width: 40px;
   }
 
   .btn-level {
-    padding: 0.2rem 0.4rem;
-    font-size: 0.6rem;
+    padding: 0.15rem 0.3rem;
+    font-size: 0.5rem;
   }
 
   .bauhaus-box {
-    padding: 0.4rem 0.8rem;
+    padding: 0.3rem 0.6rem;
   }
 
   .bauhaus-box h1 {
-    font-size: 20px !important;
+    font-size: 18px !important;
   }
 
   .stats-compact {
-    gap: 0.4rem;
-    font-size: 0.7rem;
+    gap: 0.3rem;
+    font-size: 0.6rem;
   }
 
   .ui-layer > div:first-child {
     flex-direction: column;
     align-items: stretch;
-    gap: 6px;
+    gap: 4px;
   }
 
   .ui-layer > div:first-child > div {
     justify-content: center;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: 3px;
   }
 
-  /* Hide less essential info on mobile */
+  /* Hide less essential info on mobile - but keep quick actions accessible via FAB */
   .ui-layer > div:first-child > div:last-child {
     display: none !important; /* Hide right section with progress dials on mobile */
   }
 
   /* Make center tags smaller */
   .ui-layer > div:first-child > div:nth-child(2) > div {
-    padding: 3px 8px !important;
-    font-size: 9px !important;
+    padding: 2px 6px !important;
+    font-size: 8px !important;
   }
 
   /* Compact stats panel on mobile */
   .stats-panel > div {
-    padding: 3px 8px !important;
+    padding: 2px 6px !important;
   }
 
   .stats-panel > div > div:first-child {
-    font-size: 7px !important;
+    font-size: 6px !important;
   }
 
   .stats-panel > div > div:last-child {
-    font-size: 14px !important;
+    font-size: 12px !important;
   }
 
-  /* Manifold selector smaller text */
+  /* Manifold selector - hide on mobile */
   .manifold-selector {
-    font-size: 7px !important;
-    padding-bottom: 0.3rem;
+    display: none !important;
   }
 
   /* Mobile-safe bottom controls */
   .controls-compact {
     padding-bottom: var(--safe-area-inset-bottom);
+    margin-bottom: 0.5rem;
   }
 
   /* Tutorial card mobile adjustments */
@@ -788,6 +789,122 @@ body {
     bottom: calc(40px + var(--safe-area-inset-bottom)) !important;
     padding: 14px 40px;
     font-size: 14px;
+  }
+
+  /* Settings panel mobile improvements */
+  .settings-panel {
+    width: 95%;
+    max-width: 420px;
+    max-height: calc(100dvh - 40px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  }
+
+  .settings-header {
+    padding: 16px 18px;
+    position: sticky;
+    top: 0;
+    background: rgba(30, 35, 50, 0.98);
+    z-index: 1;
+  }
+
+  .settings-body {
+    padding: 12px 18px 20px;
+  }
+
+  .settings-section {
+    margin-bottom: 16px;
+  }
+
+  /* Color picker grid mobile - 2 columns */
+  .color-picker-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  /* Face texture grid mobile - 2 columns */
+  .face-texture-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  /* Tile style grid mobile - 2 columns */
+  .tile-style-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  /* Make toggles easier to tap */
+  .settings-toggle-row {
+    padding: 12px;
+    min-height: 48px;
+  }
+
+  .toggle-switch {
+    width: 48px;
+    height: 26px;
+    border-radius: 13px;
+  }
+
+  .toggle-knob {
+    width: 22px;
+    height: 22px;
+  }
+
+  .toggle-switch.on .toggle-knob {
+    transform: translateX(22px);
+  }
+
+  /* Larger tap targets for radio buttons */
+  .settings-radio {
+    padding: 12px;
+    min-height: 48px;
+  }
+
+  .settings-radio input[type="radio"] {
+    width: 20px;
+    height: 20px;
+  }
+
+  .settings-radio input[type="radio"]:checked::after {
+    width: 8px;
+    height: 8px;
+    top: 4px;
+    left: 4px;
+  }
+}
+
+/* Extra small screens (phones in portrait) */
+@media (max-width: 480px) {
+  .ui-layer {
+    padding: 0.4rem;
+  }
+
+  .controls-row {
+    gap: 0.2rem;
+    padding: 0.3rem;
+  }
+
+  .btn-compact {
+    padding: 0.25rem 0.35rem;
+    font-size: 0.45rem;
+  }
+
+  .btn-compact.text {
+    min-width: 35px;
+  }
+
+  /* Hide some buttons on very small screens */
+  .chaos-levels {
+    display: none;
+  }
+
+  .bauhaus-box h1 {
+    font-size: 16px !important;
+  }
+
+  /* Stats panel - show only essential stats */
+  .stats-panel > div:nth-child(3),
+  .stats-panel > div:nth-child(4) {
+    display: none;
   }
 }
 
@@ -1410,4 +1527,92 @@ body {
 @keyframes victory-glow {
   0%, 100% { box-shadow: 0 0 10px rgba(234, 179, 8, 0.3); }
   50% { box-shadow: 0 0 20px rgba(234, 179, 8, 0.6); }
+}
+
+/* Mobile touch hint */
+.mobile-touch-hint {
+  position: fixed;
+  bottom: calc(180px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(30, 35, 50, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 12px 20px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  text-align: center;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  z-index: 400;
+  pointer-events: none;
+  animation: fadeInOut 4s ease-in-out forwards;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+}
+
+/* Touch-friendly button adjustments */
+@media (pointer: coarse) {
+  .btn-compact,
+  .bauhaus-btn,
+  .settings-close-btn,
+  .net-close-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Ensure good touch targets */
+  button, [role="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Larger close button for settings on touch */
+  .settings-close-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+  }
+}
+
+/* Landscape mode adjustments for mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+  .ui-layer {
+    padding: 0.3rem;
+  }
+
+  .controls-row {
+    padding: 0.25rem 0.4rem;
+  }
+
+  .btn-compact {
+    padding: 0.2rem 0.35rem;
+    font-size: 0.45rem;
+  }
+
+  .bauhaus-box {
+    padding: 0.25rem 0.5rem;
+  }
+
+  .bauhaus-box h1 {
+    font-size: 14px !important;
+  }
+
+  /* Hide stats panel in landscape on small screens */
+  .stats-panel {
+    display: none !important;
+  }
+
+  /* Settings panel landscape adjustments */
+  .settings-panel {
+    max-height: calc(100dvh - 20px);
+    width: 80%;
+    max-width: 500px;
+  }
 }

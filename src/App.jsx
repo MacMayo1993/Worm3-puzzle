@@ -36,12 +36,20 @@ import TopMenuBar from './components/menus/TopMenuBar.jsx';
 import MainMenu from './components/menus/MainMenu.jsx';
 import SettingsMenu from './components/menus/SettingsMenu.jsx';
 import HelpMenu from './components/menus/HelpMenu.jsx';
+import MobileControls from './components/menus/MobileControls.jsx';
 import WelcomeScreen from './components/screens/WelcomeScreen.jsx';
 import VictoryScreen from './components/screens/VictoryScreen.jsx';
 import Tutorial from './components/screens/Tutorial.jsx';
 import FirstFlipTutorial from './components/screens/FirstFlipTutorial.jsx';
 import RotationPreview from './components/overlays/RotationPreview.jsx';
 import CubeNet from './components/CubeNet.jsx';
+
+// Mobile detection
+const isMobile = typeof window !== 'undefined' && (
+  window.innerWidth <= 768 ||
+  'ontouchstart' in window ||
+  navigator.maxTouchPoints > 0
+);
 
 export default function WORM3() {
   const [showWelcome, setShowWelcome] = useState(true);
@@ -100,6 +108,16 @@ export default function WORM3() {
   const [wormGameData, setWormGameData] = useState(null); // Game state from inside Canvas
   const [showNetPanel, setShowNetPanel] = useState(false);
 
+  // Mobile touch hint - show once per session
+  const [showMobileTouchHint, setShowMobileTouchHint] = useState(() => {
+    if (!isMobile) return false;
+    try {
+      return !localStorage.getItem('worm3_mobile_hint_shown');
+    } catch {
+      return true;
+    }
+  });
+
   // Settings state (persisted to localStorage)
   const [settings, setSettings] = useState(() => {
     try {
@@ -115,6 +133,18 @@ export default function WORM3() {
       localStorage.setItem('worm3_settings', JSON.stringify(settings));
     } catch {}
   }, [settings]);
+
+  // Dismiss mobile touch hint after delay
+  useEffect(() => {
+    if (!showMobileTouchHint) return;
+    const timer = setTimeout(() => {
+      setShowMobileTouchHint(false);
+      try {
+        localStorage.setItem('worm3_mobile_hint_shown', '1');
+      } catch {}
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [showMobileTouchHint]);
 
   // Resolve face colors from settings
   const resolvedColors = useMemo(() => resolveColors(settings), [settings]);
@@ -1462,6 +1492,32 @@ export default function WORM3() {
           onClose={() => setShowNetPanel(false)}
           faceColors={resolvedColors} faceTextures={faceTextures}
         />
+      )}
+
+      {/* Mobile Controls - Always visible on mobile for easy access */}
+      {isMobile && !showWelcome && !showTutorial && !wormModeActive && (
+        <MobileControls
+          onShowSettings={() => setShowSettings(true)}
+          onShowHelp={() => setShowHelp(true)}
+          flipMode={flipMode}
+          onToggleFlip={() => setFlipMode(!flipMode)}
+          exploded={exploded}
+          onToggleExplode={() => setExploded(!exploded)}
+          showTunnels={showTunnels}
+          onToggleTunnels={() => setShowTunnels(!showTunnels)}
+          onShuffle={shuffle}
+          onReset={reset}
+          showNetPanel={showNetPanel}
+          onToggleNet={() => setShowNetPanel(!showNetPanel)}
+        />
+      )}
+
+      {/* Mobile Touch Hint - Shows once to guide users */}
+      {showMobileTouchHint && !showWelcome && !showTutorial && !showMainMenu && (
+        <div className="mobile-touch-hint">
+          Swipe on cube to rotate slices<br/>
+          Tap tiles to flip (when Flip mode is on)
+        </div>
       )}
     </div>
   );
