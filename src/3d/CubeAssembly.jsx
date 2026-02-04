@@ -9,6 +9,7 @@ import WormholeNetwork from '../manifold/WormholeNetwork.jsx';
 import ChaosWave from '../manifold/ChaosWave.jsx';
 import FlipPropagationWave from '../manifold/FlipPropagationWave.jsx';
 import { vibrate } from '../utils/audio.js';
+import { updateSharedTime } from './TileStyleMaterials.jsx';
 
 // Reusable axis vectors and quaternion (allocated once, never recreated)
 const _axisCol = new THREE.Vector3(1, 0, 0);
@@ -20,7 +21,7 @@ const CubeAssembly = React.memo(({
   size, cubies, onMove, onTapFlip, visualMode, animState, onAnimComplete,
   showTunnels, explosionFactor, cascades, onCascadeComplete, manifoldMap,
   cursor, showCursor, flipMode, onSelectTile, flipWaveOrigins, onFlipWaveComplete,
-  faceColors, faceTextures
+  faceColors, faceTextures, manifoldStyles
 }) => {
   const cubieRefs = useRef([]);
   const controlsRef = useRef();
@@ -152,7 +153,10 @@ const CubeAssembly = React.memo(({
   const explosionFactorRef = useRef(explosionFactor);
   explosionFactorRef.current = explosionFactor;
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
+    // Update shared time uniform for animated tile styles
+    updateSharedTime(state.clock.elapsedTime);
+
     if (!animState) return;
     const { axis, dir, sliceIndex, t } = animState;
     const speed = 2.52, newT = Math.min(1, (t ?? 0) + delta * speed);
@@ -286,6 +290,7 @@ const CubeAssembly = React.memo(({
           explosionFactor={explosionFactor}
           faceColors={faceColors}
           faceTextures={faceTextures}
+          manifoldStyles={manifoldStyles}
         />
       ))}
       {showCursor && cursor && (
