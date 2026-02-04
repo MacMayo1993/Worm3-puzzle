@@ -1267,7 +1267,7 @@ export default function WORM3() {
                   onSelectTile={handleSelectTile}
                   flipWaveOrigins={flipWaveOrigins}
                   onFlipWaveComplete={onFlipWaveComplete}
-                  faceColors={resolvedColors} faceTextures={faceTextures}
+                  faceColors={resolvedColors} faceTextures={faceTextures} manifoldStyles={settings.manifoldStyles}
                 />
               </WormModeProvider>
             ) : (
@@ -1291,7 +1291,7 @@ export default function WORM3() {
               onSelectTile={handleSelectTile}
               flipWaveOrigins={flipWaveOrigins}
               onFlipWaveComplete={onFlipWaveComplete}
-              faceColors={resolvedColors} faceTextures={faceTextures}
+              faceColors={resolvedColors} faceTextures={faceTextures} manifoldStyles={settings.manifoldStyles}
             />
             )}
           </Suspense>
