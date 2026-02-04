@@ -280,11 +280,15 @@ export const getNextLevel = (currentId) => LEVELS.find(l => l.id === currentId +
 
 /**
  * Check if level is unlocked based on completed levels
+ * TODO: Re-enable progression gating after testing
  */
 export const isLevelUnlocked = (levelId, completedLevels) => {
-  if (levelId === 1) return true; // Level 1 always unlocked
-  if (levelId === 10) return true; // Level 10 always unlocked (for now, as demo)
-  return completedLevels.includes(levelId - 1); // Previous level must be completed
+  // TESTING MODE: All levels unlocked for testing
+  return true;
+
+  // PRODUCTION MODE (uncomment when ready):
+  // if (levelId === 1) return true; // Level 1 always unlocked
+  // return completedLevels.includes(levelId - 1); // Previous level must be completed
 };
 
 /**
