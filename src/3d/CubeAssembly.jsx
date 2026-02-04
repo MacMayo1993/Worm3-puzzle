@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import Cubie from './Cubie.jsx';
 import DragGuide from './DragGuide.jsx';
 import CursorHighlight from '../components/overlays/CursorHighlight.jsx';
+import SolveHighlight from '../components/overlays/SolveHighlight.jsx';
 import WormholeNetwork from '../manifold/WormholeNetwork.jsx';
 import ChaosWave from '../manifold/ChaosWave.jsx';
 import FlipPropagationWave from '../manifold/FlipPropagationWave.jsx';
@@ -31,7 +32,7 @@ const CubeAssembly = React.memo(({
   size, cubies, onMove, onTapFlip, visualMode, animState, onAnimComplete,
   showTunnels, explosionFactor, cascades, onCascadeComplete, manifoldMap,
   cursor, showCursor, flipMode, onSelectTile, flipWaveOrigins, onFlipWaveComplete,
-  faceColors, faceTextures, manifoldStyles
+  faceColors, faceTextures, manifoldStyles, solveHighlights
 }) => {
   const cubieRefs = useRef([]);
   const controlsRef = useRef();
@@ -306,6 +307,13 @@ const CubeAssembly = React.memo(({
       {showCursor && cursor && (
         <CursorHighlight
           cursor={cursor}
+          size={size}
+          explosionFactor={explosionFactor}
+        />
+      )}
+      {solveHighlights && solveHighlights.length > 0 && (
+        <SolveHighlight
+          highlights={solveHighlights}
           size={size}
           explosionFactor={explosionFactor}
         />

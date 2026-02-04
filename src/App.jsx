@@ -43,6 +43,7 @@ import Tutorial from './components/screens/Tutorial.jsx';
 import FirstFlipTutorial from './components/screens/FirstFlipTutorial.jsx';
 import RotationPreview from './components/overlays/RotationPreview.jsx';
 import CubeNet from './components/CubeNet.jsx';
+import SolveMode, { SolveModeButton } from './components/SolveMode.jsx';
 
 // Mobile detection
 const isMobile = typeof window !== 'undefined' && (
@@ -107,6 +108,11 @@ export default function WORM3() {
   const [showWormModeStart, setShowWormModeStart] = useState(false);
   const [wormGameData, setWormGameData] = useState(null); // Game state from inside Canvas
   const [showNetPanel, setShowNetPanel] = useState(false);
+
+  // Solve mode state
+  const [solveModeActive, setSolveModeActive] = useState(false);
+  const [solveFocusedStep, setSolveFocusedStep] = useState(null);
+  const [solveHighlights, setSolveHighlights] = useState([]);
 
   // Mobile touch hint - show once per session
   const [showMobileTouchHint, setShowMobileTouchHint] = useState(() => {
@@ -1322,6 +1328,7 @@ export default function WORM3() {
               flipWaveOrigins={flipWaveOrigins}
               onFlipWaveComplete={onFlipWaveComplete}
               faceColors={resolvedColors} faceTextures={faceTextures} manifoldStyles={settings.manifoldStyles}
+              solveHighlights={solveModeActive ? solveHighlights : []}
             />
             )}
           </Suspense>
@@ -1415,6 +1422,20 @@ export default function WORM3() {
                 RESET
               </button>
               <button
+                className={`btn-compact text ${solveModeActive ? 'active' : ''}`}
+                onClick={() => {
+                  setSolveModeActive(!solveModeActive);
+                  if (!solveModeActive) {
+                    setSolveFocusedStep(null);
+                  } else {
+                    setSolveHighlights([]);
+                  }
+                }}
+                style={{ color: solveModeActive ? '#00ff88' : undefined, borderColor: solveModeActive ? '#00ff88' : undefined }}
+              >
+                SOLVE
+              </button>
+              <button
                 className={`btn-compact text ${wormModeActive ? 'active' : ''}`}
                 onClick={() => setShowWormModeStart(true)}
                 style={{ color: '#00ff88', borderColor: wormModeActive ? '#00ff88' : undefined }}
@@ -1455,6 +1476,21 @@ export default function WORM3() {
       {showSettings && <SettingsMenu onClose={() => setShowSettings(false)} settings={settings} onSettingsChange={setSettings} faceImages={faceImages} onFaceImage={handleFaceImage} />}
       {showHelp && <HelpMenu onClose={() => setShowHelp(false)} />}
       {showFirstFlipTutorial && <FirstFlipTutorial onClose={() => setShowFirstFlipTutorial(false)} />}
+
+      {/* Solve Mode Panel */}
+      {solveModeActive && (
+        <SolveMode
+          cubies={cubies}
+          size={size}
+          onClose={() => {
+            setSolveModeActive(false);
+            setSolveHighlights([]);
+          }}
+          onHighlightChange={setSolveHighlights}
+          focusedStep={solveFocusedStep}
+          onFocusStep={setSolveFocusedStep}
+        />
+      )}
 
       {/* Victory Screen - highest z-index */}
       {victory && <VictoryScreen winType={victory} moves={moves} time={gameTime} onContinue={handleVictoryContinue} onNewGame={handleVictoryNewGame} />}
