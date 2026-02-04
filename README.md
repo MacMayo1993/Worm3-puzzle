@@ -1,327 +1,138 @@
-# WORM-3: Antipodal Topology Puzzle
 
-[![Build Status](https://github.com/MacMayo1993/WORM-3/actions/workflows/deploy.yml/badge.svg)](https://github.com/MacMayo1993/WORM-3/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Live Demo](https://img.shields.io/badge/demo-live-success)](https://macmayo1993.github.io/WORM-3/)
+# WORM-3  
+**A Rubik's Cube Realized on the Real Projective Plane (RP²)**
 
-A 3D puzzle game that fuses **Rubik's Cube mechanics** with **projective plane topology**. Flip stickers through wormholes, battle chaos propagation, and master non-orientable manifolds.
+WORM-3 is an interactive 3D puzzle that redefines the Rubik's Cube by embedding it on the **real projective plane (RP²)** — a compact, non-orientable 2-manifold obtained by identifying antipodal points on the 2-sphere.
 
-## [Play Now](https://macmayo1993.github.io/WORM-3/)
+Unlike conventional Rubik's Cube simulators, which operate on an orientable surface with six independent faces, WORM-3 enforces **antipodal identification** across three pairs of opposite faces:
 
----
+- Front ↔ Back (Green ↔ Blue)
+- Left ↔ Right (Orange ↔ Red)
+- Top ↔ Bottom (White ↔ Yellow)
 
-## Game Overview
+This identification produces a single connected manifold with profound topological consequences: the puzzle is **non-orientable**, meaning certain closed paths reverse handedness, and the group of reachable configurations includes parity cases impossible on the ordinary cube.
 
-WORM-3 takes the classic Rubik's Cube and warps it through mathematical topology. Every sticker has an **antipodal twin** on the opposite side of the cube. Flip one, and both change simultaneously through a visible wormhole connection.
+### Core Innovation
 
-**Antipodal Color Pairs:**
-- Red ↔ Orange
-- Green ↔ Blue
-- White ↔ Yellow
+Any move that affects a sticker simultaneously affects its **antipodal counterpart** through a visualized wormhole connection. These connections are not cosmetic: they are the direct geometric realization of the quotient construction S² / ℤ₂ ≅ RP². Flipping a single sticker is therefore a global operation on the manifold, propagating effects in a manner dictated by projective geometry rather than Euclidean adjacency.
 
----
+This design introduces entirely new solving mechanics:
+- **Non-local flips** via wormhole tunnels
+- **Topological chaos propagation** along manifold geodesics
+- **Inherent parity anomalies** arising from non-orientability
+- **Dual constraint solving** combining color matching with Latin-square (Sudokube) conditions on the twisted surface
 
-## Game Modes
+No other publicly available puzzle implements a Rubik's-style mechanism on a non-orientable surface with real-time visualization of antipodal symmetry and manifold-aware dynamics.
 
-### Standard Mode
-Classic cube manipulation. Drag to rotate the view, click stickers to rotate slices.
+### Key Features
 
-### Flip Mode
-Click any sticker to flip it AND its antipodal partner through a wormhole tunnel. Watch the particle travel through the connection as both stickers swap colors.
+- **Antipodal Wormhole Visualization**  
+  Toggleable Bezier-curve tunnels with particle effects and color-gradient transitions connect each sticker to its antipode.
 
-### Chaos Mode (4 Levels)
-Unstable stickers spread their corruption to neighbors. The longer you leave flipped stickers, the more they cascade.
+- **Chaos Propagation System**  
+  Flip tallies drive instability levels. High activity triggers propagating waves, heat maps, and timed activation windows (5–8 seconds). Propagation follows manifold topology, not 3D distance.
 
-| Level | Burst Duration | Propagation Rate | Difficulty |
-|-------|---------------|------------------|------------|
-| L1 | 1 second | 3% per flip tally | Gentle |
-| L2 | 2 seconds | 6% per flip tally | Moderate |
-| L3 | 3 seconds | 9% per flip tally | Aggressive |
-| L4 | 4 seconds | 12% per flip tally | Extreme |
+- **Parity & Orientation Indicators**  
+  Real-time display of even (cyan) or odd (purple) parity states, reflecting fundamental twists of the projective plane.
 
-**How Chaos Works:**
-- Chaos runs in bursts (duration scales with level)
-- Tile-to-tile propagation speed: 350ms (constant)
-- Probability scales with each sticker's flip count
-- Cross-face propagation follows manifold topology
+- **Exploded & Net Views**  
+  Disassemble the cube to reveal the full manifold wiring; toggle wireframe or net overlays to inspect RP² structure.
 
-### Auto-Rotate Mode
-Enable within Chaos Mode. The cube rotates itself based on disparity (how many stickers are out of place).
+- **Black Hole Environment**  
+  Custom GLSL shader featuring gravitational lensing, accretion disk, and photon-sphere effects. The cube visually distorts as chaos intensity increases.
 
-| Disparity | Rotation Interval |
-|-----------|------------------|
-| 0% (solved) | 10 seconds |
-| 50% | ~5 seconds |
-| 100% (max chaos) | 0.75 seconds |
+- **Solving Modes**  
+  - Classic: uniform color matching  
+  - Sudokube: Latin squares (1–9) per face  
+  - Ultimate: simultaneous color and number constraints  
 
-A **Tetris-style preview panel** shows the upcoming rotation with:
-- Grid highlighting the affected slice
-- Direction arrow (↻ or ↺)
-- Countdown bar (green → red as time runs out)
-- Axis label (X1, Y2, Z3, etc.)
-
----
+- **Algorithmic Assistance**  
+  Tiles highlight when ready for known short sequences (sledgehammer, sexy move, anti-Sune variants adapted to antipodal symmetry).
 
-## Win Conditions
+- **Texture Customization**  
+  Per-manifold material options (glossy, matte, metallic, holographic, carbon fiber, lava flow, circuit board, etc.) for visual personalization.
 
-### Rubik's Cube (Classic)
-All stickers on each face match their target color.
+- **Performance & Accessibility**  
+  Optimized for 60 fps on desktop and mobile. Full touch support with responsive layout.
 
-### Sudokube (Latin Square)
-Each face forms a valid Latin square where:
-- Every row contains values 1-N exactly once
-- Every column contains values 1-N exactly once
-
-### Ultimate Victory
-Achieve **both** Rubik's AND Sudokube simultaneously. Triggers confetti celebration.
+### Pedagogical Design
 
-### WORM³ Secret Achievement
-Solve the cube AND ensure every sticker has traveled through a wormhole at least once. Tracked via flip counters on each sticker.
+WORM-3 is structured as a progressive 10-level curriculum that systematically introduces non-orientable topology through gameplay. Each level isolates and teaches one key concept, ensuring gradual mastery without requiring prior mathematical knowledge.
 
----
+| Level | Title                  | Size   | Chaos Level | Primary Concept                          | Learning Outcome                                                                 |
+|-------|------------------------|--------|-------------|------------------------------------------|----------------------------------------------------------------------------------|
+| 1     | Elementary Cube        | 2×2    | 0           | Standard slice mechanics                 | Establish baseline Rubik's intuition                                             |
+| 2     | Antipodal Identification | 2×2  | 0           | First antipodal pairs & wormholes        | Understand that opposites are topologically the same point                       |
+| 3     | Inversion              | 3×3    | 0           | Single flips as ℤ₂ involutions           | Experience orientation reversal across seams                                     |
+| 4     | Propagation            | 3×3    | 1           | Chaos waves & temporal seams             | Observe instability spreading along manifold paths                               |
+| 5     | Parity                 | 3×3    | 1           | Even/odd parity & fundamental twists     | Recognize and correct non-orientable parity anomalies                            |
+| 6     | Manifold Decomposition | 4×4    | 2           | Three independent axes (Z/X/Y)           | Map the three pairwise identifications that generate RP²                        |
+| 7     | Dual Constraints       | 4×4    | 2           | Sudokube (Latin squares)                 | Solve under additional algebraic constraints on a twisted surface               |
+| 8     | Composite Symmetry     | 4×4    | 3           | Combined color & number solving          | Manage conflicting symmetries across antipodes                                   |
+| 9     | Non-Orientable Loops   | 5×5    | 3           | Full RP² topology & algorithmic resolution | Navigate closed paths that reverse handedness; master parity-correcting sequences |
+| 10    | Singularity            | 5×5    | 4           | Complete system integration              | Solve under maximum chaos and visual immersion in the black-hole environment     |
 
-## Visual Modes
+Each level begins with a brief screen-recorded introduction that demonstrates the new mechanic. Winning a level unlocks the next, creating a clear path from basic cube-solving to confident manipulation of projective geometry.
 
-| Mode | Description |
-|------|-------------|
-| **Classic** | Traditional colored stickers |
-| **Grid** | Manifold IDs overlaid (M1-001 format) |
-| **Sudokube** | Latin square numbers (1-N) |
-| **Wireframe** | LED-style edges, retro aesthetics |
-
----
+### Technical Stack
 
-## Visual Effects
+- React + Vite
+- Three.js (via react-three-fiber & drei)
+- Custom GLSL shaders for wormholes, black-hole effects, and chaos displacement
+- LocalStorage for progress persistence
+- Mobile touch controls with responsive design
 
-### Wormhole Tunnels
-Toggle visibility with `T`. Dynamic strand-based tunnels with:
-- 1-50 strands based on flip count
-- Spiral animations with configurable angles
-- Electrical spark effects at high intensity
-- Color gradient between antipodal pairs
-- Pulsing opacity animations
-
-### Exploded View
-Toggle with `X`. Cube pieces spread outward at 1.8× expansion, revealing internal structure.
-
-### Black Hole Environment
-Procedural GLSL shader background featuring:
-- Event horizon (pure black center)
-- Rotating accretion disk (orange/blue matter)
-- Photon sphere with gravitational lensing
-- Hawking radiation glow
-- Procedural star field
-- Flash pulse on sticker flips
-
-### Chaos Visuals
-- **ChaosWave**: Pink spheres traveling between cascading stickers
-- **Flip Propagation Wave**: Expanding rings with 6-directional trail particles
-- **Heat Map**: Color-coded glow (blue → cyan → yellow → red) based on flip intensity
-
-### Tally Marks
-Each sticker displays its flip count using traditional tally marks (groups of 5). High counts show numerical display.
-
----
-
-## Controls
-
-### Mouse
-| Action | Effect |
-|--------|--------|
-| Left Drag | Rotate cube view |
-| Left Click Sticker | Rotate slice (or flip in Flip Mode) |
-| Right Click Sticker | Force flip regardless of mode |
-| Shift + Drag | Rotate entire face |
-
-### Keyboard
-
-**Navigation:**
-| Key | Action |
-|-----|--------|
-| Arrow Keys | Move cursor between stickers |
-| W/A/S/D | Rotate slices relative to cursor |
-| Q/E | Rotate face counter-clockwise/clockwise |
-
-**Actions:**
-| Key | Action |
-|-----|--------|
-| F | Flip sticker at cursor |
-| Space | Shuffle cube (25 random rotations) |
-| R | Reset to solved state |
-
-**Toggles:**
-| Key | Action |
-|-----|--------|
-| G | Toggle Flip Mode |
-| T | Toggle wormhole tunnels |
-| X | Toggle exploded view |
-| V | Cycle visual modes |
-| C | Toggle Chaos Mode |
-| H or ? | Toggle help menu |
-| Esc | Close menus / hide cursor |
-
----
-
-## UI Elements
-
-### Top Menu Bar
-Real-time statistics:
-- **M** (Moves): Total rotations performed
-- **F** (Flips): Total wormhole traversals
-- **W** (Wormholes): Currently active flipped pairs
-- **Entropy**: Percentage of displaced stickers
-- **Timer**: Elapsed time (MM:SS)
-
-### Face Progress Bars
-Visual indicators showing completion percentage for each of the 6 faces.
-
-### Parity Indicator
-- **EVEN** (cyan): Cube is returnable to original state
-- **ODD** (purple): Fundamental twist exists
-
-### Instability Tracker (Chaos Mode)
-| Level | Threshold | Color |
-|-------|-----------|-------|
-| STABLE | <25% | Green |
-| UNSTABLE | 25-50% | Yellow |
-| CRITICAL | 50-75% | Orange |
-| CHAOS | >75% | Red |
-
----
-
-## Cube Sizes
-
-| Size | Complexity | Camera Distance |
-|------|------------|-----------------|
-| 3×3 | Standard | 10 units |
-| 4×4 | Medium | 14 units |
-| 5×5 | Expert | 18 units |
-
----
-
-## Mathematical Foundation
-
-### Real Projective Plane (RP²)
-The cube surface is treated as a **non-orientable manifold** where antipodal points are identified. This creates the wormhole topology.
-
-### Antipodal Mapping
-Each face maps to its opposite:
-- Front (PZ) ↔ Back (NZ)
-- Left (NX) ↔ Right (PX)
-- Top (PY) ↔ Bottom (NY)
-
-### Manifold Grid System
-Stickers are indexed with IDs like `M1-001` for O(1) antipodal lookup. Cross-face neighbor detection follows manifold topology for proper chaos propagation.
-
-### Latin Squares
-Sudokube mode validates that each face forms a proper Latin square where values `(row + col) % size + 1` create unique row/column combinations.
-
----
-
-## Technical Stack
-
-| Category | Technology | Version |
-|----------|-----------|---------|
-| Framework | React | 18.2.0 |
-| 3D Engine | Three.js | 0.159.0 |
-| React-Three | @react-three/fiber | 8.15.16 |
-| 3D Helpers | @react-three/drei | 9.93.0 |
-| Build Tool | Vite | 5.4.21 |
-| Shaders | Custom GLSL | - |
-
-### Key Technical Features
-- **Procedural Shaders**: Black hole environment, manifold grid visualization
-- **Quadratic Bezier Curves**: Smooth wormhole tunnel paths
-- **BufferGeometry**: Optimized tunnel strand rendering
-- **requestAnimationFrame**: 60fps animations
-- **useMemo/useRef**: Performance-optimized React patterns
-
----
-
-## Project Structure
-
-```
-WORM-3/
-├── src/
-│   ├── game/           # Cube state, rotations, win detection, manifold logic
-│   ├── 3d/             # CubeAssembly, Cubie, StickerPlane, lighting
-│   ├── manifold/       # WormholeTunnel, ManifoldGrid, FlipPropagationWave
-│   ├── components/
-│   │   ├── menus/      # TopMenuBar, settings
-│   │   ├── screens/    # Tutorial, Victory, MainMenu
-│   │   └── overlays/   # RotationPreview, InstabilityTracker, CursorHighlight
-│   ├── utils/          # Constants, audio, coordinates
-│   ├── App.jsx         # Main application state and game loop
-│   └── App.css         # Styling
-├── public/
-│   └── sounds/         # Audio assets
-└── dist/               # Production build
-```
-
----
-
-## Quick Start
-
-### Play Online
-Visit [https://macmayo1993.github.io/WORM-3/](https://macmayo1993.github.io/WORM-3/)
-
-### Local Development
+### Getting Started
+
 ```bash
 git clone https://github.com/MacMayo1993/WORM-3.git
 cd WORM-3
 npm install
 npm run dev
-# Open http://localhost:5173
 ```
 
-### Production Build
+Build and preview:
 ```bash
 npm run build
 npm run preview
 ```
 
----
+Deploy to GitHub Pages:
+```bash
+npm run deploy
+```
 
-## Deployment
+Live version: https://macmayo1993.github.io/WORM-3/
 
-Automated via GitHub Actions:
-1. Push to `main` branch
-2. Build runs (`npm run build`)
-3. Deploys to GitHub Pages
-4. Live at [https://macmayo1993.github.io/WORM-3/](https://macmayo1993.github.io/WORM-3/)
+### Roadmap
 
----
+- Full 10-level progression with introductory sequences
+- Advanced texture system with per-manifold selection
+- Expanded algorithm library (antipodal sledgehammer variants, parity busters)
+- Local leaderboard and achievement tracking
+- Native ports (Godot) for desktop and mobile app stores
 
-## Documentation
+### Contribution
 
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - System architecture and topology math
-- **[DEVELOPMENT.md](./DEVELOPMENT.md)** - Development setup and guidelines
-- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Contribution guidelines
+Contributions are welcome, particularly in the areas of:
+- Additional topological variants (torus, Klein bottle)
+- Performance optimizations for larger cubes
+- Enhanced visual effects and shader work
+- Bug reports on mobile devices
 
----
+Please open an issue to discuss major changes before submitting a pull request.
 
-## Contributing
+### License
 
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/new-feature`)
-3. Commit changes (`git commit -m 'feat: add new feature'`)
-4. Push to branch (`git push origin feature/new-feature`)
-5. Open Pull Request
+MIT License
 
----
+### Author
 
-## License
+Mac Mayo  
+Independent Researcher  
+macmayo@mayomanifoldresearch.org  
+https://mayomanifoldresearch.org
 
-MIT License - see [LICENSE](./LICENSE)
-
----
-
-## Credits
-
-Created by [MacMayo1993](https://github.com/MacMayo1993)
-
-Built with React, Three.js, and topology.
-
----
-
-**[Play Now](https://macmayo1993.github.io/WORM-3/)**
+WORM-3 was created to make non-orientable geometry tangible and playable.  
+Solve the cube. Understand the manifold.
+```
