@@ -1,6 +1,7 @@
 /**
  * WORM-3 Level Definitions
  * Progressive topology pedagogy from basic rotations to full RP² mastery
+ * Life journey: Daycare → Elementary → Middle → High → College → Job → NASA → Rocket → Moon → Black Hole
  */
 
 export const LEVELS = [
@@ -11,6 +12,7 @@ export const LEVELS = [
     cubeSize: 2,
     chaosLevel: 0,
     mode: 'classic', // 'classic' | 'sudokube' | 'ultimate'
+    background: 'daycare', // Soft pastels, building blocks, safe and cozy
     features: {
       rotations: true,
       tunnels: false,
@@ -21,13 +23,13 @@ export const LEVELS = [
       net: false,
     },
     tutorial: {
-      title: 'Welcome to WORM³',
-      text: 'Let\'s start simple! This 2×2 cube has 6 faces with 4 stickers each. Drag on the cube to rotate slices, or use WASD keys.',
-      tip: 'Each face should be one solid color when solved.',
+      title: 'Welcome to Daycare! 🧒',
+      text: 'Let\'s play with blocks! This colorful 2×2 cube has 6 faces. Drag to spin the pieces around!',
+      tip: 'Match all the colors on each side. You got this!',
     },
     winCondition: 'classic', // Match all face colors
-    winMessage: 'You solved your first cube! Ready to explore the manifold?',
-    cutsceneText: 'Learn the cube.',
+    winMessage: 'Gold star! ⭐ You solved your first puzzle! Ready for elementary school?',
+    cutsceneText: 'Learn the colors.',
   },
   {
     id: 2,
@@ -36,6 +38,7 @@ export const LEVELS = [
     cubeSize: 2,
     chaosLevel: 0,
     mode: 'classic',
+    background: 'elementary', // Chalkboard green, ABCs, gold stars
     features: {
       rotations: true,
       tunnels: true, // NEW: Wormhole tunnels visible
@@ -46,12 +49,12 @@ export const LEVELS = [
       net: false,
     },
     tutorial: {
-      title: 'The Antipodal Secret',
-      text: 'Every sticker has a TWIN on the opposite side! Press T to see the wormhole tunnels connecting them. In topology, these pairs are identified — they\'re the SAME point!',
-      tip: 'Hover over stickers to see their antipodal twin glow.',
+      title: 'Elementary School 📚',
+      text: 'Time to learn something cool! Every sticker has a TWIN on the opposite side. Press T to see the secret tunnels connecting them!',
+      tip: 'Opposites are connected - just like in math class!',
     },
     winCondition: 'classic',
-    winMessage: 'You\'ve discovered antipodality! Opposites are ONE on this manifold.',
+    winMessage: 'A+ work! You discovered that opposites are connected! 📝',
     cutsceneText: 'Opposites are ONE.',
   },
   {
@@ -61,6 +64,7 @@ export const LEVELS = [
     cubeSize: 3,
     chaosLevel: 0,
     mode: 'classic',
+    background: 'middleschool', // Lockers, notebooks, getting serious
     features: {
       rotations: true,
       tunnels: true,
@@ -71,12 +75,12 @@ export const LEVELS = [
       net: false,
     },
     tutorial: {
-      title: 'The Flip Mechanic',
-      text: 'Click any sticker to FLIP it with its antipodal twin! This is a ℤ₂ action — the fundamental symmetry of projective space. Both stickers swap colors simultaneously.',
-      tip: 'Use flips strategically — they affect BOTH twins at once!',
+      title: 'Middle School 🎒',
+      text: 'Things are getting interesting! Click any sticker to FLIP it with its twin. Both colors swap at once - it\'s like magic... or math!',
+      tip: 'Use flips wisely - they change BOTH twins!',
     },
     winCondition: 'classic',
-    winMessage: 'You\'ve mastered the flip! This is the heart of RP² topology.',
+    winMessage: 'You\'re getting smarter! Flipping mastered! 🔄',
     cutsceneText: 'Flip the manifold.',
   },
   {
@@ -86,6 +90,7 @@ export const LEVELS = [
     cubeSize: 3,
     chaosLevel: 1,
     mode: 'classic',
+    background: 'highschool', // Chaotic hallways, drama, intensity
     features: {
       rotations: true,
       tunnels: true,
@@ -96,12 +101,12 @@ export const LEVELS = [
       net: false,
     },
     tutorial: {
-      title: 'Chaos Awakens',
-      text: 'The manifold is unstable! Flipped stickers can trigger chain reactions through their antipodal connections. Watch the entropy meter — high values mean incoming chaos waves!',
-      tip: 'Solve quickly before chaos spreads!',
+      title: 'High School 🏫',
+      text: 'Welcome to the chaos! Just like high school, things can get WILD. Flipped stickers might trigger chain reactions. Stay calm and solve fast!',
+      tip: 'Don\'t panic! Solve before the chaos spreads!',
     },
     winCondition: 'classic',
-    winMessage: 'You survived the chaos! Instability is just another seam to navigate.',
+    winMessage: 'You survived high school! Nothing can stop you now! 🎓',
     cutsceneText: 'Chaos spreads...',
   },
   {
@@ -111,6 +116,7 @@ export const LEVELS = [
     cubeSize: 3,
     chaosLevel: 1,
     mode: 'classic',
+    background: 'college', // Lecture halls, equations, late nights
     features: {
       rotations: true,
       tunnels: true,
@@ -121,12 +127,12 @@ export const LEVELS = [
       net: false,
     },
     tutorial: {
-      title: 'The Parity Problem',
-      text: 'On a non-orientable surface, paths can reverse your handedness! EVEN parity (cyan glow) = solvable normally. ODD parity (purple) = you\'ve crossed a "seam" and need special algorithms.',
-      tip: 'The sledgehammer (R\' F R F\') fixes parity issues.',
+      title: 'College 🎓',
+      text: 'Time for advanced concepts! EVEN parity (cyan) = normal. ODD parity (purple) = you crossed a "seam". This is real topology!',
+      tip: 'The sledgehammer algorithm fixes parity issues.',
     },
     winCondition: 'classic',
-    winMessage: 'Parity mastered! You can now detect orientation reversals.',
+    winMessage: 'Bachelor\'s degree earned! You understand parity! 📜',
     cutsceneText: 'Untwist the quotient.',
   },
   {
@@ -136,6 +142,7 @@ export const LEVELS = [
     cubeSize: 4,
     chaosLevel: 2,
     mode: 'classic',
+    background: 'job', // Office, cubicles, adulting
     features: {
       rotations: true,
       tunnels: true,
@@ -146,12 +153,12 @@ export const LEVELS = [
       net: false,
     },
     tutorial: {
-      title: 'Three Projective Planes',
-      text: 'Press X to EXPLODE the cube! See how the 3 manifold axes work: Z-axis (Red-Orange), X-axis (Blue-Green), Y-axis (White-Yellow). Each axis defines an RP² slice through the cube.',
-      tip: 'Explode view reveals the wormhole network structure.',
+      title: 'First Job 💼',
+      text: 'Welcome to the real world! Press X to EXPLODE the cube and see its internal structure. Time to think in 3D like a professional!',
+      tip: 'Explode view reveals how the pieces connect.',
     },
     winCondition: 'classic',
-    winMessage: 'You\'ve mapped the manifold axes! The projective structure is clear.',
+    winMessage: 'Promotion earned! You see the bigger picture now! 📊',
     cutsceneText: 'Navigate RP² axes.',
   },
   {
@@ -161,6 +168,7 @@ export const LEVELS = [
     cubeSize: 4,
     chaosLevel: 2,
     mode: 'sudokube', // NEW: Sudokube mode
+    background: 'nasa', // Control rooms, screens, science
     features: {
       rotations: true,
       tunnels: true,
@@ -171,12 +179,12 @@ export const LEVELS = [
       net: false,
     },
     tutorial: {
-      title: 'Sudoku on a Manifold',
-      text: 'Colors become numbers! Each face must contain digits 1-9 (or 1-16 for 4×4) with no repeats in any row or column. The antipodal constraint still applies — twin stickers share fate!',
-      tip: 'Press V to toggle between color and number views.',
+      title: 'NASA Lab 🔬',
+      text: 'You made it to NASA! Colors become numbers now. Each face needs digits 1-16 with no repeats in any row or column. It\'s Sudoku in SPACE!',
+      tip: 'Press V to toggle between colors and numbers.',
     },
     winCondition: 'sudokube',
-    winMessage: 'Sudokube solved! Latin squares on non-orientable surfaces — impressive!',
+    winMessage: 'Mission Specialist certified! Sudoku + Topology = Genius! 🧪',
     cutsceneText: 'Numbers on the manifold.',
   },
   {
@@ -186,6 +194,7 @@ export const LEVELS = [
     cubeSize: 4,
     chaosLevel: 3,
     mode: 'ultimate', // NEW: Ultimate mode (colors + sudoku)
+    background: 'rocket', // Countdown, flames, liftoff
     features: {
       rotations: true,
       tunnels: true,
@@ -196,12 +205,12 @@ export const LEVELS = [
       net: false,
     },
     tutorial: {
-      title: 'The Ultimate Challenge',
-      text: 'Colors AND numbers must both be correct! This is the full RP² puzzle — solve the Rubik\'s cube AND the Sudoku simultaneously. Chaos waves affect both constraints.',
-      tip: 'Focus on one constraint first, then adjust for the other.',
+      title: 'Rocket Launch 🚀',
+      text: '3... 2... 1... LIFTOFF! Colors AND numbers must BOTH be correct! This is the ultimate challenge. You\'re leaving Earth!',
+      tip: 'Focus on one constraint first, then adjust.',
     },
     winCondition: 'ultimate',
-    winMessage: 'ULTIMATE victory! You\'ve mastered dual-constraint topology!',
+    winMessage: 'WE HAVE LIFTOFF! Dual mastery achieved! 🔥',
     cutsceneText: 'Dual symmetries collide.',
   },
   {
@@ -211,6 +220,7 @@ export const LEVELS = [
     cubeSize: 5,
     chaosLevel: 3,
     mode: 'ultimate',
+    background: 'moon', // Lunar surface, Earth in distance
     features: {
       rotations: true,
       tunnels: true,
@@ -221,12 +231,12 @@ export const LEVELS = [
       net: true, // NEW: Net view available
     },
     tutorial: {
-      title: 'The Quotient Space',
-      text: 'Press N for the NET view — see the cube unfolded with all antipodal connections. This is ℂⁿ/ℤ₂ = RP^{n-1} in action. High chaos, 5×5 complexity, all features unlocked. You\'re ready for the Singularity!',
-      tip: 'k* = 0.721 — Detect the symmetry breaks!',
+      title: 'The Moon 🌙',
+      text: 'One small step for cubes... Press N for the NET view - see everything unfolded! You can see Earth from here. One more challenge awaits...',
+      tip: 'The net shows all connections at once.',
     },
     winCondition: 'ultimate',
-    winMessage: 'QUOTIENT MASTERED! You understand the manifold. The Singularity awaits...',
+    winMessage: 'MOONWALK COMPLETE! The stars are calling... 🌍',
     cutsceneText: 'Enter the singularity.',
   },
   {
@@ -236,6 +246,7 @@ export const LEVELS = [
     cubeSize: 5,
     chaosLevel: 4,
     mode: 'ultimate',
+    background: 'blackhole', // Full singularity, event horizon
     features: {
       rotations: true,
       tunnels: true,
@@ -246,12 +257,12 @@ export const LEVELS = [
       net: true,
     },
     tutorial: {
-      title: 'The Singularity',
-      text: 'Maximum chaos. Maximum complexity. All constraints active. This is the full WORM³ experience — survive the black hole and master the manifold!',
+      title: 'The Singularity 🕳️',
+      text: 'Maximum chaos. Maximum complexity. You\'re at the edge of a BLACK HOLE. Everything you\'ve learned leads to this moment. Good luck.',
       tip: 'May the topology be with you.',
     },
     winCondition: 'ultimate',
-    winMessage: 'YOU SURVIVED THE SINGULARITY! True topology master!',
+    winMessage: 'YOU ESCAPED THE SINGULARITY! TOPOLOGY MASTER! 🏆',
     cutsceneText: 'Survive the Singularity.',
     hasCutscene: true, // Special epic cutscene
   },

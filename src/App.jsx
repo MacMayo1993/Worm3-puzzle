@@ -22,6 +22,7 @@ import { DEFAULT_SETTINGS, resolveColors } from './utils/colorSchemes.js';
 import CubeAssembly from './3d/CubeAssembly.jsx';
 import BlackHoleEnvironment from './3d/BlackHoleEnvironment.jsx';
 import { StarfieldEnvironment, NebulaSkyEnvironment } from './3d/BackgroundEnvironments.jsx';
+import { getLevelBackground } from './3d/LifeJourneyBackgrounds.jsx';
 
 // WORM mode
 import {
@@ -1393,9 +1394,14 @@ export default function WORM3() {
             </>
           )}
           <Suspense fallback={null}>
-            {settings.backgroundTheme === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
-            {settings.backgroundTheme === 'starfield' && <StarfieldEnvironment flipTrigger={blackHolePulse} />}
-            {settings.backgroundTheme === 'nebula' && <NebulaSkyEnvironment flipTrigger={blackHolePulse} />}
+            {/* Level-specific backgrounds take priority when playing a level */}
+            {currentLevelData?.background === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
+            {currentLevelData?.background && currentLevelData.background !== 'blackhole' && getLevelBackground(currentLevelData.background, blackHolePulse)}
+
+            {/* Fallback to settings-based backgrounds when not in a level */}
+            {!currentLevelData && settings.backgroundTheme === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
+            {!currentLevelData && settings.backgroundTheme === 'starfield' && <StarfieldEnvironment flipTrigger={blackHolePulse} />}
+            {!currentLevelData && settings.backgroundTheme === 'nebula' && <NebulaSkyEnvironment flipTrigger={blackHolePulse} />}
             <Environment preset="city" />
 
             {/* WORM Mode - wraps everything when active */}
