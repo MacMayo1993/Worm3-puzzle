@@ -4,10 +4,6 @@
  * Actual 3D environments you can look around in!
  */
 
-import React, { useRef, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
-
 import React, { useRef, useMemo, useLayoutEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
