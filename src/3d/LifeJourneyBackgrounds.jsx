@@ -8,128 +8,181 @@ import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-// ============================================
-// 1. DAYCARE - Colorful playroom
-// ============================================
-export function DaycareEnvironment({ flipTrigger = 0 }) {
-  const toysRef = useRef();
+import React, { useRef, useMemo, useLayoutEffect } from 'react';
+import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
+import { Float, ContactShadows } from '@react-three/drei';
 
+export function DaycareEnvironment({ flipTrigger = 0 }) {
+  const blockCount = 40;
+  const tileCount = 64; // 8x8 grid
+  const blockRef = useRef();
+  const tileRef = useRef();
+  const mobileRef = useRef();
+
+  const blockColors = useMemo(() => 
+    ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#FF8C42', '#A8E6CF'].map(c => new THREE.Color(c)), 
+  []);
+
+  // 1. Position static floor tiles once on mount
+  useLayoutEffect(() => {
+    const tempObject = new THREE.Object3D();
+    for (let i = 0; i < tileCount; i++) {
+      const x = (i % 8) * 8 - 28;
+      const z = Math.floor(i / 8) * 8 - 28;
+      tempObject.position.set(x, -7.95, z);
+      tempObject.rotation.x = -Math.PI / 2;
+      tempObject.updateMatrix();
+      tileRef.current.setMatrixAt(i, tempObject.matrix);
+      
+      // Assign grid colors
+      const colorIndex = (Math.floor(i / 8) + (i % 8)) % blockColors.length;
+      tileRef.current.setColorAt(i, blockColors[colorIndex]);
+    }
+    tileRef.current.instanceMatrix.needsUpdate = true;
+  }, [blockColors]);
+
+  // 2. Animation Loop
   useFrame((state) => {
-    if (toysRef.current) {
-      toysRef.current.children.forEach((toy, i) => {
-        toy.rotation.y = state.clock.elapsedTime * 0.2 + i;
-        toy.position.y = toy.userData.baseY + Math.sin(state.clock.elapsedTime + i) * 0.1;
+    const time = state.clock.elapsedTime;
+    
+    // Animate Floating Blocks
+    const dummy = new THREE.Object3D();
+    for (let i = 0; i < blockCount; i++) {
+      const t = time + i * 100;
+      const x = Math.sin(t * 0.2) * 20;
+      const y = Math.cos(t * 0.3) * 5 + 10;
+      const z = Math.sin(t * 0.5) * 20;
+      
+      dummy.position.set(x, y, z);
+      dummy.rotation.set(t * 0.1, t * 0.2, t * 0.3);
+      dummy.updateMatrix();
+      blockRef.current.setMatrixAt(i, dummy.matrix);
+      // Optional: blockRef.current.setColorAt(i, blockColors[i % blockColors.length]);
+    }
+    blockRef.current.instanceMatrix.needsUpdate = true;
+
+    // Animate Kinetic Mobile
+    if (mobileRef.current) {
+      mobileRef.current.rotation.z = Math.sin(time * 0.5) * 0.1;
+      mobileRef.current.rotation.y = time * 0.2;
+      mobileRef.current.children.forEach((arm, i) => {
+        arm.rotation.y = Math.sin(time + i) * 0.2;
       });
     }
   });
 
-  const blockColors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#FF8C42', '#A8E6CF'];
-
   return (
     <group>
-      {/* Room - soft pastel walls */}
-      {/* Floor - colorful play mat */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -8, 0]}>
-        <planeGeometry args={[80, 80]} />
-        <meshStandardMaterial color="#98D8C8" />
+      {/* Atmosphere: Warm Afternoon Fog */}
+      <color attach="background" args={['#FFF5E6']} />
+      <fog attach="fog" args={['#FFF5E6', 10, 150]} />
+
+      {/* Lighting: Sunlight & Ambient */}
+      <directionalLight 
+        position={[40, 20, 20]} 
+        intensity={1.5} 
+        color="#FFF8DC" 
+        castShadow 
+      />
+      <ambientLight intensity={0.5} />
+
+      {/* Room Geometry: Floor & Walls */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -8, 0]} receiveShadow>
+        <planeGeometry args={[120, 120]} />
+        <meshStandardMaterial color="#98D8C8" roughness={0.9} />
       </mesh>
 
-      {/* Colorful floor tiles */}
-      {Array.from({ length: 8 }).map((_, i) =>
-        Array.from({ length: 8 }).map((_, j) => (
-          <mesh key={`tile-${i}-${j}`} rotation={[-Math.PI / 2, 0, 0]} position={[-28 + i * 8, -7.9, -28 + j * 8]}>
-            <planeGeometry args={[7.5, 7.5]} />
-            <meshStandardMaterial color={blockColors[(i + j) % blockColors.length]} opacity={0.3} transparent />
-          </mesh>
-        ))
-      )}
-
-      {/* Walls */}
-      <mesh position={[0, 12, -40]}>
-        <planeGeometry args={[80, 40]} />
-        <meshStandardMaterial color="#FFF5E6" />
-      </mesh>
-      <mesh position={[-40, 12, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <planeGeometry args={[80, 40]} />
-        <meshStandardMaterial color="#FFE4E1" />
-      </mesh>
-      <mesh position={[40, 12, 0]} rotation={[0, -Math.PI / 2, 0]}>
-        <planeGeometry args={[80, 40]} />
-        <meshStandardMaterial color="#E6F3FF" />
-      </mesh>
-
-      {/* Ceiling */}
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 32, 0]}>
-        <planeGeometry args={[80, 80]} />
-        <meshStandardMaterial color="#FFFAF0" />
-      </mesh>
-
-      {/* Floating toy blocks */}
-      <group ref={toysRef}>
-        {Array.from({ length: 20 }).map((_, i) => {
-          const baseY = 2 + Math.random() * 8;
-          return (
-            <mesh
-              key={`block-${i}`}
-              position={[
-                (Math.random() - 0.5) * 50,
-                baseY,
-                (Math.random() - 0.5) * 50 - 10
-              ]}
-              userData={{ baseY }}
-            >
-              <boxGeometry args={[1.5 + Math.random(), 1.5 + Math.random(), 1.5 + Math.random()]} />
-              <meshStandardMaterial color={blockColors[i % blockColors.length]} />
-            </mesh>
-          );
-        })}
-      </group>
-
-      {/* Toy shelves on walls */}
-      {[-25, 0, 25].map((x, i) => (
-        <group key={`shelf-${i}`} position={[x, 5, -38]}>
-          <mesh>
-            <boxGeometry args={[12, 0.5, 3]} />
-            <meshStandardMaterial color="#DEB887" />
-          </mesh>
-          {/* Toys on shelf */}
-          {Array.from({ length: 4 }).map((_, j) => (
-            <mesh key={j} position={[-4 + j * 2.5, 1, 0]}>
-              <sphereGeometry args={[0.6, 16, 16]} />
-              <meshStandardMaterial color={blockColors[(i + j) % blockColors.length]} />
-            </mesh>
-          ))}
-        </group>
-      ))}
-
-      {/* Soft area rug in center */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -7.8, 5]}>
-        <circleGeometry args={[10, 32]} />
-        <meshStandardMaterial color="#FFB6C1" />
-      </mesh>
-
-      {/* Ceiling lights */}
-      {[[-15, 0], [15, 0], [0, -15], [0, 15]].map(([x, z], i) => (
-        <group key={`light-${i}`}>
-          <mesh position={[x, 30, z]}>
-            <cylinderGeometry args={[2, 2, 0.5, 16]} />
-            <meshBasicMaterial color="#FFFACD" />
-          </mesh>
-          <pointLight position={[x, 28, z]} color="#FFF8DC" intensity={0.8} distance={40} />
-        </group>
-      ))}
-
-      {/* Window with sunlight */}
-      <group position={[38, 15, 0]}>
+      <group position={[0, 12, -45]}>
         <mesh>
-          <boxGeometry args={[1, 12, 16]} />
-          <meshStandardMaterial color="#87CEEB" emissive="#87CEEB" emissiveIntensity={0.3} />
+          <planeGeometry args={[100, 50]} />
+          <meshStandardMaterial color="#FFF5E6" />
         </mesh>
-        <pointLight position={[5, 0, 0]} color="#FFF8DC" intensity={1} distance={30} />
+        {/* Realism: Wood Baseboard */}
+        <mesh position={[0, -24.5, 0.5]}>
+          <boxGeometry args={[100, 1, 0.2]} />
+          <meshStandardMaterial color="#DEB887" />
+        </mesh>
       </group>
 
-      {/* Ambient lighting */}
-      <ambientLight intensity={0.6} />
+      {/* Optimized Instanced Elements */}
+      <instancedMesh ref={tileRef} args={[null, null, tileCount]}>
+        <planeGeometry args={[7.8, 7.8]} />
+        <meshStandardMaterial transparent opacity={0.5} />
+      </instancedMesh>
+
+      <instancedMesh ref={blockRef} args={[null, null, blockCount]} castShadow>
+        <boxGeometry args={[2, 2, 2]} />
+        <meshStandardMaterial roughness={0.4} />
+      </instancedMesh>
+
+      {/* Kinetic Mobile centerpiece */}
+      <group position={[0, 31, 0]} ref={mobileRef}>
+        <mesh position={[0, -5, 0]}>
+          <cylinderGeometry args={[0.02, 0.02, 10]} />
+          <meshStandardMaterial color="#888" />
+        </mesh>
+        {[0, 1, 2].map((i) => (
+          <group key={i} rotation={[0, (i * Math.PI * 2) / 3, 0]}>
+            <mesh position={[3, -10, 0]} rotation={[Math.PI / 2, 0, 0]}>
+              <boxGeometry args={[6, 0.05, 0.05]} />
+              <meshStandardMaterial color="#DEB887" />
+            </mesh>
+            <mesh position={[6, -12, 0]}>
+              {i === 0 ? <sphereGeometry args={[1]} /> : 
+               i === 1 ? <tetrahedronGeometry args={[1.2]} /> : 
+               <torusGeometry args={[0.7, 0.2, 16, 32]} />}
+              <meshStandardMaterial color={blockColors[i]} />
+            </mesh>
+          </group>
+        ))}
+      </group>
+
+      {/* Window Volumetric Glow */}
+      <group position={[48, 15, 0]}>
+        <mesh>
+          <boxGeometry args={[1, 16, 20]} />
+          <meshStandardMaterial color="#FFF" />
+        </mesh>
+        <mesh position={[-15, -5, 0]} rotation={[0, 0, Math.PI / 4]}>
+          <boxGeometry args={[30, 0.1, 18]} />
+          <meshBasicMaterial 
+            color="#FFF8DC" 
+            transparent 
+            opacity={0.1} 
+            side={THREE.DoubleSide} 
+            blending={THREE.AdditiveBlending}
+          />
+        </mesh>
+      </group>
+
+      {/* Clutter: Crayons on floor */}
+      {Array.from({ length: 15 }).map((_, i) => (
+        <mesh 
+          key={i} 
+          position={[(Math.random() - 0.5) * 50, -7.96, (Math.random() - 0.5) * 50]} 
+          rotation={[Math.PI / 2, 0, Math.random() * Math.PI]}
+        >
+          <cylinderGeometry args={[0.08, 0.08, 1.2]} />
+          <meshStandardMaterial color={blockColors[i % blockColors.length]} />
+        </mesh>
+      ))}
+
+      {/* Soft Polish: Shadows & Rug */}
+      <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.5}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -7.8, 5]}>
+          <circleGeometry args={[12, 64]} />
+          <meshStandardMaterial color="#FFB6C1" roughness={1} />
+        </mesh>
+      </Float>
+
+      <ContactShadows 
+        position={[0, -7.99, 0]} 
+        opacity={0.4} 
+        scale={80} 
+        blur={2} 
+        far={15} 
+      />
     </group>
   );
 }
