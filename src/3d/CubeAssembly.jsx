@@ -314,7 +314,7 @@ const CubeAssembly = React.memo(({
       <TrackballControls
         ref={controlsRef}
         noPan={true}
-        noZoom={isTouchDevice ? true : false}
+        noZoom={isTouchDevice && explosionFactor === 0}
         minDistance={5}
         maxDistance={28}
         enabled={!animState && !dragStart}
