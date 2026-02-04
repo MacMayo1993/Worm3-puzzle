@@ -6,6 +6,7 @@ import './App.css';
 
 // Utils
 import { play } from './utils/audio.js';
+import { getLevel, completeLevel, loadProgress } from './utils/levels.js';
 
 // Game logic
 import { makeCubies } from './game/cubeState.js';
@@ -43,6 +44,7 @@ import Tutorial from './components/screens/Tutorial.jsx';
 import FirstFlipTutorial from './components/screens/FirstFlipTutorial.jsx';
 import LevelSelectScreen from './components/screens/LevelSelectScreen.jsx';
 import Level10Cutscene from './components/screens/Level10Cutscene.jsx';
+import LevelTutorial from './components/screens/LevelTutorial.jsx';
 import RotationPreview from './components/overlays/RotationPreview.jsx';
 import CubeNet from './components/CubeNet.jsx';
 import SolveMode, { SolveModeButton } from './components/SolveMode.jsx';
@@ -68,7 +70,9 @@ export default function WORM3() {
   const [showMainMenu, setShowMainMenu] = useState(true);
   const [showLevelSelect, setShowLevelSelect] = useState(false);
   const [currentLevel, setCurrentLevel] = useState(null);
+  const [currentLevelData, setCurrentLevelData] = useState(null);
   const [showCutscene, setShowCutscene] = useState(false);
+  const [showLevelTutorial, setShowLevelTutorial] = useState(false);
 
   // Win condition state
   const [victory, setVictory] = useState(null); // null, 'rubiks', 'sudokube', 'ultimate', or 'worm'
@@ -769,14 +773,26 @@ export default function WORM3() {
 
   // Victory screen handlers
   const handleVictoryContinue = () => {
+    // Mark level as completed if playing a level
+    if (currentLevel) {
+      completeLevel(currentLevel);
+    }
     // Dismiss victory screen but keep playing
     setVictory(null);
   };
 
   const handleVictoryNewGame = () => {
+    // Mark level as completed if playing a level
+    if (currentLevel) {
+      completeLevel(currentLevel);
+    }
     // Start a fresh shuffled game
     setVictory(null);
-    shuffle();
+    if (currentLevelData) {
+      shuffleForLevel();
+    } else {
+      shuffle();
+    }
   };
 
   // Level selection handlers
@@ -786,20 +802,68 @@ export default function WORM3() {
   };
 
   const handleLevelSelect = (levelId) => {
+    const levelData = getLevel(levelId);
     setCurrentLevel(levelId);
+    setCurrentLevelData(levelData);
     setShowLevelSelect(false);
-    // Level 10 is the full "Black Hole" experience with epic cutscene
-    if (levelId === 10) {
+
+    // Apply level settings
+    if (levelData) {
+      setSize(levelData.cubeSize);
+      setChaosLevel(levelData.chaosLevel);
+      // Set visual mode based on level mode
+      if (levelData.mode === 'sudokube') {
+        setVisualMode('sudokube');
+      } else if (levelData.mode === 'ultimate') {
+        setVisualMode('grid'); // Grid shows both colors and can show numbers
+      } else {
+        setVisualMode('classic');
+      }
+      // Enable/disable features based on level
+      setFlipMode(levelData.features.flips);
+      setShowTunnels(levelData.features.tunnels);
+    }
+
+    // Level 10 has epic cutscene
+    if (levelId === 10 && levelData?.hasCutscene) {
       setShowCutscene(true);
     } else {
-      // Other levels will be implemented later
-      shuffle();
+      // Show tutorial for other levels
+      setShowLevelTutorial(true);
     }
   };
 
   const handleCutsceneComplete = () => {
     setShowCutscene(false);
-    shuffle();
+    // Show tutorial after cutscene
+    setShowLevelTutorial(true);
+  };
+
+  const handleTutorialClose = () => {
+    setShowLevelTutorial(false);
+    // Start the game
+    shuffleForLevel();
+  };
+
+  // Shuffle cube appropriate for current level
+  const shuffleForLevel = () => {
+    const levelSize = currentLevelData?.cubeSize || size;
+    let state = makeCubies(levelSize);
+    // Fewer shuffles for easier levels
+    const shuffleCount = currentLevelData ? Math.min(25, 10 + currentLevel * 2) : 25;
+    for (let i = 0; i < shuffleCount; i++) {
+      const ax = ['row', 'col', 'depth'][Math.floor(Math.random() * 3)];
+      const slice = Math.floor(Math.random() * levelSize);
+      const dir = Math.random() > 0.5 ? 1 : -1;
+      state = rotateSliceCubies(state, levelSize, ax, slice, dir);
+    }
+    setCubies(state);
+    setMoves(0);
+    setVictory(null);
+    setAchievedWins({ rubiks: false, sudokube: false, ultimate: false, worm: false });
+    gameStartTime.current = Date.now();
+    setGameTime(0);
+    setHasShuffled(true);
   };
 
   const handleBackToMainMenu = () => {
@@ -1172,6 +1236,13 @@ export default function WORM3() {
       // Don't trigger if typing in an input
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
+      // Close tutorial with space or enter
+      if (showLevelTutorial && (e.key === ' ' || e.key === 'Enter')) {
+        e.preventDefault();
+        handleTutorialClose();
+        return;
+      }
+
       const key = e.key.toLowerCase();
 
       // Arrow keys - cursor movement
@@ -1269,7 +1340,7 @@ export default function WORM3() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cursor, animState, size, flipMode]);
+  }, [cursor, animState, size, flipMode, showLevelTutorial]);
 
   const cameraZ = { 2: 8, 3: 10, 4: 14, 5: 18 }[size] || 10;
 
@@ -1536,6 +1607,14 @@ export default function WORM3() {
         <Level10Cutscene
           onComplete={handleCutsceneComplete}
           onSkip={handleCutsceneComplete}
+        />
+      )}
+
+      {/* Level Tutorial Overlay */}
+      {showLevelTutorial && currentLevelData && (
+        <LevelTutorial
+          level={currentLevelData}
+          onClose={handleTutorialClose}
         />
       )}
 
