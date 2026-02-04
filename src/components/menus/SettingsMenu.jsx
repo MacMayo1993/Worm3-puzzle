@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { COLOR_SCHEMES } from '../../utils/colorSchemes.js';
+import { COLOR_SCHEMES, TILE_STYLES } from '../../utils/colorSchemes.js';
 
 const FACE_LABELS = { 1: 'Front', 2: 'Left', 3: 'Top', 4: 'Back', 5: 'Right', 6: 'Bottom' };
+const FACE_COLOR_NAMES = { 1: 'Red', 2: 'Green', 3: 'White', 4: 'Orange', 5: 'Blue', 6: 'Yellow' };
 
 const SCHEME_LABELS = {
   standard: 'Standard',
@@ -285,6 +286,41 @@ const SettingsMenu = ({ onClose, settings, onSettingsChange, faceImages = {}, on
                   <span className="settings-radio-label">{opt.label}</span>
                 </label>
               ))}
+            </div>
+          </section>
+
+          {/* Tile Styles per Manifold */}
+          <section className="settings-section">
+            <h3 className="settings-section-title">Tile Styles</h3>
+            <p className="settings-hint">Set a visual style for each manifold face</p>
+            <div className="tile-style-grid">
+              {[1, 2, 3, 4, 5, 6].map(faceId => {
+                const currentStyle = settings.manifoldStyles?.[faceId] || 'solid';
+                return (
+                  <div key={faceId} className="tile-style-item">
+                    <div
+                      className="tile-style-preview"
+                      style={{ backgroundColor: resolvedColors[faceId] }}
+                    >
+                      <span className="tile-style-face-label">{FACE_COLOR_NAMES[faceId]}</span>
+                    </div>
+                    <select
+                      className="tile-style-select"
+                      value={currentStyle}
+                      onChange={(e) => {
+                        const newStyles = { ...(settings.manifoldStyles || {}), [faceId]: e.target.value };
+                        onSettingsChange({ ...settings, manifoldStyles: newStyles });
+                      }}
+                    >
+                      {Object.entries(TILE_STYLES).map(([key, style]) => (
+                        <option key={key} value={key}>
+                          {style.label} {style.type === 'animated' ? '~' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })}
             </div>
           </section>
 
