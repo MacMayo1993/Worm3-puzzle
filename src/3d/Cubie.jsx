@@ -52,7 +52,7 @@ const faceValue = (dirKey, x, y, z, size) => {
 };
 
 const Cubie = React.forwardRef(function Cubie({
-  position, cubie, size, onPointerDown, visualMode, explosionFactor = 0, faceColors, faceTextures
+  position, cubie, size, onPointerDown, visualMode, explosionFactor = 0, faceColors, faceTextures, manifoldStyles
 }, ref) {
   const limit = (size - 1) / 2;
   const isEdge = (p, v) => Math.abs(p - v) < 0.01;
@@ -228,12 +228,12 @@ const Cubie = React.forwardRef(function Cubie({
       {/* Regular stickers for ALL other modes (classic, grid, sudokube) */}
       {visualMode !== 'wireframe' && (
         <>
-          {isEdge(position[2], (size - 1) / 2) && meta('PZ') && <StickerPlane meta={meta('PZ')} pos={STICKER_POS.PZ} rot={STICKER_ROT.PZ} mode={visualMode} overlay={overlay('PZ')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PZ')} />}
-          {isEdge(position[2], -(size - 1) / 2) && meta('NZ') && <StickerPlane meta={meta('NZ')} pos={STICKER_POS.NZ} rot={STICKER_ROT.NZ} mode={visualMode} overlay={overlay('NZ')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NZ')} />}
-          {isEdge(position[0], (size - 1) / 2) && meta('PX') && <StickerPlane meta={meta('PX')} pos={STICKER_POS.PX} rot={STICKER_ROT.PX} mode={visualMode} overlay={overlay('PX')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PX')} />}
-          {isEdge(position[0], -(size - 1) / 2) && meta('NX') && <StickerPlane meta={meta('NX')} pos={STICKER_POS.NX} rot={STICKER_ROT.NX} mode={visualMode} overlay={overlay('NX')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NX')} />}
-          {isEdge(position[1], (size - 1) / 2) && meta('PY') && <StickerPlane meta={meta('PY')} pos={STICKER_POS.PY} rot={STICKER_ROT.PY} mode={visualMode} overlay={overlay('PY')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PY')} />}
-          {isEdge(position[1], -(size - 1) / 2) && meta('NY') && <StickerPlane meta={meta('NY')} pos={STICKER_POS.NY} rot={STICKER_ROT.NY} mode={visualMode} overlay={overlay('NY')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NY')} />}
+          {isEdge(position[2], (size - 1) / 2) && meta('PZ') && <StickerPlane meta={meta('PZ')} pos={STICKER_POS.PZ} rot={STICKER_ROT.PZ} mode={visualMode} overlay={overlay('PZ')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PZ')} manifoldStyles={manifoldStyles} />}
+          {isEdge(position[2], -(size - 1) / 2) && meta('NZ') && <StickerPlane meta={meta('NZ')} pos={STICKER_POS.NZ} rot={STICKER_ROT.NZ} mode={visualMode} overlay={overlay('NZ')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NZ')} manifoldStyles={manifoldStyles} />}
+          {isEdge(position[0], (size - 1) / 2) && meta('PX') && <StickerPlane meta={meta('PX')} pos={STICKER_POS.PX} rot={STICKER_ROT.PX} mode={visualMode} overlay={overlay('PX')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PX')} manifoldStyles={manifoldStyles} />}
+          {isEdge(position[0], -(size - 1) / 2) && meta('NX') && <StickerPlane meta={meta('NX')} pos={STICKER_POS.NX} rot={STICKER_ROT.NX} mode={visualMode} overlay={overlay('NX')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NX')} manifoldStyles={manifoldStyles} />}
+          {isEdge(position[1], (size - 1) / 2) && meta('PY') && <StickerPlane meta={meta('PY')} pos={STICKER_POS.PY} rot={STICKER_ROT.PY} mode={visualMode} overlay={overlay('PY')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PY')} manifoldStyles={manifoldStyles} />}
+          {isEdge(position[1], -(size - 1) / 2) && meta('NY') && <StickerPlane meta={meta('NY')} pos={STICKER_POS.NY} rot={STICKER_ROT.NY} mode={visualMode} overlay={overlay('NY')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NY')} manifoldStyles={manifoldStyles} />}
         </>
       )}
     </group>
