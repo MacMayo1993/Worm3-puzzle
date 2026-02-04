@@ -24,15 +24,6 @@ import BlackHoleEnvironment from './3d/BlackHoleEnvironment.jsx';
 import { StarfieldEnvironment, NebulaSkyEnvironment } from './3d/BackgroundEnvironments.jsx';
 import { getLevelBackground } from './3d/LifeJourneyBackgrounds.jsx';
 
-// WORM mode
-import {
-  WormModeProvider,
-  WormModeCanvasElements,
-  WormModeHUD,
-  WormModeStartScreen
-} from './worm/WormModeGame.jsx';
-import WormTouchControls from './worm/WormTouchControls.jsx';
-
 // UI components
 import TopMenuBar from './components/menus/TopMenuBar.jsx';
 import MainMenu from './components/menus/MainMenu.jsx';
@@ -113,10 +104,6 @@ export default function WORM3() {
   // Auto-rotate mode state
   const [autoRotateEnabled, setAutoRotateEnabled] = useState(false);
 
-  // WORM mode state
-  const [wormModeActive, setWormModeActive] = useState(false);
-  const [showWormModeStart, setShowWormModeStart] = useState(false);
-  const [wormGameData, setWormGameData] = useState(null); // Game state from inside Canvas
   const [showNetPanel, setShowNetPanel] = useState(false);
 
   // Solve mode state
@@ -753,25 +740,6 @@ export default function WORM3() {
     setHasShuffled(false); // Disable win detection until next shuffle
   };
 
-  // WORM mode handlers
-  const handleWormModeStart = () => {
-    setShowWormModeStart(false);
-    setWormModeActive(true);
-    // Reset the cube for a fresh worm game
-    setCubies(makeCubies(size));
-  };
-
-  const handleWormModeQuit = () => {
-    setWormModeActive(false);
-  };
-
-  const onWormRotate = useCallback((axis, dir, sliceIndex) => {
-    setAnimState({ axis, dir, sliceIndex, t: 0 });
-    const move = { axis, dir, sliceIndex };
-    setPendingMove(move);
-    pendingMoveRef.current = move;
-  }, []);
-
   // Victory screen handlers
   const handleVictoryContinue = () => {
     // Mark level as completed if playing a level
@@ -1404,46 +1372,7 @@ export default function WORM3() {
             {!currentLevelData && settings.backgroundTheme === 'nebula' && <NebulaSkyEnvironment flipTrigger={blackHolePulse} />}
             <Environment preset="city" />
 
-            {/* WORM Mode - wraps everything when active */}
-            {wormModeActive ? (
-              <WormModeProvider
-                cubies={cubies}
-                size={size}
-                animState={animState}
-                onRotate={onWormRotate}
-                onGameStateChange={setWormGameData}
-              >
-                <WormModeCanvasElements
-                  size={size}
-                  explosionFactor={explosionT}
-                  animState={animState}
-                  cubies={cubies}
-                />
-                <CubeAssembly
-                  size={size}
-                  cubies={cubies}
-                  onMove={onMove}
-                  onTapFlip={onTapFlip}
-                  visualMode={visualMode}
-                  animState={animState}
-                  onAnimComplete={handleAnimComplete}
-                  showTunnels={showTunnels}
-                  explosionFactor={explosionT}
-                  cascades={cascades}
-                  onCascadeComplete={onCascadeComplete}
-                  manifoldMap={manifoldMap}
-                  showInvitation={false}
-                  cursor={cursor}
-                  showCursor={false}
-                  flipMode={false}
-                  onSelectTile={handleSelectTile}
-                  flipWaveOrigins={flipWaveOrigins}
-                  onFlipWaveComplete={onFlipWaveComplete}
-                  faceColors={resolvedColors} faceTextures={faceTextures} manifoldStyles={settings.manifoldStyles}
-                />
-              </WormModeProvider>
-            ) : (
-              <CubeAssembly
+            <CubeAssembly
               size={size}
               cubies={cubies}
               onMove={onMove}
@@ -1466,7 +1395,6 @@ export default function WORM3() {
               faceColors={resolvedColors} faceTextures={faceTextures} manifoldStyles={settings.manifoldStyles}
               solveHighlights={solveModeActive ? solveHighlights : []}
             />
-            )}
           </Suspense>
         </Canvas>
       </div>
@@ -1644,13 +1572,6 @@ export default function WORM3() {
               >
                 SOLVE
               </button>
-              <button
-                className={`btn-compact text ${wormModeActive ? 'active' : ''}`}
-                onClick={() => setShowWormModeStart(true)}
-                style={{ color: '#00ff88', borderColor: wormModeActive ? '#00ff88' : undefined }}
-              >
-                WORM
-              </button>
               {/* Exit Level / Freeplay button */}
               {currentLevelData && (
                 <button
@@ -1757,29 +1678,6 @@ export default function WORM3() {
         />
       )}
 
-      {/* WORM Mode Overlays */}
-      {showWormModeStart && (
-        <WormModeStartScreen
-          onStart={handleWormModeStart}
-          onCancel={() => setShowWormModeStart(false)}
-        />
-      )}
-      {wormModeActive && (
-        <>
-          <WormModeHUD onQuit={handleWormModeQuit} gameData={wormGameData} />
-          {/* Touch controls for mobile */}
-          <WormTouchControls
-            onRotate={onWormRotate}
-            wormHead={wormGameData?.worm?.[0]}
-            onCameraToggle={() => wormGameData?.setWormCameraEnabled?.(prev => !prev)}
-            wormCameraEnabled={wormGameData?.wormCameraEnabled}
-            gameState={wormGameData?.gameState || 'playing'}
-            onPause={() => wormGameData?.setGameState?.('paused')}
-            onResume={() => wormGameData?.setGameState?.('playing')}
-          />
-        </>
-      )}
-
       {/* Net View Side Panel */}
       {showNetPanel && (
         <CubeNet
@@ -1793,7 +1691,7 @@ export default function WORM3() {
       )}
 
       {/* Mobile Controls - Always visible on mobile for easy access */}
-      {isMobile && !showWelcome && !showTutorial && !wormModeActive && (
+      {isMobile && !showWelcome && !showTutorial && (
         <MobileControls
           onShowSettings={() => setShowSettings(true)}
           onShowHelp={() => setShowHelp(true)}
