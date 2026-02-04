@@ -42,6 +42,7 @@ import VictoryScreen from './components/screens/VictoryScreen.jsx';
 import Tutorial from './components/screens/Tutorial.jsx';
 import FirstFlipTutorial from './components/screens/FirstFlipTutorial.jsx';
 import LevelSelectScreen from './components/screens/LevelSelectScreen.jsx';
+import Level10Cutscene from './components/screens/Level10Cutscene.jsx';
 import RotationPreview from './components/overlays/RotationPreview.jsx';
 import CubeNet from './components/CubeNet.jsx';
 import SolveMode, { SolveModeButton } from './components/SolveMode.jsx';
@@ -67,6 +68,7 @@ export default function WORM3() {
   const [showMainMenu, setShowMainMenu] = useState(true);
   const [showLevelSelect, setShowLevelSelect] = useState(false);
   const [currentLevel, setCurrentLevel] = useState(null);
+  const [showCutscene, setShowCutscene] = useState(false);
 
   // Win condition state
   const [victory, setVictory] = useState(null); // null, 'rubiks', 'sudokube', 'ultimate', or 'worm'
@@ -786,8 +788,17 @@ export default function WORM3() {
   const handleLevelSelect = (levelId) => {
     setCurrentLevel(levelId);
     setShowLevelSelect(false);
-    // Level 10 is the full "Black Hole" experience
-    // Other levels will be implemented later
+    // Level 10 is the full "Black Hole" experience with epic cutscene
+    if (levelId === 10) {
+      setShowCutscene(true);
+    } else {
+      // Other levels will be implemented later
+      shuffle();
+    }
+  };
+
+  const handleCutsceneComplete = () => {
+    setShowCutscene(false);
     shuffle();
   };
 
@@ -1519,6 +1530,14 @@ export default function WORM3() {
 
       {/* Victory Screen - highest z-index */}
       {victory && <VictoryScreen winType={victory} moves={moves} time={gameTime} onContinue={handleVictoryContinue} onNewGame={handleVictoryNewGame} />}
+
+      {/* Level 10 Epic Cutscene */}
+      {showCutscene && currentLevel === 10 && (
+        <Level10Cutscene
+          onComplete={handleCutsceneComplete}
+          onSkip={handleCutsceneComplete}
+        />
+      )}
 
       {/* WORM Mode Overlays */}
       {showWormModeStart && (
