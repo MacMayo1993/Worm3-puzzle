@@ -41,6 +41,7 @@ import WelcomeScreen from './components/screens/WelcomeScreen.jsx';
 import VictoryScreen from './components/screens/VictoryScreen.jsx';
 import Tutorial from './components/screens/Tutorial.jsx';
 import FirstFlipTutorial from './components/screens/FirstFlipTutorial.jsx';
+import LevelSelectScreen from './components/screens/LevelSelectScreen.jsx';
 import RotationPreview from './components/overlays/RotationPreview.jsx';
 import CubeNet from './components/CubeNet.jsx';
 import SolveMode, { SolveModeButton } from './components/SolveMode.jsx';
@@ -64,6 +65,8 @@ export default function WORM3() {
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showMainMenu, setShowMainMenu] = useState(true);
+  const [showLevelSelect, setShowLevelSelect] = useState(false);
+  const [currentLevel, setCurrentLevel] = useState(null);
 
   // Win condition state
   const [victory, setVictory] = useState(null); // null, 'rubiks', 'sudokube', 'ultimate', or 'worm'
@@ -774,6 +777,25 @@ export default function WORM3() {
     shuffle();
   };
 
+  // Level selection handlers
+  const handleShowLevelSelect = () => {
+    setShowMainMenu(false);
+    setShowLevelSelect(true);
+  };
+
+  const handleLevelSelect = (levelId) => {
+    setCurrentLevel(levelId);
+    setShowLevelSelect(false);
+    // Level 10 is the full "Black Hole" experience
+    // Other levels will be implemented later
+    shuffle();
+  };
+
+  const handleBackToMainMenu = () => {
+    setShowLevelSelect(false);
+    setShowMainMenu(true);
+  };
+
   // Convert cursor (face, row, col) to cube coordinates (x, y, z) and dirKey
   const cursorToCubePos = (cur) => {
     const { face, row, col } = cur;
@@ -1467,10 +1489,13 @@ export default function WORM3() {
 
       {showMainMenu && (
         <MainMenu
-          onStart={() => {
-            setShowMainMenu(false);
-            shuffle();
-          }}
+          onStart={handleShowLevelSelect}
+        />
+      )}
+      {showLevelSelect && (
+        <LevelSelectScreen
+          onSelectLevel={handleLevelSelect}
+          onBack={handleBackToMainMenu}
         />
       )}
       {showSettings && <SettingsMenu onClose={() => setShowSettings(false)} settings={settings} onSettingsChange={setSettings} faceImages={faceImages} onFaceImage={handleFaceImage} />}
