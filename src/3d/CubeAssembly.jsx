@@ -17,6 +17,16 @@ const _axisRow = new THREE.Vector3(0, 1, 0);
 const _axisDepth = new THREE.Vector3(0, 0, 1);
 const _rotQuat = new THREE.Quaternion();
 
+// Mobile detection
+const isTouchDevice = typeof window !== 'undefined' && (
+  'ontouchstart' in window ||
+  navigator.maxTouchPoints > 0 ||
+  window.matchMedia('(pointer: coarse)').matches
+);
+
+// Drag threshold - larger on touch devices for better precision
+const DRAG_THRESHOLD = isTouchDevice ? 25 : 10;
+
 const CubeAssembly = React.memo(({
   size, cubies, onMove, onTapFlip, visualMode, animState, onAnimComplete,
   showTunnels, explosionFactor, cascades, onCascadeComplete, manifoldMap,
@@ -112,7 +122,7 @@ const CubeAssembly = React.memo(({
     const move = e => {
       if (!dragStart) return;
       const dx = e.clientX - dragStart.screenX, dy = e.clientY - dragStart.screenY;
-      if (Math.abs(dx) > 10 || Math.abs(dy) > 10)
+      if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)
         setActiveDir(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
       else setActiveDir(null);
     };
@@ -120,7 +130,7 @@ const CubeAssembly = React.memo(({
       if (!dragStart) return;
       const dx = e.clientX - dragStart.screenX, dy = e.clientY - dragStart.screenY;
       const dist = Math.hypot(dx, dy);
-      if (dist >= 10) {
+      if (dist >= DRAG_THRESHOLD) {
         const m = mapSwipe(dragStart.n, dx, dy, dragStart.shiftKey);
         if (m) onMoveRef.current(m.axis, m.dir, dragStart.pos);
       } else {
@@ -304,13 +314,13 @@ const CubeAssembly = React.memo(({
       <TrackballControls
         ref={controlsRef}
         noPan={true}
-        noZoom={false}
+        noZoom={isTouchDevice ? true : false}
         minDistance={5}
         maxDistance={28}
         enabled={!animState && !dragStart}
         staticMoving={false}
-        dynamicDampingFactor={0.05}
-        rotateSpeed={1.6}
+        dynamicDampingFactor={isTouchDevice ? 0.12 : 0.05}
+        rotateSpeed={isTouchDevice ? 1.2 : 1.6}
       />
     </group>
   );
