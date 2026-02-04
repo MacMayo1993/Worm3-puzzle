@@ -1572,19 +1572,29 @@ export default function WORM3() {
               >
                 SOLVE
               </button>
-              {/* Exit Level / Freeplay button */}
+              {/* Level navigation buttons */}
               {currentLevelData && (
-                <button
-                  className="btn-compact text freeplay"
-                  onClick={() => {
-                    setCurrentLevel(null);
-                    setCurrentLevelData(null);
-                    // Keep current settings but allow full freedom
-                  }}
-                  title="Exit level mode and enable all features"
-                >
-                  FREEPLAY
-                </button>
+                <>
+                  <button
+                    className="btn-compact text"
+                    onClick={() => setShowLevelSelect(true)}
+                    title="Back to level select"
+                    style={{ color: '#9370DB', borderColor: '#9370DB' }}
+                  >
+                    LEVELS
+                  </button>
+                  <button
+                    className="btn-compact text freeplay"
+                    onClick={() => {
+                      setCurrentLevel(null);
+                      setCurrentLevelData(null);
+                      // Keep current settings but allow full freedom
+                    }}
+                    title="Exit level mode and enable all features"
+                  >
+                    FREEPLAY
+                  </button>
+                </>
               )}
             </div>
           </div>
