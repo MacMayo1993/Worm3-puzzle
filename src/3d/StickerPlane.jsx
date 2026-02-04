@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { COLORS, FACE_COLORS, ANTIPODAL_COLOR } from '../utils/constants.js';
 import { play, vibrate } from '../utils/audio.js';
 import TallyMarks from '../manifold/TallyMarks.jsx';
+import { getTileStyleMaterial, updateSharedTime, isAnimatedStyle } from './TileStyleMaterials.jsx';
 
 // Shared geometries for all particle/glow systems (created once, reused globally)
 const sharedParticleGeometry = new THREE.PlaneGeometry(1, 1);
@@ -264,7 +265,7 @@ const Worm = ({ position, rotation, scale = 1 }) => {
   );
 };
 
-const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mode, faceColors, faceTextures, faceRow, faceCol, faceSize }) {
+const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mode, faceColors, faceTextures, faceRow, faceCol, faceSize, manifoldStyles }) {
   const fc = faceColors || FACE_COLORS;
   const groupRef = useRef();
   const meshRef = useRef();
@@ -303,6 +304,7 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
       // flipToColor is the ANTIPODAL color (what we're flipping TO)
       flipFromColor.current = fc[prevVal];
       flipToColor.current = fc[curr];
+      // Texture follows the displayed face - changes during flip
       flipFromTexture.current = faceTextures?.[prevVal] || null;
       flipToTexture.current = faceTextures?.[curr] || null;
       spinT.current = 1;
@@ -374,7 +376,8 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
       groupRef.current.scale.set(scale, scale, 1);
 
       // Animate color/texture through the flip - switch at midpoint
-      if (meshRef.current && flipFromColor.current && flipToColor.current) {
+      // Only for standard materials (shader materials handle color via uniforms)
+      if (meshRef.current?.material?.color && flipFromColor.current && flipToColor.current) {
         if (rawP < 0.5) {
           const tex = flipFromTexture.current;
           meshRef.current.material.map = tex || null;
@@ -401,11 +404,13 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
         flipFromTexture.current = null;
         flipToTexture.current = null;
         flipProgress.current = 0;
-        // Force set the final color/texture correctly using current meta value
-        if (meshRef.current) {
-          const curTex = faceTextures?.[meta?.curr] || null;
-          meshRef.current.material.map = curTex;
-          meshRef.current.material.color.set(curTex ? '#ffffff' : baseColorRef.current);
+        // Force set the final color/texture correctly
+        // Only for standard materials (shader materials handle color via uniforms)
+        // Texture stays with original face (meta.orig)
+        if (meshRef.current?.material?.color) {
+          const origTex = faceTextures?.[meta?.orig] || null;
+          meshRef.current.material.map = origTex;
+          meshRef.current.material.color.set(origTex ? '#ffffff' : baseColorRef.current);
           meshRef.current.material.needsUpdate = true;
         }
       }
@@ -440,19 +445,38 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
   });
 
   const isSudokube = mode==='sudokube';
-  const currentTexture = faceTextures?.[meta?.curr] || null;
+  // Texture and style follow the CURRENT displayed face (meta.curr)
+  // So M1 tiles always get M1's texture/style, M4 tiles get M4's, etc.
+  const currTexture = faceTextures?.[meta?.curr] || null;
   const baseColor = isSudokube ? COLORS.white : (meta?.curr ? fc[meta.curr] : COLORS.black);
-  const materialColor = currentTexture ? '#ffffff' : baseColor;
+  const materialColor = currTexture ? '#ffffff' : baseColor;
 
   // Store baseColor in ref for access in useFrame animation callbacks
   const baseColorRef = useRef(materialColor);
   baseColorRef.current = materialColor;
 
+  // Get the tile style for the current displayed face
+  const tileStyle = manifoldStyles?.[meta?.curr] || 'solid';
+
+  // Use shader material for non-solid styles (when no texture is applied)
+  const useShaderStyle = tileStyle !== 'solid' && !currTexture && !isSudokube;
+  const styleMaterial = useMemo(() => {
+    if (!useShaderStyle) return null;
+    // Ensure we have a valid color string
+    const colorHex = baseColor || '#888888';
+    try {
+      return getTileStyleMaterial(tileStyle, colorHex, false, null);
+    } catch (e) {
+      console.warn('Failed to create tile style material:', e);
+      return null;
+    }
+  }, [useShaderStyle, tileStyle, baseColor]);
+
   // Set up UVs to show the correct portion of the face texture
   useLayoutEffect(() => {
     if (!geoRef.current || faceRow == null || faceCol == null || !faceSize) return;
     const uvs = geoRef.current.attributes.uv;
-    if (!currentTexture) {
+    if (!currTexture) {
       // Reset to default UVs
       uvs.setXY(0, 0, 1); uvs.setXY(1, 1, 1);
       uvs.setXY(2, 0, 0); uvs.setXY(3, 1, 0);
@@ -464,18 +488,21 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
       uvs.setXY(2, u0, v0); uvs.setXY(3, u1, v0);
     }
     uvs.needsUpdate = true;
-  }, [currentTexture, faceRow, faceCol, faceSize]);
+  }, [currTexture, faceRow, faceCol, faceSize]);
 
   // Sync material color/texture when meta.curr changes (e.g., during cube rotation).
   // Uses useLayoutEffect so the color updates BEFORE the browser paints,
   // preventing a 1-frame flash of the wrong color after rotation.
   useLayoutEffect(() => {
-    if (meshRef.current && !isFlipping.current) {
-      meshRef.current.material.color.set(materialColor);
-      meshRef.current.material.map = currentTexture;
-      meshRef.current.material.needsUpdate = true;
+    if (meshRef.current && meshRef.current.material && !isFlipping.current) {
+      // Only update color for standard materials (not shader materials)
+      if (meshRef.current.material.color) {
+        meshRef.current.material.color.set(materialColor);
+        meshRef.current.material.map = currTexture;
+        meshRef.current.material.needsUpdate = true;
+      }
     }
-  }, [materialColor, currentTexture]);
+  }, [materialColor, currTexture]);
   const isWormhole = meta?.flips>0 && meta?.curr!==meta?.orig;
   const hasFlipHistory = meta?.flips > 0;
 
@@ -494,14 +521,18 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
     <group position={pos} rotation={rot} ref={groupRef}>
       <mesh ref={meshRef}>
         <planeGeometry ref={geoRef} args={[0.85,0.85]} />
-        <meshStandardMaterial
-          color={materialColor}
-          map={currentTexture}
-          side={THREE.DoubleSide}
-          roughness={0.3}
-          metalness={0.05}
-          envMapIntensity={0.3}
-        />
+        {useShaderStyle && styleMaterial ? (
+          <primitive object={styleMaterial} attach="material" />
+        ) : (
+          <meshStandardMaterial
+            color={materialColor}
+            map={currTexture}
+            side={THREE.DoubleSide}
+            roughness={0.3}
+            metalness={0.05}
+            envMapIntensity={0.3}
+          />
+        )}
       </mesh>
 
       {/* Tally Marks - skip if origColor is white on non-white tile */}
