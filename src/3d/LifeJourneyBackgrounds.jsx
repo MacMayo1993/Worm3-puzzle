@@ -7,7 +7,7 @@
 import React, { useRef, useMemo, useLayoutEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { ContactShadows } from '@react-three/drei';
+import { ContactShadows, Text } from '@react-three/drei';
 
 export function DaycareEnvironment({ flipTrigger = 0 }) {
   const tileCount = 36; // 6x6 grid for cube-net floor
