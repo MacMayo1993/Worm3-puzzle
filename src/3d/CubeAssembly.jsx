@@ -28,8 +28,8 @@ const isTouchDevice = typeof window !== 'undefined' && (
 // Drag threshold - larger on touch devices for better precision
 const DRAG_THRESHOLD = isTouchDevice ? 25 : 10;
 
-// Long-press duration for face rotation mode (ms)
-const LONG_PRESS_DURATION = 500;
+// Long-press disabled - was too sensitive on mobile
+// const LONG_PRESS_DURATION = 500;
 
 const CubeAssembly = React.memo(({
   size, cubies, onMove, onTapFlip, visualMode, animState, onAnimComplete,
@@ -130,25 +130,8 @@ const CubeAssembly = React.memo(({
     setDragStart(dragData);
     longPressTriggeredRef.current = false;
 
-    // Start long-press timer for face rotation mode
-    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
-    longPressTimerRef.current = setTimeout(() => {
-      // Trigger face rotation mode
-      longPressTriggeredRef.current = true;
-      vibrate(30); // Haptic feedback on long-press trigger
-      if (onFaceRotationModeRef.current) {
-        onFaceRotationModeRef.current({
-          pos,
-          worldPos,
-          normal: n,
-          dirKey: dirFromNormal(n)
-        });
-      }
-      // Clear drag state since we're entering face rotation mode
-      setDragStart(null);
-      setActiveDir(null);
-      if (controlsRef.current) controlsRef.current.enabled = true;
-    }, LONG_PRESS_DURATION);
+    // Long-press disabled - was too sensitive on mobile
+    // Timer logic removed
 
     if (controlsRef.current) controlsRef.current.enabled = false;
   }, []);
