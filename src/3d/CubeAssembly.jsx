@@ -40,7 +40,7 @@ const CubeAssembly = React.memo(({
   showTunnels, explosionFactor, cascades, onCascadeComplete, manifoldMap,
   cursor, showCursor, flipMode, onSelectTile, onClearTileSelection, flipWaveOrigins, onFlipWaveComplete,
   faceColors, faceTextures, manifoldStyles, solveHighlights,
-  onFaceRotationMode
+  onFaceRotationMode, quality = 'high'
 }) => {
   const cubieRefs = useRef([]);
   const controlsRef = useRef();
@@ -628,6 +628,7 @@ const CubeAssembly = React.memo(({
           faceColors={faceColors}
           faceTextures={faceTextures}
           manifoldStyles={manifoldStyles}
+          quality={quality}
         />
       ))}
       {showCursor && cursor && (

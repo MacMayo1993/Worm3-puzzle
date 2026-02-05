@@ -446,8 +446,13 @@ const materialCache = new Map();
 /**
  * Get or create a shader material for a tile style
  * Materials are cached and shared across tiles with the same style+color
+ * @param {string} style - The tile style name
+ * @param {string} colorHex - The color in hex format
+ * @param {boolean} useTexture - Whether to use a texture
+ * @param {THREE.Texture} texture - The texture to use
+ * @param {boolean} disableAnimated - If true, fallback animated styles to solid (for low quality mode)
  */
-export function getTileStyleMaterial(style, colorHex, useTexture = false, texture = null) {
+export function getTileStyleMaterial(style, colorHex, useTexture = false, texture = null, disableAnimated = false) {
   // If using a texture, return standard material
   if (useTexture && texture) {
     return new THREE.MeshStandardMaterial({
@@ -459,8 +464,13 @@ export function getTileStyleMaterial(style, colorHex, useTexture = false, textur
   }
 
   // Validate inputs
-  const safeStyle = style || 'solid';
+  let safeStyle = style || 'solid';
   const safeColorHex = colorHex || '#888888';
+
+  // Fallback animated styles to solid when disabled (low quality mode)
+  if (disableAnimated && isAnimatedStyle(safeStyle)) {
+    safeStyle = 'solid';
+  }
 
   // Don't cache materials - color schemes can change dynamically
   // Creating new materials is fine since Three.js handles GPU resources efficiently

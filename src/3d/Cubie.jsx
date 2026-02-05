@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
-import { COLORS, FACE_COLORS } from '../utils/constants.js';
+import { COLORS, FACE_COLORS, QUALITY_PRESETS } from '../utils/constants.js';
 import StickerPlane from './StickerPlane.jsx';
 import WireframeEdge from './WireframeEdge.jsx';
 
@@ -52,10 +52,14 @@ const faceValue = (dirKey, x, y, z, size) => {
 };
 
 const Cubie = React.forwardRef(function Cubie({
-  position, cubie, size, onPointerDown, visualMode, explosionFactor = 0, faceColors, faceTextures, manifoldStyles
+  position, cubie, size, onPointerDown, visualMode, explosionFactor = 0, faceColors, faceTextures, manifoldStyles, quality = 'high'
 }, ref) {
   const limit = (size - 1) / 2;
   const isEdge = (p, v) => Math.abs(p - v) < 0.01;
+
+  // Get quality settings for smoothness optimization
+  const qualitySettings = QUALITY_PRESETS[quality] || QUALITY_PRESETS.high;
+  const smoothness = qualitySettings.cubieSmoothnessSegments;
 
   const explodedPos = useMemo(() => {
     if (explosionFactor === 0) return position;
@@ -66,6 +70,21 @@ const Cubie = React.forwardRef(function Cubie({
       position[2] * (1 + explosionFactor * expansionFactor)
     ];
   }, [position, explosionFactor]);
+
+  // Memoize cubie material to prevent recreation on every render
+  const cubieMaterial = useMemo(() => {
+    const props = {
+      roughness: visualMode === 'wireframe' ? 0.9 : visualMode === 'glass' ? 0.05 : 0.25,
+      metalness: visualMode === 'wireframe' ? 0 : visualMode === 'glass' ? 0.3 : 0.15,
+      envMapIntensity: visualMode === 'glass' ? 0.8 : 0.4,
+      transparent: visualMode === 'glass',
+      opacity: visualMode === 'glass' ? 0.12 : 1.0
+    };
+    return new THREE.MeshStandardMaterial({
+      color: visualMode === 'wireframe' ? "#000000" : visualMode === 'glass' ? "#111111" : "#0a0a0a",
+      ...props
+    });
+  }, [visualMode]);
 
   const handleDown = (e) => {
     e.stopPropagation();
@@ -204,15 +223,8 @@ const Cubie = React.forwardRef(function Cubie({
 
   return (
     <group position={explodedPos} ref={ref}>
-      <RoundedBox args={[0.98, 0.98, 0.98]} radius={0.08} smoothness={4} onPointerDown={handleDown}>
-        <meshStandardMaterial
-          color={visualMode === 'wireframe' ? "#000000" : visualMode === 'glass' ? "#111111" : "#0a0a0a"}
-          roughness={visualMode === 'wireframe' ? 0.9 : visualMode === 'glass' ? 0.05 : 0.25}
-          metalness={visualMode === 'wireframe' ? 0 : visualMode === 'glass' ? 0.3 : 0.15}
-          envMapIntensity={visualMode === 'glass' ? 0.8 : 0.4}
-          transparent={visualMode === 'glass'}
-          opacity={visualMode === 'glass' ? 0.12 : 1.0}
-        />
+      <RoundedBox args={[0.98, 0.98, 0.98]} radius={0.08} smoothness={smoothness} onPointerDown={handleDown}>
+        <primitive object={cubieMaterial} attach="material" />
       </RoundedBox>
 
       {/* LED Wireframe edges ONLY in wireframe mode */}
@@ -230,12 +242,12 @@ const Cubie = React.forwardRef(function Cubie({
       {/* Regular stickers for ALL other modes (classic, grid, sudokube) */}
       {visualMode !== 'wireframe' && (
         <>
-          {isEdge(position[2], (size - 1) / 2) && meta('PZ') && <StickerPlane meta={meta('PZ')} pos={STICKER_POS.PZ} rot={STICKER_ROT.PZ} mode={visualMode} overlay={overlay('PZ')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PZ')} manifoldStyles={manifoldStyles} />}
-          {isEdge(position[2], -(size - 1) / 2) && meta('NZ') && <StickerPlane meta={meta('NZ')} pos={STICKER_POS.NZ} rot={STICKER_ROT.NZ} mode={visualMode} overlay={overlay('NZ')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NZ')} manifoldStyles={manifoldStyles} />}
-          {isEdge(position[0], (size - 1) / 2) && meta('PX') && <StickerPlane meta={meta('PX')} pos={STICKER_POS.PX} rot={STICKER_ROT.PX} mode={visualMode} overlay={overlay('PX')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PX')} manifoldStyles={manifoldStyles} />}
-          {isEdge(position[0], -(size - 1) / 2) && meta('NX') && <StickerPlane meta={meta('NX')} pos={STICKER_POS.NX} rot={STICKER_ROT.NX} mode={visualMode} overlay={overlay('NX')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NX')} manifoldStyles={manifoldStyles} />}
-          {isEdge(position[1], (size - 1) / 2) && meta('PY') && <StickerPlane meta={meta('PY')} pos={STICKER_POS.PY} rot={STICKER_ROT.PY} mode={visualMode} overlay={overlay('PY')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PY')} manifoldStyles={manifoldStyles} />}
-          {isEdge(position[1], -(size - 1) / 2) && meta('NY') && <StickerPlane meta={meta('NY')} pos={STICKER_POS.NY} rot={STICKER_ROT.NY} mode={visualMode} overlay={overlay('NY')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NY')} manifoldStyles={manifoldStyles} />}
+          {isEdge(position[2], (size - 1) / 2) && meta('PZ') && <StickerPlane meta={meta('PZ')} pos={STICKER_POS.PZ} rot={STICKER_ROT.PZ} mode={visualMode} overlay={overlay('PZ')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PZ')} manifoldStyles={manifoldStyles} quality={quality} />}
+          {isEdge(position[2], -(size - 1) / 2) && meta('NZ') && <StickerPlane meta={meta('NZ')} pos={STICKER_POS.NZ} rot={STICKER_ROT.NZ} mode={visualMode} overlay={overlay('NZ')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NZ')} manifoldStyles={manifoldStyles} quality={quality} />}
+          {isEdge(position[0], (size - 1) / 2) && meta('PX') && <StickerPlane meta={meta('PX')} pos={STICKER_POS.PX} rot={STICKER_ROT.PX} mode={visualMode} overlay={overlay('PX')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PX')} manifoldStyles={manifoldStyles} quality={quality} />}
+          {isEdge(position[0], -(size - 1) / 2) && meta('NX') && <StickerPlane meta={meta('NX')} pos={STICKER_POS.NX} rot={STICKER_ROT.NX} mode={visualMode} overlay={overlay('NX')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NX')} manifoldStyles={manifoldStyles} quality={quality} />}
+          {isEdge(position[1], (size - 1) / 2) && meta('PY') && <StickerPlane meta={meta('PY')} pos={STICKER_POS.PY} rot={STICKER_ROT.PY} mode={visualMode} overlay={overlay('PY')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PY')} manifoldStyles={manifoldStyles} quality={quality} />}
+          {isEdge(position[1], -(size - 1) / 2) && meta('NY') && <StickerPlane meta={meta('NY')} pos={STICKER_POS.NY} rot={STICKER_ROT.NY} mode={visualMode} overlay={overlay('NY')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NY')} manifoldStyles={manifoldStyles} quality={quality} />}
         </>
       )}
     </group>

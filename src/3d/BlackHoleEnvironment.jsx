@@ -1,15 +1,20 @@
 import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { QUALITY_PRESETS } from '../utils/constants.js';
 
 /**
  * BlackHoleEnvironment - A dynamic 3D black hole background
  * Provides an immersive, panoramic black hole effect as part of the 3D scene
+ * Optimized with quality levels for performance on different devices
  */
-export default function BlackHoleEnvironment({ flipTrigger = 0 }) {
+export default function BlackHoleEnvironment({ flipTrigger = 0, quality = 'high' }) {
   const sphereRef = useRef();
   const materialRef = useRef();
   const [pulseIntensity, setPulseIntensity] = useState(0);
+
+  // Get quality preset
+  const qualitySettings = QUALITY_PRESETS[quality] || QUALITY_PRESETS.high;
 
   // Trigger pulse animation when flip occurs
   useEffect(() => {
@@ -20,8 +25,18 @@ export default function BlackHoleEnvironment({ flipTrigger = 0 }) {
 
   // Custom shader for smooth black hole effect
   const shaderMaterial = useMemo(() => {
+    // Build shader defines based on quality settings
+    const defines = {
+      STAR_LAYERS: qualitySettings.starLayers,
+      ENABLE_NEBULAE: qualitySettings.enableNebulae ? 1 : 0,
+      ENABLE_LENSING: qualitySettings.enableLensing ? 1 : 0,
+      ENABLE_ACCRETION_DISK: qualitySettings.enableAccretionDisk ? 1 : 0,
+      ENABLE_HAWKING_RADIATION: qualitySettings.enableHawkingRadiation ? 1 : 0,
+    };
+
     return new THREE.ShaderMaterial({
       side: THREE.BackSide,
+      defines,
       uniforms: {
         time: { value: 0 },
         pulseIntensity: { value: 0 },
@@ -87,8 +102,9 @@ export default function BlackHoleEnvironment({ flipTrigger = 0 }) {
 
           // === ENHANCED STARS ===
           float stars = 0.0;
+          float starDust = 0.0;
 
-          // Layer 1: Bright prominent stars (sparse)
+          // Layer 1: Bright prominent stars (sparse) - always enabled
           for (int i = 0; i < 3; i++) {
             vec2 starCoord = coord * (10.0 + float(i) * 6.0);
             float starNoise = hash(floor(starCoord + float(i) * 100.0));
@@ -99,6 +115,7 @@ export default function BlackHoleEnvironment({ flipTrigger = 0 }) {
             }
           }
 
+          #if STAR_LAYERS >= 2
           // Layer 2: Medium stars (more frequent)
           for (int i = 0; i < 4; i++) {
             vec2 starCoord = coord * (20.0 + float(i) * 10.0);
@@ -109,7 +126,9 @@ export default function BlackHoleEnvironment({ flipTrigger = 0 }) {
               stars += smoothstep(0.04, 0.0, starDist) * (0.3 + starNoise * 0.3) * twinkle;
             }
           }
+          #endif
 
+          #if STAR_LAYERS >= 3
           // Layer 3: Faint distant stars (dense field)
           for (int i = 0; i < 5; i++) {
             vec2 starCoord = coord * (40.0 + float(i) * 15.0);
@@ -119,9 +138,10 @@ export default function BlackHoleEnvironment({ flipTrigger = 0 }) {
               stars += smoothstep(0.025, 0.0, starDist) * 0.15 * starNoise;
             }
           }
+          #endif
 
+          #if STAR_LAYERS >= 4
           // Layer 4: Very faint background star dust (milky way effect)
-          float starDust = 0.0;
           for (int i = 0; i < 3; i++) {
             vec2 dustCoord = coord * (80.0 + float(i) * 30.0);
             float dustNoise = hash(floor(dustCoord + float(i) * 500.0));
@@ -130,7 +150,9 @@ export default function BlackHoleEnvironment({ flipTrigger = 0 }) {
               starDust += smoothstep(0.02, 0.0, dustDist) * 0.08;
             }
           }
+          #endif
 
+          #if ENABLE_NEBULAE
           // === NEBULAE / GAS CLOUDS ===
           // Subtle colored nebula regions
           float nebula1 = fbm(coord * 3.0 + vec2(time * 0.02, 0.0));
@@ -145,28 +167,42 @@ export default function BlackHoleEnvironment({ flipTrigger = 0 }) {
           float nebulaSelect = noise(coord * 2.0);
           vec3 nebula = mix(nebulaColor1, nebulaColor2, nebulaSelect);
           nebula = mix(nebula, nebulaColor3, noise(coord * 3.0 + 10.0));
+          #endif
 
+          #if ENABLE_LENSING
           // Gravitational lensing - warp space near event horizon
           float lensing = smoothstep(0.5, 0.1, dist);
           float warpAngle = theta + lensing * sin(time * 0.2 + dist * 10.0) * 0.5;
+          #else
+          float warpAngle = theta;
+          #endif
 
           // Event horizon - absolute darkness at center
           float eventHorizon = smoothstep(0.25, 0.15, dist);
 
+          #if ENABLE_ACCRETION_DISK
           // Accretion disk - rotating matter being pulled in
           float angle = warpAngle + time * 0.2;
           float diskPattern = sin(angle * 12.0 + dist * 25.0) * 0.5 + 0.5;
           float diskRadius = smoothstep(0.45, 0.2, dist) * smoothstep(0.15, 0.22, dist);
           float diskGlow = diskRadius * diskPattern;
 
+          // Turbulence in the accretion disk
+          float turbulence = noise(coord * 15.0 + time * 0.15) * 0.2;
+          #else
+          float diskGlow = 0.0;
+          float turbulence = 0.0;
+          #endif
+
           // Photon sphere - light bending around the singularity
           float photonSphere = smoothstep(0.18, 0.16, abs(dist - 0.17)) * 0.8;
 
+          #if ENABLE_HAWKING_RADIATION
           // Hawking radiation glow at event horizon edge
           float hawkingGlow = smoothstep(0.2, 0.16, abs(dist - 0.18)) * 0.6;
-
-          // Turbulence in the accretion disk
-          float turbulence = noise(coord * 15.0 + time * 0.15) * 0.2;
+          #else
+          float hawkingGlow = 0.0;
+          #endif
 
           // Gradient from event horizon to deep space
           float gradient = smoothstep(0.0, 0.8, dist);
@@ -184,11 +220,15 @@ export default function BlackHoleEnvironment({ flipTrigger = 0 }) {
           // Build the final color
           vec3 color = mix(eventHorizonColor, deepSpace, gradient);
 
+          #if ENABLE_NEBULAE
           // Add nebula (very subtle, behind everything)
           color += nebula * nebulaMask * 0.15;
+          #endif
 
+          #if STAR_LAYERS >= 4
           // Add star dust (milky way glow)
           color += vec3(0.6, 0.65, 0.8) * starDust * gradient;
+          #endif
 
           // Add stars with color variation (dimmed near event horizon)
           float starColorMix = hash(coord * 50.0);
@@ -234,7 +274,7 @@ export default function BlackHoleEnvironment({ flipTrigger = 0 }) {
         }
       `,
     });
-  }, []);
+  }, [qualitySettings]);
 
   useFrame((state, delta) => {
     if (materialRef.current) {
@@ -248,9 +288,14 @@ export default function BlackHoleEnvironment({ flipTrigger = 0 }) {
     }
   });
 
+  // Memoize sphere geometry based on quality
+  const sphereGeometry = useMemo(() => {
+    const segments = qualitySettings.backgroundSphereSegments;
+    return new THREE.SphereGeometry(100, segments, segments);
+  }, [qualitySettings.backgroundSphereSegments]);
+
   return (
-    <mesh ref={sphereRef}>
-      <sphereGeometry args={[100, 64, 64]} />
+    <mesh ref={sphereRef} geometry={sphereGeometry}>
       <primitive object={shaderMaterial} ref={materialRef} attach="material" />
     </mesh>
   );

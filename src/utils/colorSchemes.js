@@ -1,4 +1,5 @@
 // Color scheme presets and settings utilities
+import { getDefaultQuality } from './constants.js';
 
 export const COLOR_SCHEMES = {
   standard: { 1: '#ef4444', 2: '#22c55e', 3: '#ffffff', 4: '#f97316', 5: '#3b82f6', 6: '#eab308' },
@@ -30,6 +31,8 @@ export const DEFAULT_SETTINGS = {
   showStats: true,
   showManifoldFooter: true,
   showFaceProgress: true,
+  // Performance quality setting (auto-detected by default)
+  quality: getDefaultQuality(),
   // Per-manifold tile styles
   manifoldStyles: {
     1: 'solid', // Front (Red)

@@ -1776,11 +1776,11 @@ export default function WORM3() {
           )}
           <Suspense fallback={null}>
             {/* Level-specific backgrounds take priority when playing a level */}
-            {currentLevelData?.background === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
+            {currentLevelData?.background === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} quality={settings.quality || 'high'} />}
             {currentLevelData?.background && currentLevelData.background !== 'blackhole' && getLevelBackground(currentLevelData.background, blackHolePulse)}
 
             {/* Fallback to settings-based backgrounds when not in a level */}
-            {!currentLevelData && settings.backgroundTheme === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
+            {!currentLevelData && settings.backgroundTheme === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} quality={settings.quality || 'high'} />}
             {!currentLevelData && settings.backgroundTheme === 'starfield' && <StarfieldEnvironment flipTrigger={blackHolePulse} />}
             {!currentLevelData && settings.backgroundTheme === 'nebula' && <NebulaSkyEnvironment flipTrigger={blackHolePulse} />}
             <Environment preset="city" />
@@ -1809,6 +1809,7 @@ export default function WORM3() {
               faceColors={resolvedColors} faceTextures={faceTextures} manifoldStyles={settings.manifoldStyles}
               solveHighlights={solveModeActive ? solveHighlights : []}
               onFaceRotationMode={handleFaceRotationMode}
+              quality={settings.quality || 'high'}
             />
           </Suspense>
         </Canvas>

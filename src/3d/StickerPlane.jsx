@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useLayoutEffect, useMemo, useState } from 're
 import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
-import { COLORS, FACE_COLORS, ANTIPODAL_COLOR } from '../utils/constants.js';
+import { COLORS, FACE_COLORS, ANTIPODAL_COLOR, QUALITY_PRESETS } from '../utils/constants.js';
 import { play, vibrate } from '../utils/audio.js';
 import TallyMarks from '../manifold/TallyMarks.jsx';
 import { getTileStyleMaterial, getGlassMaterial, updateSharedTime, isAnimatedStyle } from './TileStyleMaterials.jsx';
@@ -13,14 +13,21 @@ const sharedOuterRingGeometry = new THREE.RingGeometry(0.4, 0.5, 16);
 const sharedMainRingGeometry = new THREE.RingGeometry(0.2, 0.45, 16);
 const sharedInnerCircleGeometry = new THREE.CircleGeometry(0.48, 16);
 
+// Shared geometries for sticker planes (created once, reused globally)
+const sharedStickerGeometry = new THREE.PlaneGeometry(0.85, 0.85);
+const sharedFlipBorderRingGeometry = new THREE.RingGeometry(0.38, 0.41, 16);
+const sharedAntipodalRingGeometry = new THREE.RingGeometry(0.35, 0.38, 16);
+const sharedWormholeRingGeometry = new THREE.RingGeometry(0.36, 0.40, 16);
+const sharedWormholeGlowGeometry = new THREE.CircleGeometry(0.44, 16);
+
 // Particle system for flip effect - uses persistent meshes, no recreation
-const FlipParticles = ({ active, color, onComplete }) => {
+const FlipParticles = ({ active, color, onComplete, particleCount = 12 }) => {
   const particlesRef = useRef([]);
   const groupRef = useRef();
   const progressRef = useRef(0);
   const velocitiesRef = useRef([]);
   const isActiveRef = useRef(false);
-  const PARTICLE_COUNT = 12;
+  const PARTICLE_COUNT = particleCount;
 
   // Create materials once and cache them
   const materialsRef = useRef([]);
@@ -237,9 +244,22 @@ const AntipodalGlowFill = ({ active, color }) => {
   );
 };
 
+// Shared materials for worms (created once, reused globally)
+const sharedWormBodyMaterial = new THREE.MeshBasicMaterial({ color: "#bc6c25" });
+const sharedWormHeadMaterial = new THREE.MeshBasicMaterial({ color: "#dda15e" });
+
 // Worm component for disparity visualization
 const Worm = ({ position, rotation, scale = 1 }) => {
   const wormRef = useRef();
+
+  // Memoize geometries based on scale
+  const bodyGeometry = useMemo(() => {
+    return new THREE.CapsuleGeometry(0.02 * scale, 0.08 * scale, 4, 8);
+  }, [scale]);
+
+  const headGeometry = useMemo(() => {
+    return new THREE.SphereGeometry(0.025 * scale, 8, 8);
+  }, [scale]);
 
   useFrame((state) => {
     if (wormRef.current) {
@@ -252,24 +272,18 @@ const Worm = ({ position, rotation, scale = 1 }) => {
   return (
     <group position={position} ref={wormRef}>
       {/* Worm body - curved shape */}
-      <mesh position={[0, 0, 0.015]}>
-        <capsuleGeometry args={[0.02 * scale, 0.08 * scale, 4, 8]} />
-        <meshBasicMaterial color="#bc6c25" />
-      </mesh>
+      <mesh position={[0, 0, 0.015]} geometry={bodyGeometry} material={sharedWormBodyMaterial} />
       {/* Worm head highlight */}
-      <mesh position={[0, 0.05 * scale, 0.015]}>
-        <sphereGeometry args={[0.025 * scale, 8, 8]} />
-        <meshBasicMaterial color="#dda15e" />
-      </mesh>
+      <mesh position={[0, 0.05 * scale, 0.015]} geometry={headGeometry} material={sharedWormHeadMaterial} />
     </group>
   );
 };
 
-const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mode, faceColors, faceTextures, faceRow, faceCol, faceSize, manifoldStyles }) {
+const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mode, faceColors, faceTextures, faceRow, faceCol, faceSize, manifoldStyles, quality = 'high' }) {
   const fc = faceColors || FACE_COLORS;
+  const qualitySettings = QUALITY_PRESETS[quality] || QUALITY_PRESETS.high;
   const groupRef = useRef();
   const meshRef = useRef();
-  const geoRef = useRef();
   const ringRef = useRef();
   const glowRef = useRef();
   const spinT = useRef(0);
@@ -479,17 +493,30 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
     // Ensure we have a valid color string
     const colorHex = baseColor || '#888888';
     try {
-      return getTileStyleMaterial(tileStyle, colorHex, false, null);
+      return getTileStyleMaterial(tileStyle, colorHex, false, null, qualitySettings.disableAnimatedShaders);
     } catch (e) {
       console.warn('Failed to create tile style material:', e);
       return null;
     }
-  }, [useShaderStyle, tileStyle, baseColor]);
+  }, [useShaderStyle, tileStyle, baseColor, qualitySettings.disableAnimatedShaders]);
+
+  // Memoize standard material to prevent recreation on every render
+  const standardMaterial = useMemo(() => {
+    if (useGlassStyle || useShaderStyle) return null;
+    return new THREE.MeshStandardMaterial({
+      color: materialColor,
+      map: currTexture,
+      side: THREE.DoubleSide,
+      roughness: 0.3,
+      metalness: 0.05,
+      envMapIntensity: 0.3
+    });
+  }, [useGlassStyle, useShaderStyle, materialColor, currTexture]);
 
   // Set up UVs to show the correct portion of the face texture
   useLayoutEffect(() => {
-    if (!geoRef.current || faceRow == null || faceCol == null || !faceSize) return;
-    const uvs = geoRef.current.attributes.uv;
+    if (!stickerGeometry || faceRow == null || faceCol == null || !faceSize) return;
+    const uvs = stickerGeometry.attributes.uv;
     if (!currTexture) {
       // Reset to default UVs
       uvs.setXY(0, 0, 1); uvs.setXY(1, 1, 1);
@@ -502,7 +529,7 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
       uvs.setXY(2, u0, v0); uvs.setXY(3, u1, v0);
     }
     uvs.needsUpdate = true;
-  }, [currTexture, faceRow, faceCol, faceSize]);
+  }, [stickerGeometry, currTexture, faceRow, faceCol, faceSize]);
 
   // Sync material color/texture when meta.curr changes (e.g., during cube rotation).
   // Uses useLayoutEffect so the color updates BEFORE the browser paints,
@@ -531,23 +558,21 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
 
   const shadowIntensity = Math.min(0.5, (meta?.flips ?? 0) * 0.03);
 
+  // Create a unique geometry instance for this sticker (needed for UV mapping)
+  // but clone it once and memoize to avoid recreation on every render
+  const stickerGeometry = useMemo(() => {
+    return sharedStickerGeometry.clone();
+  }, []);
+
   return (
     <group position={pos} rotation={rot} ref={groupRef}>
-      <mesh ref={meshRef}>
-        <planeGeometry ref={geoRef} args={[0.85,0.85]} />
+      <mesh ref={meshRef} geometry={stickerGeometry}>
         {useGlassStyle && glassMaterial ? (
           <primitive object={glassMaterial} attach="material" />
         ) : useShaderStyle && styleMaterial ? (
           <primitive object={styleMaterial} attach="material" />
         ) : (
-          <meshStandardMaterial
-            color={materialColor}
-            map={currTexture}
-            side={THREE.DoubleSide}
-            roughness={0.3}
-            metalness={0.05}
-            envMapIntensity={0.3}
-          />
+          <primitive object={standardMaterial} attach="material" />
         )}
       </mesh>
 
@@ -564,14 +589,12 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
       {!isSudokube && hasFlipHistory && (
         <>
           {!(origIsWhite && !currIsWhite) && (
-            <mesh position={[0,0,0.006]}>
-              <ringGeometry args={[0.38, 0.41, 16]} />
+            <mesh position={[0,0,0.006]} geometry={sharedFlipBorderRingGeometry}>
               <meshBasicMaterial color={origColor} />
             </mesh>
           )}
           {!(antipodalIsWhite && !currIsWhite) && (
-            <mesh position={[0,0,0.007]}>
-              <ringGeometry args={[0.35, 0.38, 16]} />
+            <mesh position={[0,0,0.007]} geometry={sharedAntipodalRingGeometry}>
               <meshBasicMaterial color={antipodalColor} />
             </mesh>
           )}
@@ -580,12 +603,10 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
 
       {!isSudokube && isWormhole && (
         <>
-          <mesh ref={ringRef} position={[0,0,0.02]}>
-            <ringGeometry args={[0.36,0.40,16]} />
+          <mesh ref={ringRef} position={[0,0,0.02]} geometry={sharedWormholeRingGeometry}>
             <meshBasicMaterial color="#dda15e" transparent opacity={0.85} />
           </mesh>
-          <mesh ref={glowRef} position={[0,0,0.015]}>
-            <circleGeometry args={[0.44,16]} />
+          <mesh ref={glowRef} position={[0,0,0.015]} geometry={sharedWormholeGlowGeometry}>
             <meshBasicMaterial
               color="#bc6c25"
               transparent
@@ -627,6 +648,7 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
         <FlipParticles
           active={particlesActive}
           color={currentParticleColor}
+          particleCount={qualitySettings.particlesPerFlip}
           onComplete={() => setParticlesActive(false)}
         />
       )}

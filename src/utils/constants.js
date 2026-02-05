@@ -52,3 +52,74 @@ export const VEC_TO_DIR = (x, y, z) => {
   if (x === 0 && y === 0 && z === 1) return 'PZ';
   return 'NZ';
 };
+
+// Quality settings for shader and rendering performance
+export const QUALITY_PRESETS = {
+  low: {
+    // Black hole shader settings
+    starLayers: 2,              // Reduce from 4 to 2
+    starSegments: 32,            // Reduce from 64 to 32
+    backgroundSphereSegments: 32, // Reduce from 64 to 32
+    enableNebulae: false,        // Disable nebulae
+    enableLensing: false,        // Disable gravitational lensing
+    enableAccretionDisk: false,  // Disable accretion disk
+    enableHawkingRadiation: false, // Disable Hawking radiation
+    // Tile shader settings
+    disableAnimatedShaders: true, // Disable animated shader styles
+    // Cube settings
+    cubieSmoothnessSegments: 2,  // Reduce rounded box smoothness
+    particlesPerFlip: 6,         // Reduce from 12 to 6
+    // Worm settings
+    wormGeometryDetail: 4,       // Low detail for worm geometry
+  },
+  medium: {
+    // Black hole shader settings
+    starLayers: 3,               // Medium star layers
+    starSegments: 48,            // Medium segments
+    backgroundSphereSegments: 48,
+    enableNebulae: true,         // Enable nebulae
+    enableLensing: true,         // Enable lensing
+    enableAccretionDisk: false,  // Disable accretion disk (expensive)
+    enableHawkingRadiation: false, // Disable Hawking radiation
+    // Tile shader settings
+    disableAnimatedShaders: false,
+    // Cube settings
+    cubieSmoothnessSegments: 4,  // Standard smoothness
+    particlesPerFlip: 12,        // Standard particle count
+    // Worm settings
+    wormGeometryDetail: 6,       // Medium detail
+  },
+  high: {
+    // Black hole shader settings
+    starLayers: 4,               // All star layers
+    starSegments: 64,            // High detail
+    backgroundSphereSegments: 64,
+    enableNebulae: true,
+    enableLensing: true,
+    enableAccretionDisk: true,
+    enableHawkingRadiation: true,
+    // Tile shader settings
+    disableAnimatedShaders: false,
+    // Cube settings
+    cubieSmoothnessSegments: 4,
+    particlesPerFlip: 12,
+    // Worm settings
+    wormGeometryDetail: 8,       // High detail
+  }
+};
+
+// Default quality level (auto-detect based on device)
+export const getDefaultQuality = () => {
+  // Check if mobile device
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  // Check device pixel ratio
+  const dpr = window.devicePixelRatio || 1;
+
+  // Check if low-end device (heuristic)
+  const isLowEnd = isMobile && dpr < 2;
+
+  if (isLowEnd) return 'low';
+  if (isMobile) return 'medium';
+  return 'high';
+};
