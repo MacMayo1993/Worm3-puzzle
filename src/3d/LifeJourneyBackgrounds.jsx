@@ -527,7 +527,8 @@ export function DaycareEnvironment({ flipTrigger = 0 }) {
     </group>
   );
 }
-===========================================
+
+// ===========================================
 // 2. ELEMENTARY - Classroom
 // ============================================
 export function ElementaryEnvironment({ flipTrigger = 0 }) {
