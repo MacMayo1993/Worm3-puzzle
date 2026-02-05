@@ -1,155 +1,180 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-const WormParticle = ({ start, end, color1, color2, startTime, currentTime, onComplete }) => {
-  const groupRef = useRef();
-  const trailRef = useRef(); // For future trail mesh
-  const duration = 1.8; // Slightly longer for smoother feel
-  const trailLength = 20; // Particles for persistent trail
+// Scratchpad to avoid GC thrash (keeps the game smooth)
+const _v1 = new THREE.Vector3();
+const _v2 = new THREE.Vector3();
+const _v3 = new THREE.Vector3();
+const _color = new THREE.Color();
+const _quat = new THREE.Quaternion();
+const _m1 = new THREE.Matrix4();
 
-  // Enhanced progress with overshoot and bounce-back for organic feel
-  const progress = useMemo(() => {
-    if (currentTime < startTime) return 0;
+const WormParticle = ({ start, end, color1, color2, startTime, onComplete }) => {
+  const headRef = useRef();
+  const trailGeoRef = useRef();
+  const segmentRefs = useRef([]);
+  const eyeLeftRef = useRef();
+  const eyeRightRef = useRef();
+  const tongueRef = useRef();
+
+  const duration = 2.2;
+  const trailLength = 25;
+  const segmentCount = 8;
+
+  // Personality randomization (per worm instance)
+  const personality = useMemo(() => ({
+    wiggleSpeed: 1.5 + Math.random() * 1.5,          // 1.5–3.0
+    eyeSize: 0.05 + Math.random() * 0.03,           // slightly different sizes
+    tongueLength: 0.08 + Math.random() * 0.06,      // longer or shorter tongue
+    blinkChance: 0.008 + Math.random() * 0.01,      // how often it blinks
+    squishAmount: 0.25 + Math.random() * 0.15,      // how bouncy the squish is
+  }), []);
+
+  // 1. Initialize stable data
+  const points = useMemo(() => new Float32Array(trailLength * 3), []);
+  const up = useMemo(() => new THREE.Vector3(0, 1, 0), []);
+
+  // Blink state
+  const isBlinking = useRef(false);
+  const blinkTimer = useRef(0);
+
+  useFrame(({ clock }) => {
+    const currentTime = clock.getElapsedTime();
+    if (currentTime < startTime) return;
     let elapsed = currentTime - startTime;
     if (elapsed >= duration) {
-      if (onComplete && elapsed < duration + 0.2) onComplete();
-      return 1;
+      if (onComplete) onComplete();
+      return;
     }
+
+    // 2. Comical "Inchworm" Progress (Custom Quintic Ease)
     let t = elapsed / duration;
-    // Custom elastic ease-out for "wormy" whip/snap
-    const c4 = (2 * Math.PI) / 3;
-    const n = 0.5;
-    return t === 1 ? 1 : 1 - Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) / n;
-  }, [currentTime, startTime, duration, onComplete]);
+    const progress = t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2;
 
-  // Generate trail positions for a fading ribbon/tube effect
-  const trailPoints = useMemo(() => {
-    const points = [];
-    for (let i = 0; i <= trailLength; i++) {
-      const trailProg = Math.max(0, (progress * trailLength - i) / trailLength);
-      if (trailProg <= 0) continue;
-      const vStart = new THREE.Vector3(...start);
-      const vEnd = new THREE.Vector3(...end);
-      const midPoint = new THREE.Vector3().addVectors(vStart, vEnd).multiplyScalar(0.5);
-      const dir = new THREE.Vector3().subVectors(vEnd, vStart).normalize();
-      // Dynamic curve: S-curve with sine wiggle for worm-like undulation
-      const up = new THREE.Vector3(0, 1, 0);
-      const right = new THREE.Vector3().crossVectors(dir, up).normalize();
-      const offset = right.multiplyScalar(Math.sin(trailProg * Math.PI * 4) * 0.15); // Wiggle!
-      const control1 = midPoint.clone().add(offset.multiplyScalar(0.5));
-      const control2 = midPoint.clone().sub(offset.multiplyScalar(0.5));
-      const curve = new THREE.CubicBezierCurve3(vStart, control1, control2, vEnd);
-      const point = curve.getPoint(trailProg);
-      points.push(point);
+    // 3. Slither Path Calculation
+    const vStart = _v1.set(...start);
+    const vEnd = _v2.set(...end);
+    const dir = _v3.subVectors(vEnd, vStart).normalize();
+    const right = new THREE.Vector3().crossVectors(dir, up).normalize();
+
+    // Create "Wormy" path using a Bezier control point that wiggles
+    const wiggle = Math.sin(progress * Math.PI * 5 + currentTime * personality.wiggleSpeed) * 0.3;
+    const mid = new THREE.Vector3().addVectors(vStart, vEnd).multiplyScalar(0.5);
+    const control = mid.add(right.clone().multiplyScalar(wiggle));
+    const curve = new THREE.QuadraticBezierCurve3(vStart, control, vEnd);
+
+    // 4. Update Trail and Head
+    for (let i = 0; i < trailLength; i++) {
+      const p = curve.getPoint((i / (trailLength - 1)) * progress);
+      points[i * 3] = p.x;
+      points[i * 3 + 1] = p.y;
+      points[i * 3 + 2] = p.z;
     }
-    return points;
-  }, [start, end, progress]);
+    trailGeoRef.current.attributes.position.needsUpdate = true;
+    const headPos = curve.getPoint(progress);
+    headRef.current.position.copy(headPos);
 
-  // Head particle position (end of trail)
-  const headPosition = trailPoints[trailPoints.length - 1]?.toArray() || [0, 0, 0];
+    // Dynamic Mascot Color
+    _color.set(color1).lerp(_v1.set(color2), progress);
+    _color.offsetHSL(0.15 * Math.sin(currentTime * 4), 0, 0);
 
-  // Lerp color with hue shift for plasma effect
-  const headColor = useMemo(() => {
-    const c1 = new THREE.Color(color1);
-    const c2 = new THREE.Color(color2);
-    const mixed = new THREE.Color().lerpColors(c1, c2, progress);
-    // Add dynamic hue shift + brightness pulse for energy feel
-    mixed.offsetHSL(0.05 * Math.sin(currentTime * 5), 0, 0.1 * Math.sin(currentTime * 8));
-    return mixed;
-  }, [color1, color2, progress, currentTime]);
+    // 5. Animate Body Segments (The "Chubby" Look)
+    segmentRefs.current.forEach((seg, i) => {
+      if (!seg) return;
+      const segLag = (i / segmentCount) * 0.15;
+      const segProg = Math.max(0, progress - segLag);
+      const pos = curve.getPoint(segProg);
+      const sPulse = (1 + Math.sin(currentTime * 8 + i) * personality.squishAmount) * (1 - i / segmentCount * 0.5);
+      seg.position.copy(pos);
+      seg.position.y += Math.sin(currentTime * 10 + i) * 0.05; // Independent wiggle
+      seg.scale.set(sPulse * 1.2, sPulse * 0.9, sPulse * 1.2); // Squishy
+      seg.material.color.copy(_color).offsetHSL(i * 0.05, 0, 0);
+    });
 
-  const pulseScale = 1 + Math.sin(currentTime * 12 + progress * Math.PI * 2) * 0.25;
-  const trailOpacity = 1 - progress * 0.3; // Fade trail head slightly
+    // 6. Googly Eye Jitter + Random Blinking
+    const eyeJitter = Math.sin(currentTime * 20) * 0.01;
+    if (eyeLeftRef.current) eyeLeftRef.current.position.y += eyeJitter;
+    if (eyeRightRef.current) eyeRightRef.current.position.y += eyeJitter;
 
-  if (progress >= 1) return null;
+    // Random blink
+    if (!isBlinking.current && Math.random() < personality.blinkChance) {
+      isBlinking.current = true;
+      blinkTimer.current = currentTime;
+      if (eyeLeftRef.current) eyeLeftRef.current.visible = false;
+      if (eyeRightRef.current) eyeRightRef.current.visible = false;
+    }
+    if (isBlinking.current && currentTime - blinkTimer.current > 0.15) {
+      isBlinking.current = false;
+      if (eyeLeftRef.current) eyeLeftRef.current.visible = true;
+      if (eyeRightRef.current) eyeRightRef.current.visible = true;
+    }
+
+    // 7. Tongue wiggle
+    if (tongueRef.current) {
+      tongueRef.current.scale.y = personality.tongueLength * (1 + Math.sin(currentTime * 12) * 0.3);
+      tongueRef.current.rotation.z = Math.sin(currentTime * 6) * 0.15; // playful tilt
+    }
+  });
 
   return (
-    <group ref={groupRef}>
-      {/* Persistent fading trail as a tube */}
-      {trailPoints.length > 1 && (
-        <mesh ref={trailRef}>
-          <tubeGeometry args={[trailPoints, 8, 0.08 * (1 - progress), 8, false]} /> {/* Tapered radius */}
-          <meshStandardMaterial
-            color={headColor.clone().multiplyScalar(0.8)}
-            transparent
-            opacity={0.6 * trailOpacity}
-            emissive={headColor.clone().multiplyScalar(0.3)}
-            emissiveIntensity={1.5 + Math.sin(currentTime * 3) * 0.5}
-            roughness={0.1}
-            metalness={0.9}
-            blending={THREE.AdditiveBlending}
-          />
+    <group>
+      {/* Performance Trail */}
+      <line>
+        <bufferGeometry ref={trailGeoRef}>
+          <bufferAttribute attach="attributes-position" count={trailLength} array={points} itemSize={3} />
+        </bufferGeometry>
+        <lineBasicMaterial transparent opacity={0.5} blending={THREE.AdditiveBlending} />
+      </line>
+
+      {/* Body Segments */}
+      {Array.from({ length: segmentCount }).map((_, i) => (
+        <mesh key={i} ref={(el) => (segmentRefs.current[i] = el)}>
+          <sphereGeometry args={[0.15, 12, 12]} />
+          <meshStandardMaterial emissiveIntensity={0.5} roughness={0.4} />
         </mesh>
-      )}
-      
-      {/* Head: Larger, more detailed with inner core + outer corona */}
-      <group position={headPosition}>
-        {/* Corona glow (additive, flares outward) */}
-        <mesh scale={[pulseScale * 2.2, pulseScale * 2.2, pulseScale * 1.8]}>
-          <sphereGeometry args={[0.3, 12, 12]} />
-          <meshBasicMaterial
-            color={headColor.clone().multiplyScalar(1.5)}
-            transparent
-            opacity={0.4 * pulseScale}
-            blending={THREE.AdditiveBlending}
-          />
+      ))}
+
+      {/* Mascot Head */}
+      <group ref={headRef}>
+        {/* Face Mesh */}
+        <mesh>
+          <sphereGeometry args={[0.22, 20, 20]} />
+          <meshStandardMaterial roughness={0.5} metalness={0.4} />
         </mesh>
-        
-        {/* Main head body */}
-        <mesh scale={[pulseScale * 1.3, pulseScale * 1.3, pulseScale * 1.3]}>
-          <icosahedronGeometry args={[0.18, 1]} /> {/* More organic than sphere */}
-          <meshStandardMaterial
-            color={headColor}
-            transparent
-            opacity={0.95}
-            emissive={headColor.clone().multiplyScalar(0.6)}
-            emissiveIntensity={2}
-            roughness={0.2}
-            metalness={0.7}
-            envMapIntensity={1.5} // Reacts to black-hole env
-          />
+
+        {/* Googly Eyes */}
+        <group position={[0, 0.05, 0.15]}>
+          <mesh ref={eyeLeftRef} name="eye" position={[-0.1, 0, 0]}>
+            <sphereGeometry args={[personality.eyeSize * 1.2, 8, 8]} />
+            <meshBasicMaterial color="white" />
+            <mesh position={[0, 0, 0.04]}>
+              <sphereGeometry args={[personality.eyeSize * 0.4, 6, 6]} />
+              <meshBasicMaterial color="black" />
+            </mesh>
+          </mesh>
+          <mesh ref={eyeRightRef} name="eye" position={[0.1, 0, 0]}>
+            <sphereGeometry args={[personality.eyeSize * 1.2, 8, 8]} />
+            <meshBasicMaterial color="white" />
+            <mesh position={[0, 0, 0.04]}>
+              <sphereGeometry args={[personality.eyeSize * 0.4, 6, 6]} />
+              <meshBasicMaterial color="black" />
+            </mesh>
+          </mesh>
+        </group>
+
+        {/* Smile */}
+        <mesh position={[0, -0.05, 0.18]} rotation={[0, 0, Math.PI / 2]}>
+          <torusGeometry args={[0.06, 0.015, 8, 16, Math.PI]} />
+          <meshBasicMaterial color="#222" />
         </mesh>
-        
-        {/* Inner core sparkle */}
-        <mesh scale={[pulseScale * 0.6, pulseScale * 0.6, pulseScale * 0.6]}>
-          <sphereGeometry args={[0.08, 8, 8]} />
-          <meshBasicMaterial
-            color={headColor.clone().multiplyScalar(3)}
-            transparent
-            opacity={0.8 + Math.sin(currentTime * 20) * 0.3}
-            blending={THREE.AdditiveBlending}
-          />
+
+        {/* Silly tongue sticking out */}
+        <mesh ref={tongueRef} position={[0, -0.12, 0.18]}>
+          <coneGeometry args={[0.03, personality.tongueLength, 6]} />
+          <meshBasicMaterial color="pink" />
         </mesh>
       </group>
-      
-      {/* Orbiting sparkles for extra flair (2-3 tiny particles) */}
-      {Array.from({ length: 3 }).map((_, i) => {
-        const angle = (currentTime * 8 + i * Math.PI * 2 / 3) % (Math.PI * 2);
-        const sparkleOffset = new THREE.Vector3(
-          Math.cos(angle) * 0.4,
-          Math.sin(angle) * 0.3,
-          0
-        ).applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0), new THREE.Vector3(...end).sub(new THREE.Vector3(...start)).normalize()));
-        return (
-          <mesh
-            key={i}
-            position={[
-              headPosition[0] + sparkleOffset.x,
-              headPosition[1] + sparkleOffset.y,
-              headPosition[2] + sparkleOffset.z
-            ]}
-            scale={[0.12 + Math.sin(currentTime * 15 + i) * 0.06, 0.12 + Math.sin(currentTime * 15 + i) * 0.06, 0.12]}
-          >
-            <sphereGeometry args={[0.05, 6, 6]} />
-            <meshBasicMaterial
-              color={headColor.clone().multiplyScalar(2)}
-              transparent
-              opacity={0.7}
-              blending={THREE.AdditiveBlending}
-            />
-          </mesh>
-        );
-      })}
     </group>
   );
 };
