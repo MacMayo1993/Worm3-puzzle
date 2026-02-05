@@ -655,6 +655,157 @@ export function ElementaryEnvironment({ flipTrigger = 0 }) {
 
       {/* Alphabet banner on wall */}
       <mesh position={[0, 22, -37]}>
+===========================================
+// 2. ELEMENTARY - Classroom
+// ============================================
+export function ElementaryEnvironment({ flipTrigger = 0 }) {
+  const starsRef = useRef();
+  const textRef = useRef();
+
+  useFrame((state) => {
+    const time = state.clock.elapsedTime;
+
+    // Animate the gold stars
+    if (starsRef.current) {
+      starsRef.current.children.forEach((star, i) => {
+        star.rotation.z = time * 0.5 + i;
+        const scale = 1 + Math.sin(time * 2 + i) * 0.1;
+        star.scale.setScalar(scale);
+      });
+    }
+
+    // Unique touch: Make the chalkboard text "float" slightly
+    if (textRef.current) {
+      textRef.current.position.y = 12 + Math.sin(time * 0.5) * 0.2;
+    }
+  });
+
+  return (
+    <group>
+      {/* Floor - classroom tile */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -8, 0]}>
+        <planeGeometry args={[80, 80]} />
+        <meshStandardMaterial color="#C4A484" />
+      </mesh>
+
+      {/* Chalkboard wall */}
+      <mesh position={[0, 10, -38]}>
+        <planeGeometry args={[80, 36]} />
+        <meshStandardMaterial color="#F5F5DC" />
+      </mesh>
+
+      {/* Chalkboard Setup */}
+      <group position={[0, 12, -37]}>
+        {/* The Board */}
+        <mesh>
+          <boxGeometry args={[35, 15, 0.5]} />
+          <meshStandardMaterial color="#2D5A27" />
+        </mesh>
+        
+        {/* Chalkboard frame */}
+        <mesh position={[0, 0, 0.3]}>
+          <boxGeometry args={[36, 16, 0.3]} />
+          <meshStandardMaterial color="#8B4513" />
+        </mesh>
+
+        {/* UNIQUE ADDITION: Miss Cole's Welcome Message */}
+        <group ref={textRef}>
+          <Text
+            position={[0, 0, 0.6]} // Just in front of the board
+            fontSize={2.8}
+            color="#FFFFFF"
+            font="https://fonts.gstatic.com/s/architectsdaughter/v11/KtkxAK9_G8M9B6K6fC3S9H9R95Q.woff"
+            maxWidth={30}
+            textAlign="center"
+            anchorX="center"
+            anchorY="middle"
+            rotation={[0, 0, -0.05]} // A slight "handwritten" tilt
+            fillOpacity={0.9}
+          >
+            Welcome to{"\n"}Miss Cole's Class
+          </Text>
+        </group>
+      </group>
+
+      {/* Chalk tray */}
+      <mesh position={[0, 4, -36]}>
+        <boxGeometry args={[30, 0.5, 1]} />
+        <meshStandardMaterial color="#8B4513" />
+      </mesh>
+
+      {/* Side walls */}
+      <mesh position={[-40, 10, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <planeGeometry args={[80, 36]} />
+        <meshStandardMaterial color="#FAFAD2" />
+      </mesh>
+      <mesh position={[40, 10, 0]} rotation={[0, -Math.PI / 2, 0]}>
+        <planeGeometry args={[80, 36]} />
+        <meshStandardMaterial color="#FAFAD2" />
+      </mesh>
+
+      {/* Ceiling */}
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 28, 0]}>
+        <planeGeometry args={[80, 80]} />
+        <meshStandardMaterial color="#FFFFF0" />
+      </mesh>
+
+      {/* Student desks in rows */}
+      {Array.from({ length: 4 }).map((_, row) =>
+        Array.from({ length: 5 }).map((_, col) => (
+          <group key={`desk-${row}-${col}`} position={[-16 + col * 8, -5, 5 + row * 8]}>
+            <mesh position={[0, 2, 0]}>
+              <boxGeometry args={[5, 0.3, 4]} />
+              <meshStandardMaterial color="#DEB887" />
+            </mesh>
+            {[[-2, -1.5], [2, -1.5], [-2, 1.5], [2, 1.5]].map(([x, z], i) => (
+              <mesh key={i} position={[x, 0, z]}>
+                <boxGeometry args={[0.3, 4, 0.3]} />
+                <meshStandardMaterial color="#4A4A4A" />
+              </mesh>
+            ))}
+            <mesh position={[0, 0, 3.5]}>
+              <boxGeometry args={[2.5, 0.3, 2.5]} />
+              <meshStandardMaterial color="#FF6347" />
+            </mesh>
+            <mesh position={[0, 2, 4.5]}>
+              <boxGeometry args={[2.5, 4, 0.3]} />
+              <meshStandardMaterial color="#FF6347" />
+            </mesh>
+          </group>
+        ))
+      )}
+
+      {/* Teacher's desk */}
+      <group position={[0, -5, -25]}>
+        <mesh position={[0, 2, 0]}>
+          <boxGeometry args={[12, 0.5, 5]} />
+          <meshStandardMaterial color="#8B4513" />
+        </mesh>
+        <mesh position={[0, 0, 0]}>
+          <boxGeometry args={[11, 4, 4]} />
+          <meshStandardMaterial color="#8B4513" />
+        </mesh>
+      </group>
+
+      {/* Gold stars floating around */}
+      <group ref={starsRef}>
+        {Array.from({ length: 15 }).map((_, i) => (
+          <mesh
+            key={i}
+            position={[
+              (Math.random() - 0.5) * 60,
+              10 + Math.random() * 15,
+              (Math.random() - 0.5) * 60
+            ]}
+          >
+            <cylinderGeometry args={[0.8, 0.8, 0.1, 5]} />
+            <meshStandardMaterial color="#FFD700" emissive="#FFD700" emissiveIntensity={0.5} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* Alphabet banner on wall */}
+      <mesh position={[0, 22, -37]}>
         <boxGeometry args={[40, 3, 0.1]} />
         <meshStandardMaterial color="#FFB6C1" />
       </mesh>
@@ -684,8 +835,7 @@ export function ElementaryEnvironment({ flipTrigger = 0 }) {
       <ambientLight intensity={0.5} />
     </group>
   );
-}
-
+        }
 // ============================================
 // 3. MIDDLE SCHOOL - Hallway with lockers
 // ============================================
