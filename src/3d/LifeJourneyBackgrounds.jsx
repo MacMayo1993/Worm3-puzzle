@@ -7,7 +7,7 @@
 import React, { useRef, useMemo, useLayoutEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { ContactShadows } from '@react-three/drei';
+import { ContactShadows, Text } from '@react-three/drei';
 
 export function DaycareEnvironment({ flipTrigger = 0 }) {
   const tileCount = 36; // 6x6 grid for cube-net floor
@@ -572,6 +572,18 @@ export function ElementaryEnvironment({ flipTrigger = 0 }) {
         <boxGeometry args={[35, 15, 0.3]} />
         <meshStandardMaterial color="#2D5A27" />
       </mesh>
+
+      {/* Chalk text on blackboard */}
+      <Text
+        position={[0, 15, -36.2]}
+        fontSize={1.8}
+        color="#e8e8d0"
+        anchorX="center"
+        anchorY="middle"
+        maxWidth={30}
+      >
+        Welcome to Miss Cole's Class
+      </Text>
 
       {/* Chalk tray */}
       <mesh position={[0, 4, -36]}>
