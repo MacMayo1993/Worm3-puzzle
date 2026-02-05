@@ -349,20 +349,16 @@ const CubeAssembly = React.memo(({
         return;
       }
 
-      // Handle tap (no drag)
+      // Handle tap (no drag) - only flip mode uses tap now
+      // Drag-to-rotate replaces the tile selector UI
       const dx = e.clientX - dragStart.screenX, dy = e.clientY - dragStart.screenY;
       const dist = Math.hypot(dx, dy);
       if (dist < DRAG_THRESHOLD) {
         const dirKey = dirFromNormal(dragStart.n);
-        if (dragStart.isRightClick) {
-          if (flipModeRef.current) onTapFlipRef.current(dragStart.pos, dirKey);
-        } else {
-          if (flipModeRef.current) {
-            onTapFlipRef.current(dragStart.pos, dirKey);
-          } else {
-            if (onSelectTileRef.current) onSelectTileRef.current(dragStart.pos, dirKey);
-          }
+        if (flipModeRef.current) {
+          onTapFlipRef.current(dragStart.pos, dirKey);
         }
+        // No longer show tile selector - drag to rotate instead
       }
 
       setDragStart(null);
