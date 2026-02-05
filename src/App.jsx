@@ -38,6 +38,7 @@ import LevelSelectScreen from './components/screens/LevelSelectScreen.jsx';
 import Level10Cutscene from './components/screens/Level10Cutscene.jsx';
 import LevelTutorial from './components/screens/LevelTutorial.jsx';
 import RotationPreview from './components/overlays/RotationPreview.jsx';
+import FaceRotationButtons from './components/overlays/FaceRotationButtons.jsx';
 import CubeNet from './components/CubeNet.jsx';
 import SolveMode, { SolveModeButton } from './components/SolveMode.jsx';
 
@@ -110,6 +111,9 @@ export default function WORM3() {
   const [solveModeActive, setSolveModeActive] = useState(false);
   const [solveFocusedStep, setSolveFocusedStep] = useState(null);
   const [solveHighlights, setSolveHighlights] = useState([]);
+
+  // Face rotation mode state (triggered by long-press on mobile)
+  const [faceRotationTarget, setFaceRotationTarget] = useState(null);
 
   // Mobile touch hint - show once per session
   const [showMobileTouchHint, setShowMobileTouchHint] = useState(() => {
@@ -632,6 +636,64 @@ export default function WORM3() {
     setPendingMove(move);
     pendingMoveRef.current = move;
   }, []);
+
+  // Handler for long-press triggering face rotation mode
+  const handleFaceRotationMode = useCallback((target) => {
+    setFaceRotationTarget(target);
+  }, []);
+
+  // Handle face rotation CW/CCW from the overlay buttons
+  const handleFaceRotate = useCallback((direction) => {
+    if (!faceRotationTarget) return;
+
+    const { pos, dirKey } = faceRotationTarget;
+    const dir = direction === 'cw' ? -1 : 1;
+
+    // Determine which axis and slice based on the face normal
+    let axis, sliceIndex;
+    switch (dirKey) {
+      case 'PZ':
+        axis = 'depth';
+        sliceIndex = pos.z;
+        break;
+      case 'NZ':
+        axis = 'depth';
+        sliceIndex = pos.z;
+        break;
+      case 'PX':
+        axis = 'col';
+        sliceIndex = pos.x;
+        break;
+      case 'NX':
+        axis = 'col';
+        sliceIndex = pos.x;
+        break;
+      case 'PY':
+        axis = 'row';
+        sliceIndex = pos.y;
+        break;
+      case 'NY':
+        axis = 'row';
+        sliceIndex = pos.y;
+        break;
+      default:
+        return;
+    }
+
+    // Adjust direction based on which side of the cube we're looking at
+    let adjustedDir = dir;
+    if (dirKey === 'NZ' || dirKey === 'NX' || dirKey === 'NY') {
+      adjustedDir = -dir;
+    }
+
+    setAnimState({ axis, dir: adjustedDir, sliceIndex, t: 0 });
+    const move = { axis, dir: adjustedDir, sliceIndex };
+    setPendingMove(move);
+    pendingMoveRef.current = move;
+
+    // Close the face rotation overlay
+    setFaceRotationTarget(null);
+  }, [faceRotationTarget]);
 
   const getRotationForDir = useCallback((dir) => {
     switch (dir) {
@@ -1401,6 +1463,7 @@ export default function WORM3() {
               onFlipWaveComplete={onFlipWaveComplete}
               faceColors={resolvedColors} faceTextures={faceTextures} manifoldStyles={settings.manifoldStyles}
               solveHighlights={solveModeActive ? solveHighlights : []}
+              onFaceRotationMode={handleFaceRotationMode}
             />
           </Suspense>
         </Canvas>
@@ -1732,6 +1795,15 @@ export default function WORM3() {
         <div className="mobile-touch-hint">
           Swipe on cube to rotate • Tap tiles to flip
         </div>
+      )}
+
+      {/* Face Rotation Buttons - Shows on long-press */}
+      {faceRotationTarget && (
+        <FaceRotationButtons
+          onRotateCW={() => handleFaceRotate('cw')}
+          onRotateCCW={() => handleFaceRotate('ccw')}
+          onCancel={() => setFaceRotationTarget(null)}
+        />
       )}
     </div>
   );
