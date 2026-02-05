@@ -99,34 +99,19 @@ const FlipPropagationWave = ({ origins, onComplete }) => {
             />
           </mesh>
 
-          {/* Animated worms radiating outward */}
-          {[0, 1, 2].map((t, ti) => {
-            const angle = (ti / 3) * Math.PI * 2;
-            const travelDistance = 3.5; // How far worms travel
-
-            // Calculate world-space positions
-            const startPos = new THREE.Vector3(...origin.position);
-            const endPos = new THREE.Vector3(
-              origin.position[0] + Math.cos(angle) * travelDistance,
-              origin.position[1] + Math.sin(angle) * travelDistance,
-              origin.position[2] + 0.05
-            );
-
-            // Stagger each worm's start slightly
-            const staggerDelay = ti * 0.05;
-
-            return (
-              <WormParticle
-                key={ti}
-                start={[startPos.x, startPos.y, startPos.z]}
-                end={[endPos.x, endPos.y, endPos.z]}
-                color1={origin.color}
-                color2={origin.color}
-                startTime={startTimeRef.current + staggerDelay}
-                onComplete={null}
-              />
-            );
-          })}
+          {/* One animated worm per flip */}
+          <WormParticle
+            start={origin.position}
+            end={[
+              origin.position[0] + (Math.random() - 0.5) * 2,
+              origin.position[1] + (Math.random() - 0.5) * 2,
+              origin.position[2] + 0.5
+            ]}
+            color1={origin.color}
+            color2={origin.color}
+            startTime={startTimeRef.current}
+            onComplete={null}
+          />
         </group>
       ))}
     </group>
