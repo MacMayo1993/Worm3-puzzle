@@ -65,6 +65,7 @@ body {
   position: absolute;
   top: 0;
   left: 0;
+  touch-action: none; /* Prevent browser touch gestures so R3F receives pointer events */
 }
 
 /* UI Layer */
