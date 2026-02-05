@@ -29,6 +29,9 @@ const isTouchDevice = typeof window !== 'undefined' && (
 // Drag threshold - larger on touch devices for better precision
 const DRAG_THRESHOLD = isTouchDevice ? 25 : 10;
 
+// Pixels of drag to complete a 90° rotation
+const PIXELS_PER_90DEG = 100;
+
 // Long-press disabled - was too sensitive on mobile
 // const LONG_PRESS_DURATION = 500;
 
@@ -49,6 +52,10 @@ const CubeAssembly = React.memo(({
   const [activeDir, setActiveDir] = useState(null);
   const longPressTimerRef = useRef(null);
   const longPressTriggeredRef = useRef(false);
+
+  // Live drag rotation state - tracks real-time rotation as user drags
+  const liveDragRef = useRef(null); // { axis, sliceIndex, angle, dir, basePositions, baseRotations }
+  const [liveDragAngle, setLiveDragAngle] = useState(0); // Triggers re-render for useFrame
 
   // Pre-computed set of ref indices that belong to the current animation slice.
   // Computed ONCE when animation starts from the canonical grid positions,
@@ -140,22 +147,94 @@ const CubeAssembly = React.memo(({
     if (controlsRef.current) controlsRef.current.enabled = false;
   }, []);
 
+  // Helper to get slice index from cubie position
+  const getSliceIndex = useCallback((pos, axis) => {
+    const idx = axis === 'col' ? 0 : axis === 'row' ? 1 : 2;
+    return Math.round(pos[idx] + (size - 1) / 2);
+  }, [size]);
+
+  // Helper to compute slice indices for a given axis and sliceIndex
+  const computeSliceIndices = useCallback((axis, sliceIndex) => {
+    const indices = new Set();
+    const n = size * size * size;
+    for (let idx = 0; idx < n; idx++) {
+      const z = idx % size;
+      const y = Math.floor(idx / size) % size;
+      const x = Math.floor(idx / (size * size));
+      const inSlice = (axis === 'col' && x === sliceIndex) ||
+                      (axis === 'row' && y === sliceIndex) ||
+                      (axis === 'depth' && z === sliceIndex);
+      if (inSlice) indices.add(idx);
+    }
+    return indices;
+  }, [size]);
+
+  // Store base positions/rotations for live drag
+  const storeBaseTransforms = useCallback((sliceIndices) => {
+    const basePositions = new Map();
+    const baseRotations = new Map();
+    sliceIndices.forEach(idx => {
+      const g = cubieRefs.current[idx];
+      if (g) {
+        basePositions.set(idx, g.position.clone());
+        baseRotations.set(idx, g.quaternion.clone());
+      }
+    });
+    return { basePositions, baseRotations };
+  }, []);
+
   useEffect(() => {
     const move = e => {
       if (!dragStart) return;
       const dx = e.clientX - dragStart.screenX, dy = e.clientY - dragStart.screenY;
+      const dist = Math.hypot(dx, dy);
 
       // Cancel long-press timer if user moves significantly
-      if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) {
+      if (dist > DRAG_THRESHOLD) {
         if (longPressTimerRef.current) {
           clearTimeout(longPressTimerRef.current);
           longPressTimerRef.current = null;
         }
+      }
+
+      // If we haven't started live drag yet, check if we should
+      if (!liveDragRef.current && dist >= DRAG_THRESHOLD) {
+        const m = mapSwipe(dragStart.n, dx, dy, dragStart.shiftKey);
+        if (m) {
+          const sliceIndex = getSliceIndex(dragStart.pos, m.axis);
+          const sliceIndices = computeSliceIndices(m.axis, sliceIndex);
+          const { basePositions, baseRotations } = storeBaseTransforms(sliceIndices);
+
+          liveDragRef.current = {
+            axis: m.axis,
+            sliceIndex,
+            sliceIndices,
+            basePositions,
+            baseRotations,
+            startDx: dx,
+            startDy: dy,
+            dir: m.dir
+          };
+          sliceIndicesRef.current = sliceIndices;
+        }
+      }
+
+      // Update live drag angle if active
+      if (liveDragRef.current) {
+        const ld = liveDragRef.current;
+        // Calculate drag distance along the swipe direction
+        const dragDist = Math.abs(dx) > Math.abs(dy)
+          ? (dx - ld.startDx) * ld.dir
+          : -(dy - ld.startDy) * ld.dir;
+        const angle = (dragDist / PIXELS_PER_90DEG) * (Math.PI / 2);
+        ld.angle = angle;
+        setLiveDragAngle(angle); // Trigger re-render
         setActiveDir(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
       } else {
         setActiveDir(null);
       }
     };
+
     const up = e => {
       // Cancel long-press timer on release
       if (longPressTimerRef.current) {
@@ -166,16 +245,114 @@ const CubeAssembly = React.memo(({
       // If long-press was triggered, don't do normal actions
       if (longPressTriggeredRef.current) {
         longPressTriggeredRef.current = false;
+        setDragStart(null);
+        if (controlsRef.current) controlsRef.current.enabled = true;
         return;
       }
 
       if (!dragStart) return;
+
+      // Handle live drag release - snap to nearest 90°
+      if (liveDragRef.current) {
+        const ld = liveDragRef.current;
+        const currentAngle = ld.angle || 0;
+        const quarterTurn = Math.PI / 2;
+
+        // Determine if we should complete the rotation or snap back
+        // Complete if we're past 30° (more responsive threshold)
+        const shouldComplete = Math.abs(currentAngle) > quarterTurn * 0.33;
+
+        if (shouldComplete) {
+          // Complete the rotation - animate from current angle to 90°
+          const targetAngle = currentAngle > 0 ? quarterTurn : -quarterTurn;
+          const remainingAngle = targetAngle - currentAngle;
+
+          // Store the current state for the snap animation
+          const snapData = {
+            axis: ld.axis,
+            sliceIndex: ld.sliceIndex,
+            sliceIndices: ld.sliceIndices,
+            startAngle: currentAngle,
+            targetAngle: targetAngle,
+            dir: currentAngle > 0 ? 1 : -1
+          };
+
+          // Animate the snap with GSAP
+          animProgressRef.current.value = currentAngle / quarterTurn;
+          gsapAnimRef.current = gsap.to(animProgressRef.current, {
+            value: snapData.dir,
+            duration: 0.15,
+            ease: "back.out(1.4)",
+            onComplete: () => {
+              gsapAnimRef.current = null;
+              liveDragRef.current = null;
+              sliceIndicesRef.current = null;
+              setLiveDragAngle(0);
+              vibrate(14);
+              // Notify parent that rotation completed
+              onMoveRef.current(snapData.axis, snapData.dir, dragStart.pos);
+            }
+          });
+        } else {
+          // Snap back to 0 - animate from current angle back to start
+          const snapBackData = {
+            axis: ld.axis,
+            sliceIndices: ld.sliceIndices,
+            basePositions: ld.basePositions,
+            baseRotations: ld.baseRotations
+          };
+
+          animProgressRef.current.value = currentAngle / quarterTurn;
+          gsapAnimRef.current = gsap.to(animProgressRef.current, {
+            value: 0,
+            duration: 0.15,
+            ease: "back.out(1.4)",
+            onUpdate: () => {
+              // Reset positions during snap-back animation
+              const progress = animProgressRef.current.value;
+              const angle = progress * quarterTurn;
+              const worldAxis = snapBackData.axis === 'col' ? _axisCol :
+                               snapBackData.axis === 'row' ? _axisRow : _axisDepth;
+
+              snapBackData.sliceIndices.forEach(idx => {
+                const g = cubieRefs.current[idx];
+                if (g && snapBackData.basePositions.has(idx)) {
+                  const basePos = snapBackData.basePositions.get(idx);
+                  const baseRot = snapBackData.baseRotations.get(idx);
+                  g.position.copy(basePos).applyAxisAngle(worldAxis, angle);
+                  g.quaternion.copy(baseRot);
+                  _rotQuat.setFromAxisAngle(worldAxis, angle);
+                  g.quaternion.premultiply(_rotQuat);
+                }
+              });
+            },
+            onComplete: () => {
+              // Fully reset to base positions
+              snapBackData.sliceIndices.forEach(idx => {
+                const g = cubieRefs.current[idx];
+                if (g && snapBackData.basePositions.has(idx)) {
+                  g.position.copy(snapBackData.basePositions.get(idx));
+                  g.quaternion.copy(snapBackData.baseRotations.get(idx));
+                }
+              });
+              gsapAnimRef.current = null;
+              liveDragRef.current = null;
+              sliceIndicesRef.current = null;
+              setLiveDragAngle(0);
+            }
+          });
+        }
+
+        setDragStart(null);
+        setActiveDir(null);
+        if (controlsRef.current) controlsRef.current.enabled = true;
+        return;
+      }
+
+      // Handle tap (no drag)
       const dx = e.clientX - dragStart.screenX, dy = e.clientY - dragStart.screenY;
       const dist = Math.hypot(dx, dy);
-      if (dist >= DRAG_THRESHOLD) {
-        const m = mapSwipe(dragStart.n, dx, dy, dragStart.shiftKey);
-        if (m) onMoveRef.current(m.axis, m.dir, dragStart.pos);
-      } else {
+      if (dist < DRAG_THRESHOLD) {
         const dirKey = dirFromNormal(dragStart.n);
         if (dragStart.isRightClick) {
           if (flipModeRef.current) onTapFlipRef.current(dragStart.pos, dirKey);
@@ -187,6 +364,7 @@ const CubeAssembly = React.memo(({
           }
         }
       }
+
       setDragStart(null);
       setActiveDir(null);
       if (controlsRef.current) controlsRef.current.enabled = true;
@@ -197,7 +375,7 @@ const CubeAssembly = React.memo(({
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
     };
-  }, [dragStart]);
+  }, [dragStart, size, getSliceIndex, computeSliceIndices, storeBaseTransforms]);
 
   // Store refs for values accessed in useFrame to avoid stale closures
   const onAnimCompleteRef = useRef(onAnimComplete);
@@ -247,11 +425,33 @@ const CubeAssembly = React.memo(({
     };
   }, [animState]);
 
-  // useFrame applies the rotation based on GSAP-driven progress
+  // useFrame applies live drag rotation and GSAP-driven animations
   useFrame((state) => {
     // Update shared time uniform for animated tile styles
     updateSharedTime(state.clock.elapsedTime);
 
+    // Apply live drag rotation - instant, follows finger
+    if (liveDragRef.current && liveDragRef.current.basePositions) {
+      const ld = liveDragRef.current;
+      const worldAxis = ld.axis === 'col' ? _axisCol : ld.axis === 'row' ? _axisRow : _axisDepth;
+      const angle = ld.angle || 0;
+
+      ld.sliceIndices.forEach(idx => {
+        const g = cubieRefs.current[idx];
+        if (g && ld.basePositions.has(idx)) {
+          const basePos = ld.basePositions.get(idx);
+          const baseRot = ld.baseRotations.get(idx);
+          // Apply rotation from base position (not incremental)
+          g.position.copy(basePos).applyAxisAngle(worldAxis, angle);
+          g.quaternion.copy(baseRot);
+          _rotQuat.setFromAxisAngle(worldAxis, angle);
+          g.quaternion.premultiply(_rotQuat);
+        }
+      });
+      return; // Skip animState processing during live drag
+    }
+
+    // Handle GSAP snap animation (completing rotation after release)
     if (!animState) return;
 
     const { axis, dir, sliceIndex } = animState;
