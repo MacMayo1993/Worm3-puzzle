@@ -42,6 +42,7 @@ import FaceRotationButtons from './components/overlays/FaceRotationButtons.jsx';
 import TileRotationSelector from './components/overlays/TileRotationSelector.jsx';
 import CubeNet from './components/CubeNet.jsx';
 import SolveMode, { SolveModeButton } from './components/SolveMode.jsx';
+import DevConsole from './components/menus/DevConsole.jsx';
 
 // Mobile detection
 const isMobile = typeof window !== 'undefined' && (
@@ -86,6 +87,10 @@ export default function WORM3() {
   const [animState, setAnimState] = useState(null);
   const [pendingMove, setPendingMove] = useState(null);
 
+  // Undo system - tracks last 10 moves (rotations and flips)
+  const [moveHistory, setMoveHistory] = useState([]);
+  const MAX_UNDO_HISTORY = 10;
+
   const [showTutorial, setShowTutorial] = useState(false);
   const [hasFlippedOnce, setHasFlippedOnce] = useState(() => {
     try {
@@ -107,6 +112,10 @@ export default function WORM3() {
   const [autoRotateEnabled, setAutoRotateEnabled] = useState(false);
 
   const [showNetPanel, setShowNetPanel] = useState(false);
+
+  // Dev console state
+  const [showDevConsole, setShowDevConsole] = useState(false);
+  const [savedCubeState, setSavedCubeState] = useState(null);
 
   // Solve mode state
   const [solveModeActive, setSolveModeActive] = useState(false);
@@ -627,6 +636,12 @@ export default function WORM3() {
       setCubies((prev) => rotateSliceCubies(prev, size, axis, sliceIndex, dir));
       setMoves((m) => m + 1);
       play('/sounds/rotate.mp3');
+
+      // Add to undo history (keep last MAX_UNDO_HISTORY moves)
+      setMoveHistory((prev) => {
+        const newHistory = [...prev, { type: 'rotation', axis, dir, sliceIndex, timestamp: Date.now() }];
+        return newHistory.slice(-MAX_UNDO_HISTORY);
+      });
     }
     setAnimState(null);
     setPendingMove(null);
@@ -848,6 +863,12 @@ export default function WORM3() {
     });
     setMoves((m) => m + 1);
 
+    // Add to undo history
+    setMoveHistory((prev) => {
+      const newHistory = [...prev, { type: 'flip', pos: { ...pos }, dirKey, timestamp: Date.now() }];
+      return newHistory.slice(-MAX_UNDO_HISTORY);
+    });
+
     // Trigger black hole pulse effect
     setBlackHolePulse(Date.now());
 
@@ -870,6 +891,170 @@ export default function WORM3() {
     setCascades((prev) => prev.filter((c) => c.id !== id));
   }, []);
 
+  // Undo last move (rotation or flip)
+  const undo = useCallback(() => {
+    if (moveHistory.length === 0) return;
+    if (animState) return; // Don't allow undo during animation
+
+    const lastMove = moveHistory[moveHistory.length - 1];
+
+    if (lastMove.type === 'rotation') {
+      // Apply inverse rotation (negate direction)
+      const { axis, dir, sliceIndex } = lastMove;
+      setAnimState({ axis, dir: -dir, sliceIndex, t: 0 });
+      const move = { axis, dir: -dir, sliceIndex };
+      setPendingMove(move);
+      pendingMoveRef.current = move;
+    } else if (lastMove.type === 'flip') {
+      // Flip is its own inverse - just flip again
+      const { pos, dirKey } = lastMove;
+      const currentManifoldMap = buildManifoldGridMap(cubiesRef.current, size);
+      setCubies((prev) => {
+        const freshManifoldMap = buildManifoldGridMap(prev, prev.length);
+        return flipStickerPair(prev, prev.length, pos.x, pos.y, pos.z, dirKey, freshManifoldMap);
+      });
+    }
+
+    // Remove from history and decrement move counter
+    setMoveHistory((prev) => prev.slice(0, -1));
+    setMoves((m) => Math.max(0, m - 1));
+  }, [moveHistory, animState, size]);
+
+  // Dev console handlers
+  const handlePreset = useCallback((presetId) => {
+    let state = makeCubies(size);
+    let moveCount = 0;
+
+    switch (presetId) {
+      case 'solved':
+        // Already solved
+        break;
+      case 'near-solved':
+        // 3 random moves
+        for (let i = 0; i < 3; i++) {
+          const ax = ['row', 'col', 'depth'][Math.floor(Math.random() * 3)];
+          const slice = Math.floor(Math.random() * size);
+          const dir = Math.random() > 0.5 ? 1 : -1;
+          state = rotateSliceCubies(state, size, ax, slice, dir);
+        }
+        moveCount = 3;
+        break;
+      case 'parity-error':
+        // Single swap (2 moves to create unsolvable state)
+        state = rotateSliceCubies(state, size, 'col', 0, 1);
+        state = rotateSliceCubies(state, size, 'row', 0, 1);
+        moveCount = 2;
+        break;
+      case 'two-faces':
+        // Scramble only middle slices, leaving top and bottom faces intact
+        for (let i = 0; i < 10; i++) {
+          const ax = ['row', 'col', 'depth'][Math.floor(Math.random() * 3)];
+          const slice = Math.floor(Math.random() * (size - 2)) + 1; // Only middle slices
+          const dir = Math.random() > 0.5 ? 1 : -1;
+          state = rotateSliceCubies(state, size, ax, slice, dir);
+        }
+        moveCount = 10;
+        break;
+      case 'checkerboard':
+        // Classic checkerboard pattern: all faces rotated 180°
+        for (let i = 0; i < size; i++) {
+          state = rotateSliceCubies(state, size, 'col', i, 1);
+          state = rotateSliceCubies(state, size, 'col', i, 1);
+        }
+        moveCount = size * 2;
+        break;
+      case 'scrambled-10':
+        for (let i = 0; i < 10; i++) {
+          const ax = ['row', 'col', 'depth'][Math.floor(Math.random() * 3)];
+          const slice = Math.floor(Math.random() * size);
+          const dir = Math.random() > 0.5 ? 1 : -1;
+          state = rotateSliceCubies(state, size, ax, slice, dir);
+        }
+        moveCount = 10;
+        break;
+      case 'scrambled-25':
+        for (let i = 0; i < 25; i++) {
+          const ax = ['row', 'col', 'depth'][Math.floor(Math.random() * 3)];
+          const slice = Math.floor(Math.random() * size);
+          const dir = Math.random() > 0.5 ? 1 : -1;
+          state = rotateSliceCubies(state, size, ax, slice, dir);
+        }
+        moveCount = 25;
+        break;
+      case 'scrambled-50':
+        for (let i = 0; i < 50; i++) {
+          const ax = ['row', 'col', 'depth'][Math.floor(Math.random() * 3)];
+          const slice = Math.floor(Math.random() * size);
+          const dir = Math.random() > 0.5 ? 1 : -1;
+          state = rotateSliceCubies(state, size, ax, slice, dir);
+        }
+        moveCount = 50;
+        break;
+    }
+
+    setCubies(state);
+    setMoves(moveCount);
+    setMoveHistory([]);
+    setHasShuffled(true);
+  }, [size]);
+
+  const handleInstantChaos = useCallback((targetDisparity) => {
+    // Create cube with specific disparity percentage
+    // For now, just do random flips until we reach target
+    const totalStickers = size * size * 6; // Total visible stickers
+    const targetFlips = Math.floor((totalStickers * targetDisparity) / 100);
+
+    let state = cubies;
+    let flippedCount = 0;
+
+    while (flippedCount < targetFlips) {
+      const x = Math.floor(Math.random() * size);
+      const y = Math.floor(Math.random() * size);
+      const z = Math.floor(Math.random() * size);
+      const dirs = ['PX', 'NX', 'PY', 'NY', 'PZ', 'NZ'];
+      const dirKey = dirs[Math.floor(Math.random() * dirs.length)];
+
+      // Check if sticker is on edge
+      const onEdge =
+        (dirKey === 'PX' && x === size - 1) ||
+        (dirKey === 'NX' && x === 0) ||
+        (dirKey === 'PY' && y === size - 1) ||
+        (dirKey === 'NY' && y === 0) ||
+        (dirKey === 'PZ' && z === size - 1) ||
+        (dirKey === 'NZ' && z === 0);
+
+      if (onEdge) {
+        const freshManifoldMap = buildManifoldGridMap(state, size);
+        state = flipStickerPair(state, size, x, y, z, dirKey, freshManifoldMap);
+        flippedCount++;
+      }
+    }
+
+    setCubies(state);
+    setHasShuffled(true);
+  }, [cubies, size]);
+
+  const handleSaveState = useCallback(() => {
+    setSavedCubeState({
+      cubies: JSON.parse(JSON.stringify(cubies)),
+      moves,
+      size,
+      timestamp: Date.now()
+    });
+    alert('State saved! Use Ctrl+L to load it back.');
+  }, [cubies, moves, size]);
+
+  const handleLoadState = useCallback(() => {
+    if (!savedCubeState) return;
+    if (savedCubeState.size !== size) {
+      alert(`Saved state is for ${savedCubeState.size}×${savedCubeState.size} cube. Current size is ${size}×${size}.`);
+      return;
+    }
+    setCubies(savedCubeState.cubies);
+    setMoves(savedCubeState.moves);
+    setMoveHistory([]);
+  }, [savedCubeState, size]);
+
   const shuffle = () => {
     let state = makeCubies(size);
     for (let i = 0; i < 25; i++) {
@@ -880,6 +1065,7 @@ export default function WORM3() {
     }
     setCubies(state);
     setMoves(0);
+    setMoveHistory([]); // Clear undo history
     // Reset win tracking for new game
     setVictory(null);
     setAchievedWins({ rubiks: false, sudokube: false, ultimate: false, worm: false });
@@ -891,6 +1077,7 @@ export default function WORM3() {
   const reset = () => {
     setCubies(makeCubies(size));
     setMoves(0);
+    setMoveHistory([]); // Clear undo history
     play('/sounds/rotate.mp3');
     // Reset win tracking
     setVictory(null);
@@ -1453,6 +1640,63 @@ export default function WORM3() {
         return;
       }
 
+      // Z - undo last move
+      if (key === 'z') {
+        e.preventDefault();
+        undo();
+        return;
+      }
+
+      // ` (backtick) - toggle dev console
+      if (e.key === '`') {
+        e.preventDefault();
+        setShowDevConsole((prev) => !prev);
+        return;
+      }
+
+      // R - reset (with Shift for reset+scramble)
+      if (key === 'r') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          reset();
+          setTimeout(() => shuffle(), 100);
+        } else {
+          reset();
+        }
+        return;
+      }
+
+      // Ctrl+S - save state
+      if (key === 's' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        handleSaveState();
+        return;
+      }
+
+      // Ctrl+L - load state
+      if (key === 'l' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        handleLoadState();
+        return;
+      }
+
+      // Shift+1-9 - jump to levels
+      if (e.shiftKey && key >= '1' && key <= '9') {
+        e.preventDefault();
+        const level = parseInt(key);
+        if (level <= 10) {
+          handleLevelSelect(level);
+        }
+        return;
+      }
+
+      // Shift+0 - jump to level 10
+      if (e.shiftKey && key === '0') {
+        e.preventDefault();
+        handleLevelSelect(10);
+        return;
+      }
+
       // Other shortcuts - respect level feature restrictions
       switch (key) {
         case 'h':
@@ -1497,7 +1741,7 @@ export default function WORM3() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cursor, animState, size, flipMode, showLevelTutorial, currentLevelData]);
+  }, [cursor, animState, size, flipMode, showLevelTutorial, currentLevelData, undo, handleSaveState, handleLoadState, handleLevelSelect, reset, shuffle]);
 
   const cameraZ = { 2: 8, 3: 10, 4: 14, 5: 18 }[size] || 10;
 
@@ -1587,6 +1831,42 @@ export default function WORM3() {
           showStats={settings.showStats}
           showFaceProgress={settings.showFaceProgress}
         />
+
+        {/* Undo Indicator - Bottom Left */}
+        {moveHistory.length > 0 && (
+          <div
+            style={{
+              position: 'fixed',
+              bottom: '20px',
+              left: '20px',
+              background: 'rgba(0, 217, 255, 0.15)',
+              border: '2px solid rgba(0, 217, 255, 0.4)',
+              borderRadius: '8px',
+              padding: '8px 16px',
+              color: '#00d9ff',
+              fontFamily: "'Courier New', monospace",
+              fontSize: '14px',
+              fontWeight: 'bold',
+              zIndex: 100,
+              backdropFilter: 'blur(10px)',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+            onClick={undo}
+            title="Click or press Z to undo"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(0, 217, 255, 0.3)';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(0, 217, 255, 0.15)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            Z: Undo ({moveHistory.length})
+          </div>
+        )}
 
         {/* Auto-rotate Preview */}
         {autoRotateEnabled && chaosMode && (
@@ -1914,6 +2194,21 @@ export default function WORM3() {
           onRotateFaceCW={() => handleTileFaceRotation('cw')}
           onRotateFaceCCW={() => handleTileFaceRotation('ccw')}
           onCancel={() => setSelectedTileForRotation(null)}
+        />
+      )}
+
+      {/* Dev Console - Press ` to toggle */}
+      {showDevConsole && (
+        <DevConsole
+          onClose={() => setShowDevConsole(false)}
+          onPreset={handlePreset}
+          onSaveState={handleSaveState}
+          onLoadState={handleLoadState}
+          hasSavedState={!!savedCubeState}
+          size={size}
+          onJumpToLevel={handleLevelSelect}
+          onInstantChaos={handleInstantChaos}
+          moveHistory={moveHistory}
         />
       )}
     </div>
