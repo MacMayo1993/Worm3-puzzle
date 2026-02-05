@@ -582,36 +582,21 @@ export function ElementaryEnvironment({ flipTrigger = 0 }) {
           <meshStandardMaterial color="#8B4513" />
         </mesh>
 
-        {/* UNIQUE ADDITION: Miss Cole's Welcome Message */}
+        {/* Chalk text on blackboard */}
         <group ref={textRef}>
           <Text
-            position={[0, 0, 0.6]} // Just in front of the board
-            fontSize={2.8}
-            color="#FFFFFF"
-            font="https://fonts.gstatic.com/s/architectsdaughter/v11/KtkxAK9_G8M9B6K6fC3S9H9R95Q.woff"
+            position={[0, 0, 0.6]}
+            fontSize={2.2}
+            color="#e8e8d0"
             maxWidth={30}
             textAlign="center"
             anchorX="center"
             anchorY="middle"
-            rotation={[0, 0, -0.05]} // A slight "handwritten" tilt
-            fillOpacity={0.9}
           >
             Welcome to{"\n"}Miss Cole's Class
           </Text>
         </group>
       </group>
-
-      {/* Chalk text on blackboard */}
-      <Text
-        position={[0, 15, -36.2]}
-        fontSize={1.8}
-        color="#e8e8d0"
-        anchorX="center"
-        anchorY="middle"
-        maxWidth={30}
-      >
-        Welcome to Miss Cole's Class
-      </Text>
 
       {/* Chalk tray */}
       <mesh position={[0, 4, -36]}>
