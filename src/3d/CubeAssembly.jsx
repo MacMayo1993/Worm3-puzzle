@@ -28,17 +28,23 @@ const isTouchDevice = typeof window !== 'undefined' && (
 // Drag threshold - larger on touch devices for better precision
 const DRAG_THRESHOLD = isTouchDevice ? 25 : 10;
 
+// Long-press duration for face rotation mode (ms)
+const LONG_PRESS_DURATION = 500;
+
 const CubeAssembly = React.memo(({
   size, cubies, onMove, onTapFlip, visualMode, animState, onAnimComplete,
   showTunnels, explosionFactor, cascades, onCascadeComplete, manifoldMap,
   cursor, showCursor, flipMode, onSelectTile, flipWaveOrigins, onFlipWaveComplete,
-  faceColors, faceTextures, manifoldStyles, solveHighlights
+  faceColors, faceTextures, manifoldStyles, solveHighlights,
+  onFaceRotationMode
 }) => {
   const cubieRefs = useRef([]);
   const controlsRef = useRef();
   const { camera } = useThree();
   const [dragStart, setDragStart] = useState(null);
   const [activeDir, setActiveDir] = useState(null);
+  const longPressTimerRef = useRef(null);
+  const longPressTriggeredRef = useRef(false);
 
   // Pre-computed set of ref indices that belong to the current animation slice.
   // Computed ONCE when animation starts from the canonical grid positions,
@@ -104,18 +110,46 @@ const CubeAssembly = React.memo(({
   onTapFlipRef.current = onTapFlip;
   const onSelectTileRef = useRef(onSelectTile);
   onSelectTileRef.current = onSelectTile;
+  const onFaceRotationModeRef = useRef(onFaceRotationMode);
+  onFaceRotationModeRef.current = onFaceRotationMode;
 
   const onPointerDown = useCallback(({ pos, worldPos, event }) => {
     if (animStateRef.current) return;
     if (event.button === 2) event.preventDefault();
-    setDragStart({
+
+    const n = normalFromEvent(event);
+    const dragData = {
       pos, worldPos, event,
       screenX: event.clientX,
       screenY: event.clientY,
-      n: normalFromEvent(event),
+      n,
       shiftKey: event.shiftKey,
       isRightClick: event.button === 2
-    });
+    };
+
+    setDragStart(dragData);
+    longPressTriggeredRef.current = false;
+
+    // Start long-press timer for face rotation mode
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = setTimeout(() => {
+      // Trigger face rotation mode
+      longPressTriggeredRef.current = true;
+      vibrate(30); // Haptic feedback on long-press trigger
+      if (onFaceRotationModeRef.current) {
+        onFaceRotationModeRef.current({
+          pos,
+          worldPos,
+          normal: n,
+          dirKey: dirFromNormal(n)
+        });
+      }
+      // Clear drag state since we're entering face rotation mode
+      setDragStart(null);
+      setActiveDir(null);
+      if (controlsRef.current) controlsRef.current.enabled = true;
+    }, LONG_PRESS_DURATION);
+
     if (controlsRef.current) controlsRef.current.enabled = false;
   }, []);
 
@@ -123,11 +157,31 @@ const CubeAssembly = React.memo(({
     const move = e => {
       if (!dragStart) return;
       const dx = e.clientX - dragStart.screenX, dy = e.clientY - dragStart.screenY;
-      if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)
+
+      // Cancel long-press timer if user moves significantly
+      if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) {
+        if (longPressTimerRef.current) {
+          clearTimeout(longPressTimerRef.current);
+          longPressTimerRef.current = null;
+        }
         setActiveDir(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
-      else setActiveDir(null);
+      } else {
+        setActiveDir(null);
+      }
     };
     const up = e => {
+      // Cancel long-press timer on release
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+
+      // If long-press was triggered, don't do normal actions
+      if (longPressTriggeredRef.current) {
+        longPressTriggeredRef.current = false;
+        return;
+      }
+
       if (!dragStart) return;
       const dx = e.clientX - dragStart.screenX, dy = e.clientY - dragStart.screenY;
       const dist = Math.hypot(dx, dy);
