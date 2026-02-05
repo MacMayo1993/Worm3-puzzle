@@ -44,6 +44,7 @@ const CubeAssembly = React.memo(({
 }) => {
   const cubieRefs = useRef([]);
   const controlsRef = useRef();
+  const controlsEnabledRef = useRef(true); // Track controls state with ref for immediate updates
   const cubeGroupRef = useRef(null);
   const gsapAnimRef = useRef(null);
   const animProgressRef = useRef({ value: 0 });
@@ -174,6 +175,8 @@ const CubeAssembly = React.memo(({
     setDragStart(dragData);
     longPressTriggeredRef.current = false;
 
+    // Immediately disable controls using ref AND direct property
+    controlsEnabledRef.current = false;
     if (controlsRef.current) controlsRef.current.enabled = false;
   }, []);
 
@@ -291,7 +294,7 @@ const CubeAssembly = React.memo(({
         longPressTriggeredRef.current = false;
         dragStartRef.current = null;
         setDragStart(null);
-        if (controlsRef.current) controlsRef.current.enabled = true;
+        controlsEnabledRef.current = true; if (controlsRef.current) controlsRef.current.enabled = true;
         return;
       }
 
@@ -363,7 +366,7 @@ const CubeAssembly = React.memo(({
         }
         dragStartRef.current = null;
         setDragStart(null);
-        if (controlsRef.current) controlsRef.current.enabled = true;
+        controlsEnabledRef.current = true; if (controlsRef.current) controlsRef.current.enabled = true;
         return;
       }
 
@@ -376,7 +379,7 @@ const CubeAssembly = React.memo(({
 
       dragStartRef.current = null;
       setDragStart(null);
-      if (controlsRef.current) controlsRef.current.enabled = true;
+      controlsEnabledRef.current = true; if (controlsRef.current) controlsRef.current.enabled = true;
     };
 
     // Use pointer events only - they handle mouse, touch, and pen uniformly
@@ -619,10 +622,10 @@ const CubeAssembly = React.memo(({
         noZoom={false}
         minDistance={5}
         maxDistance={28}
-        enabled={!animState && !dragStart}
+        enabled={!animState && !dragStart && controlsEnabledRef.current}
         staticMoving={false}
-        dynamicDampingFactor={isTouchDevice ? 0.12 : 0.05}
-        rotateSpeed={isTouchDevice ? 1.2 : 1.6}
+        dynamicDampingFactor={isTouchDevice ? 0.15 : 0.08}
+        rotateSpeed={isTouchDevice ? 0.8 : 1.2}
       />
     </group>
   );
