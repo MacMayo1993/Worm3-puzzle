@@ -172,11 +172,12 @@ const CubeAssembly = React.memo(({
     if (controlsRef.current) controlsRef.current.enabled = false;
   }, []);
 
-  // Helper to get slice index from cubie position
+  // Helper to get slice index from cubie position (pos is {x, y, z} grid coords)
   const getSliceIndex = useCallback((pos, axis) => {
-    const idx = axis === 'col' ? 0 : axis === 'row' ? 1 : 2;
-    return Math.round(pos[idx] + (size - 1) / 2);
-  }, [size]);
+    if (axis === 'col') return pos.x;
+    if (axis === 'row') return pos.y;
+    return pos.z; // depth
+  }, []);
 
   // Helper to compute slice indices for a given axis and sliceIndex
   const computeSliceIndices = useCallback((axis, sliceIndex) => {
