@@ -39,6 +39,7 @@ import Level10Cutscene from './components/screens/Level10Cutscene.jsx';
 import LevelTutorial from './components/screens/LevelTutorial.jsx';
 import RotationPreview from './components/overlays/RotationPreview.jsx';
 import FaceRotationButtons from './components/overlays/FaceRotationButtons.jsx';
+import TileRotationSelector from './components/overlays/TileRotationSelector.jsx';
 import CubeNet from './components/CubeNet.jsx';
 import SolveMode, { SolveModeButton } from './components/SolveMode.jsx';
 
@@ -56,7 +57,7 @@ export default function WORM3() {
   const [cubies, setCubies] = useState(() => makeCubies(size));
   const [moves, setMoves] = useState(0);
   const [visualMode, setVisualMode] = useState('classic');
-  const [flipMode, setFlipMode] = useState(true);
+  const [flipMode, setFlipMode] = useState(false);
   const [chaosLevel, setChaosLevel] = useState(0);
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -114,6 +115,9 @@ export default function WORM3() {
 
   // Face rotation mode state (triggered by long-press on mobile)
   const [faceRotationTarget, setFaceRotationTarget] = useState(null);
+
+  // Tile rotation selector state (shown when tile is tapped in non-flip mode)
+  const [selectedTileForRotation, setSelectedTileForRotation] = useState(null);
 
   // Mobile touch hint - show once per session
   const [showMobileTouchHint, setShowMobileTouchHint] = useState(() => {
@@ -695,6 +699,100 @@ export default function WORM3() {
     setFaceRotationTarget(null);
   }, [faceRotationTarget]);
 
+  // Handle rotation from TileRotationSelector (directional arrows)
+  const handleTileRotation = useCallback((direction) => {
+    if (!selectedTileForRotation) return;
+
+    const { cursor: cur } = selectedTileForRotation;
+    const { face } = cur;
+    const pos = cursorToCubePos(cur);
+
+    // Determine axis and direction based on face and rotation direction
+    let axis, dir;
+
+    switch (direction) {
+      case 'up':
+        switch (face) {
+          case 'PZ': axis = 'col'; dir = -1; break;
+          case 'NZ': axis = 'col'; dir = 1; break;
+          case 'PX': axis = 'depth'; dir = 1; break;
+          case 'NX': axis = 'depth'; dir = -1; break;
+          case 'PY': axis = 'depth'; dir = -1; break;
+          case 'NY': axis = 'depth'; dir = 1; break;
+        }
+        break;
+      case 'down':
+        switch (face) {
+          case 'PZ': axis = 'col'; dir = 1; break;
+          case 'NZ': axis = 'col'; dir = -1; break;
+          case 'PX': axis = 'depth'; dir = -1; break;
+          case 'NX': axis = 'depth'; dir = 1; break;
+          case 'PY': axis = 'depth'; dir = 1; break;
+          case 'NY': axis = 'depth'; dir = -1; break;
+        }
+        break;
+      case 'left':
+        switch (face) {
+          case 'PZ': axis = 'row'; dir = -1; break;
+          case 'NZ': axis = 'row'; dir = -1; break;
+          case 'PX': axis = 'row'; dir = -1; break;
+          case 'NX': axis = 'row'; dir = -1; break;
+          case 'PY': axis = 'col'; dir = -1; break;
+          case 'NY': axis = 'col'; dir = 1; break;
+        }
+        break;
+      case 'right':
+        switch (face) {
+          case 'PZ': axis = 'row'; dir = 1; break;
+          case 'NZ': axis = 'row'; dir = 1; break;
+          case 'PX': axis = 'row'; dir = 1; break;
+          case 'NX': axis = 'row'; dir = 1; break;
+          case 'PY': axis = 'col'; dir = 1; break;
+          case 'NY': axis = 'col'; dir = -1; break;
+        }
+        break;
+    }
+
+    if (axis && dir !== undefined) {
+      onMove(axis, dir, pos);
+    }
+
+    setSelectedTileForRotation(null);
+  }, [selectedTileForRotation, onMove]);
+
+  // Handle face rotation (CW/CCW) from TileRotationSelector
+  const handleTileFaceRotation = useCallback((direction) => {
+    if (!selectedTileForRotation) return;
+
+    const { cursor: cur } = selectedTileForRotation;
+    const { face } = cur;
+    const pos = cursorToCubePos(cur);
+    const dir = direction === 'cw' ? -1 : 1;
+
+    let axis;
+    switch (face) {
+      case 'PZ': case 'NZ': axis = 'depth'; break;
+      case 'PX': case 'NX': axis = 'col'; break;
+      case 'PY': case 'NY': axis = 'row'; break;
+    }
+
+    // Adjust direction for back faces
+    let adjustedDir = dir;
+    if (face === 'NZ' || face === 'NX' || face === 'NY') {
+      adjustedDir = -dir;
+    }
+
+    if (axis) {
+      const sliceIndex = axis === 'col' ? pos.x : axis === 'row' ? pos.y : pos.z;
+      setAnimState({ axis, dir: adjustedDir, sliceIndex, t: 0 });
+      const move = { axis, dir: adjustedDir, sliceIndex };
+      setPendingMove(move);
+      pendingMoveRef.current = move;
+    }
+
+    setSelectedTileForRotation(null);
+  }, [selectedTileForRotation]);
+
   const getRotationForDir = useCallback((dir) => {
     switch (dir) {
       case 'PX': return [0, Math.PI / 2, 0];
@@ -962,11 +1060,13 @@ export default function WORM3() {
     }
   };
 
-  // Handle tile selection (left click)
+  // Handle tile selection (left click) - shows rotation selector
   const handleSelectTile = useCallback((pos, dirKey) => {
     const newCursor = cubePosToCursor(pos, dirKey);
     setCursor(newCursor);
     setShowCursor(true);
+    // Show rotation selector when tile is tapped (in non-flip mode)
+    setSelectedTileForRotation({ pos, dirKey, cursor: newCursor });
   }, [size]);
 
   // Move cursor with face wrapping
@@ -1793,7 +1893,7 @@ export default function WORM3() {
       {/* Mobile Touch Hint - Shows once to guide users */}
       {showMobileTouchHint && !showWelcome && !showTutorial && !showMainMenu && (
         <div className="mobile-touch-hint">
-          Swipe on cube to rotate • Tap tiles to flip
+          Swipe to rotate • Tap tile for options
         </div>
       )}
 
@@ -1803,6 +1903,16 @@ export default function WORM3() {
           onRotateCW={() => handleFaceRotate('cw')}
           onRotateCCW={() => handleFaceRotate('ccw')}
           onCancel={() => setFaceRotationTarget(null)}
+        />
+      )}
+
+      {/* Tile Rotation Selector - Shows when tile is tapped (non-flip mode) */}
+      {selectedTileForRotation && !flipMode && (
+        <TileRotationSelector
+          onRotate={handleTileRotation}
+          onRotateFaceCW={() => handleTileFaceRotation('cw')}
+          onRotateFaceCCW={() => handleTileFaceRotation('ccw')}
+          onCancel={() => setSelectedTileForRotation(null)}
         />
       )}
     </div>
