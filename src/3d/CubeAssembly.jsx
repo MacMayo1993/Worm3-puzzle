@@ -129,9 +129,29 @@ const CubeAssembly = React.memo(({
   const onPointerDown = useCallback(({ pos, worldPos, event }) => {
     if (animStateRef.current) return;
 
+    // Get the native event - R3F wraps it
+    const nativeEvent = event.nativeEvent || event;
+
+    // Get coordinates - try multiple sources for compatibility
+    let screenX, screenY;
+    if (nativeEvent.touches && nativeEvent.touches.length > 0) {
+      screenX = nativeEvent.touches[0].clientX;
+      screenY = nativeEvent.touches[0].clientY;
+    } else if (nativeEvent.clientX !== undefined) {
+      screenX = nativeEvent.clientX;
+      screenY = nativeEvent.clientY;
+    } else if (event.clientX !== undefined) {
+      screenX = event.clientX;
+      screenY = event.clientY;
+    } else {
+      // Fallback to pointer coordinates from R3F event
+      screenX = event.pointer?.x * window.innerWidth / 2 + window.innerWidth / 2;
+      screenY = -event.pointer?.y * window.innerHeight / 2 + window.innerHeight / 2;
+    }
+
     // Prevent default to stop touch scrolling and other gestures
-    event.preventDefault();
-    event.stopPropagation();
+    if (nativeEvent.preventDefault) nativeEvent.preventDefault();
+    if (event.stopPropagation) event.stopPropagation();
 
     // Immediately clear any tile selection UI when touching the cube
     if (onClearTileSelectionRef.current) onClearTileSelectionRef.current();
@@ -139,11 +159,11 @@ const CubeAssembly = React.memo(({
     const n = normalFromEvent(event);
     const dragData = {
       pos, worldPos, event,
-      screenX: event.clientX,
-      screenY: event.clientY,
+      screenX,
+      screenY,
       n,
-      shiftKey: event.shiftKey,
-      isRightClick: event.button === 2
+      shiftKey: nativeEvent.shiftKey || event.shiftKey,
+      isRightClick: (nativeEvent.button === 2) || (event.button === 2)
     };
 
     setDragStart(dragData);
