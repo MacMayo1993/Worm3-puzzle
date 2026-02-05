@@ -4,7 +4,7 @@ import { TrackballControls } from '@react-three/drei';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import Cubie from './Cubie.jsx';
-import DragGuide from './DragGuide.jsx';
+// DragGuide removed - real-time rotation provides visual feedback
 import CursorHighlight from '../components/overlays/CursorHighlight.jsx';
 import SolveHighlight from '../components/overlays/SolveHighlight.jsx';
 import WormholeNetwork from '../manifold/WormholeNetwork.jsx';
@@ -129,6 +129,9 @@ const CubeAssembly = React.memo(({
   const onPointerDown = useCallback(({ pos, worldPos, event }) => {
     if (animStateRef.current) return;
     if (event.button === 2) event.preventDefault();
+
+    // Immediately clear any tile selection UI when touching the cube
+    if (onClearTileSelectionRef.current) onClearTileSelectionRef.current();
 
     const n = normalFromEvent(event);
     const dragData = {
@@ -599,7 +602,7 @@ const CubeAssembly = React.memo(({
           explosionFactor={explosionFactor}
         />
       )}
-      {dragStart && !animState && <DragGuide position={dragStart.worldPos} activeDir={activeDir} />}
+      {/* DragGuide removed - real-time cube rotation provides visual feedback */}
       <TrackballControls
         ref={controlsRef}
         noPan={true}
