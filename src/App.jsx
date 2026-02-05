@@ -1559,6 +1559,7 @@ export default function WORM3() {
               showCursor={showCursor}
               flipMode={flipMode}
               onSelectTile={handleSelectTile}
+              onClearTileSelection={() => setSelectedTileForRotation(null)}
               flipWaveOrigins={flipWaveOrigins}
               onFlipWaveComplete={onFlipWaveComplete}
               faceColors={resolvedColors} faceTextures={faceTextures} manifoldStyles={settings.manifoldStyles}

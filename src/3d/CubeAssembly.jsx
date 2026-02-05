@@ -26,8 +26,8 @@ const isTouchDevice = typeof window !== 'undefined' && (
   window.matchMedia('(pointer: coarse)').matches
 );
 
-// Drag threshold - larger on touch devices for better precision
-const DRAG_THRESHOLD = isTouchDevice ? 25 : 10;
+// Drag threshold - small for immediate response
+const DRAG_THRESHOLD = isTouchDevice ? 8 : 5;
 
 // Pixels of drag to complete a 90° rotation
 const PIXELS_PER_90DEG = 100;
@@ -38,7 +38,7 @@ const PIXELS_PER_90DEG = 100;
 const CubeAssembly = React.memo(({
   size, cubies, onMove, onTapFlip, visualMode, animState, onAnimComplete,
   showTunnels, explosionFactor, cascades, onCascadeComplete, manifoldMap,
-  cursor, showCursor, flipMode, onSelectTile, flipWaveOrigins, onFlipWaveComplete,
+  cursor, showCursor, flipMode, onSelectTile, onClearTileSelection, flipWaveOrigins, onFlipWaveComplete,
   faceColors, faceTextures, manifoldStyles, solveHighlights,
   onFaceRotationMode
 }) => {
@@ -123,6 +123,8 @@ const CubeAssembly = React.memo(({
   onSelectTileRef.current = onSelectTile;
   const onFaceRotationModeRef = useRef(onFaceRotationMode);
   onFaceRotationModeRef.current = onFaceRotationMode;
+  const onClearTileSelectionRef = useRef(onClearTileSelection);
+  onClearTileSelectionRef.current = onClearTileSelection;
 
   const onPointerDown = useCallback(({ pos, worldPos, event }) => {
     if (animStateRef.current) return;
@@ -201,6 +203,9 @@ const CubeAssembly = React.memo(({
       if (!liveDragRef.current && dist >= DRAG_THRESHOLD) {
         const m = mapSwipe(dragStart.n, dx, dy, dragStart.shiftKey);
         if (m) {
+          // Clear any tile selection UI when starting drag rotation
+          if (onClearTileSelectionRef.current) onClearTileSelectionRef.current();
+
           const sliceIndex = getSliceIndex(dragStart.pos, m.axis);
           const sliceIndices = computeSliceIndices(m.axis, sliceIndex);
           const { basePositions, baseRotations } = storeBaseTransforms(sliceIndices);
