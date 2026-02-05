@@ -59,6 +59,7 @@ const CubeAssembly = React.memo(({
   const [liveDragAngle, setLiveDragAngle] = useState(0); // Triggers re-render for useFrame
   const sizeRef = useRef(size);
   sizeRef.current = size;
+  const skipNextAnimRef = useRef(false); // Skip animState animation after live drag
 
   // Pre-computed set of ref indices that belong to the current animation slice.
   // Computed ONCE when animation starts from the canonical grid positions,
@@ -264,7 +265,7 @@ const CubeAssembly = React.memo(({
           });
           liveDragRef.current = {
             axis: m.axis, sliceIndex, sliceIndices, basePositions, baseRotations,
-            startDx: dx, startDy: dy, dir: m.dir
+            startDx: dx, startDy: dy, dir: -m.dir // Negate dir to fix backwards rotation
           };
           sliceIndicesRef.current = sliceIndices;
         }
@@ -378,15 +379,15 @@ const CubeAssembly = React.memo(({
       if (controlsRef.current) controlsRef.current.enabled = true;
     };
 
+    // Use pointer events only - they handle mouse, touch, and pen uniformly
+    // Adding both pointer and touch events causes double-firing on touch devices
     window.addEventListener('pointermove', move, { passive: false });
     window.addEventListener('pointerup', up);
-    window.addEventListener('touchmove', move, { passive: false });
-    window.addEventListener('touchend', up);
+    window.addEventListener('pointercancel', up);
     return () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
-      window.removeEventListener('touchmove', move);
-      window.removeEventListener('touchend', up);
+      window.removeEventListener('pointercancel', up);
     };
   }, []); // Run once - use refs for all state
 
