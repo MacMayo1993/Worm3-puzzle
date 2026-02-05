@@ -1,14 +1,13 @@
-import React, { useRef, useMemo, useEffect } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-// Scratchpad to avoid GC thrash (keeps the game smooth)
+// Global scratchpad: 0 memory allocation during the game loop
 const _v1 = new THREE.Vector3();
 const _v2 = new THREE.Vector3();
 const _v3 = new THREE.Vector3();
 const _color = new THREE.Color();
 const _quat = new THREE.Quaternion();
-const _m1 = new THREE.Matrix4();
 
 const WormParticle = ({ start, end, color1, color2, startTime, onComplete }) => {
   const headRef = useRef();
@@ -22,49 +21,47 @@ const WormParticle = ({ start, end, color1, color2, startTime, onComplete }) => 
   const trailLength = 25;
   const segmentCount = 8;
 
-  // Personality randomization (per worm instance)
+  // Personality: Random traits set once on mount
   const personality = useMemo(() => ({
-    wiggleSpeed: 1.5 + Math.random() * 1.5,          // 1.5–3.0
-    eyeSize: 0.05 + Math.random() * 0.03,           // slightly different sizes
-    tongueLength: 0.08 + Math.random() * 0.06,      // longer or shorter tongue
-    blinkChance: 0.008 + Math.random() * 0.01,      // how often it blinks
-    squishAmount: 0.25 + Math.random() * 0.15,      // how bouncy the squish is
+    wiggleSpeed: 1.5 + Math.random() * 2.0,
+    eyeSize: 0.05 + Math.random() * 0.03,
+    tongueLength: 0.1 + Math.random() * 0.08,
+    blinkChance: 0.005 + Math.random() * 0.01,
+    squishAmount: 0.2 + Math.random() * 0.2,
   }), []);
 
-  // 1. Initialize stable data
   const points = useMemo(() => new Float32Array(trailLength * 3), []);
   const up = useMemo(() => new THREE.Vector3(0, 1, 0), []);
-
-  // Blink state
+  
+  // Animation state
   const isBlinking = useRef(false);
   const blinkTimer = useRef(0);
 
   useFrame(({ clock }) => {
     const currentTime = clock.getElapsedTime();
     if (currentTime < startTime) return;
+    
     let elapsed = currentTime - startTime;
     if (elapsed >= duration) {
       if (onComplete) onComplete();
       return;
     }
 
-    // 2. Comical "Inchworm" Progress (Custom Quintic Ease)
+    // 1. Progress & Path
     let t = elapsed / duration;
     const progress = t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2;
 
-    // 3. Slither Path Calculation
     const vStart = _v1.set(...start);
     const vEnd = _v2.set(...end);
     const dir = _v3.subVectors(vEnd, vStart).normalize();
     const right = new THREE.Vector3().crossVectors(dir, up).normalize();
 
-    // Create "Wormy" path using a Bezier control point that wiggles
     const wiggle = Math.sin(progress * Math.PI * 5 + currentTime * personality.wiggleSpeed) * 0.3;
     const mid = new THREE.Vector3().addVectors(vStart, vEnd).multiplyScalar(0.5);
     const control = mid.add(right.clone().multiplyScalar(wiggle));
     const curve = new THREE.QuadraticBezierCurve3(vStart, control, vEnd);
 
-    // 4. Update Trail and Head
+    // 2. Update Trail
     for (let i = 0; i < trailLength; i++) {
       const p = curve.getPoint((i / (trailLength - 1)) * progress);
       points[i * 3] = p.x;
@@ -72,107 +69,98 @@ const WormParticle = ({ start, end, color1, color2, startTime, onComplete }) => 
       points[i * 3 + 2] = p.z;
     }
     trailGeoRef.current.attributes.position.needsUpdate = true;
+
+    // 3. Update Head & Mascot Color
     const headPos = curve.getPoint(progress);
     headRef.current.position.copy(headPos);
+    headRef.current.lookAt(vEnd); // Head faces movement direction
 
-    // Dynamic Mascot Color
     _color.set(color1).lerp(_v1.set(color2), progress);
-    _color.offsetHSL(0.15 * Math.sin(currentTime * 4), 0, 0);
+    _color.offsetHSL(0.1 * Math.sin(currentTime * 3), 0, 0);
 
-    // 5. Animate Body Segments (The "Chubby" Look)
+    // 4. Body Segments
     segmentRefs.current.forEach((seg, i) => {
       if (!seg) return;
-      const segLag = (i / segmentCount) * 0.15;
+      const segLag = (i / segmentCount) * 0.18;
       const segProg = Math.max(0, progress - segLag);
       const pos = curve.getPoint(segProg);
-      const sPulse = (1 + Math.sin(currentTime * 8 + i) * personality.squishAmount) * (1 - i / segmentCount * 0.5);
+      
+      const sPulse = (1 + Math.sin(currentTime * 8 + i) * personality.squishAmount) * (1 - i / segmentCount * 0.4);
       seg.position.copy(pos);
-      seg.position.y += Math.sin(currentTime * 10 + i) * 0.05; // Independent wiggle
-      seg.scale.set(sPulse * 1.2, sPulse * 0.9, sPulse * 1.2); // Squishy
-      seg.material.color.copy(_color).offsetHSL(i * 0.05, 0, 0);
+      seg.scale.set(sPulse * 1.2, sPulse * 0.85, sPulse * 1.2);
+      seg.material.color.copy(_color).offsetHSL(i * 0.04, 0, 0);
     });
 
-    // 6. Googly Eye Jitter + Random Blinking
-    const eyeJitter = Math.sin(currentTime * 20) * 0.01;
-    if (eyeLeftRef.current) eyeLeftRef.current.position.y += eyeJitter;
-    if (eyeRightRef.current) eyeRightRef.current.position.y += eyeJitter;
-
-    // Random blink
+    // 5. Facial Expressions (Blinking & Tongue)
     if (!isBlinking.current && Math.random() < personality.blinkChance) {
       isBlinking.current = true;
       blinkTimer.current = currentTime;
-      if (eyeLeftRef.current) eyeLeftRef.current.visible = false;
-      if (eyeRightRef.current) eyeRightRef.current.visible = false;
+      [eyeLeftRef, eyeRightRef].forEach(ref => ref.current && (ref.current.scale.y = 0.1));
     }
-    if (isBlinking.current && currentTime - blinkTimer.current > 0.15) {
+    if (isBlinking.current && currentTime - blinkTimer.current > 0.12) {
       isBlinking.current = false;
-      if (eyeLeftRef.current) eyeLeftRef.current.visible = true;
-      if (eyeRightRef.current) eyeRightRef.current.visible = true;
+      [eyeLeftRef, eyeRightRef].forEach(ref => ref.current && (ref.current.scale.y = 1));
     }
 
-    // 7. Tongue wiggle
     if (tongueRef.current) {
-      tongueRef.current.scale.y = personality.tongueLength * (1 + Math.sin(currentTime * 12) * 0.3);
-      tongueRef.current.rotation.z = Math.sin(currentTime * 6) * 0.15; // playful tilt
+      tongueRef.current.scale.z = 1 + Math.sin(currentTime * 15) * 0.4;
+      tongueRef.current.rotation.y = Math.sin(currentTime * 10) * 0.2;
     }
   });
 
   return (
     <group>
-      {/* Performance Trail */}
       <line>
         <bufferGeometry ref={trailGeoRef}>
           <bufferAttribute attach="attributes-position" count={trailLength} array={points} itemSize={3} />
         </bufferGeometry>
-        <lineBasicMaterial transparent opacity={0.5} blending={THREE.AdditiveBlending} />
+        <lineBasicMaterial transparent opacity={0.3} color={color2} />
       </line>
 
-      {/* Body Segments */}
+      {/* Segments */}
       {Array.from({ length: segmentCount }).map((_, i) => (
         <mesh key={i} ref={(el) => (segmentRefs.current[i] = el)}>
-          <sphereGeometry args={[0.15, 12, 12]} />
-          <meshStandardMaterial emissiveIntensity={0.5} roughness={0.4} />
+          <sphereGeometry args={[0.16, 12, 12]} />
+          <meshStandardMaterial roughness={0.4} />
         </mesh>
       ))}
 
-      {/* Mascot Head */}
+      {/* Head */}
       <group ref={headRef}>
-        {/* Face Mesh */}
         <mesh>
           <sphereGeometry args={[0.22, 20, 20]} />
-          <meshStandardMaterial roughness={0.5} metalness={0.4} />
+          <meshStandardMaterial roughness={0.3} metalness={0.2} color={color1} />
         </mesh>
 
         {/* Googly Eyes */}
-        <group position={[0, 0.05, 0.15]}>
-          <mesh ref={eyeLeftRef} name="eye" position={[-0.1, 0, 0]}>
-            <sphereGeometry args={[personality.eyeSize * 1.2, 8, 8]} />
+        <group position={[0, 0.08, 0.12]}>
+          <mesh ref={eyeLeftRef} position={[-0.1, 0, 0]}>
+            <sphereGeometry args={[personality.eyeSize, 12, 12]} />
             <meshBasicMaterial color="white" />
             <mesh position={[0, 0, 0.04]}>
-              <sphereGeometry args={[personality.eyeSize * 0.4, 6, 6]} />
+              <sphereGeometry args={[personality.eyeSize * 0.5, 8, 8]} />
               <meshBasicMaterial color="black" />
             </mesh>
           </mesh>
-          <mesh ref={eyeRightRef} name="eye" position={[0.1, 0, 0]}>
-            <sphereGeometry args={[personality.eyeSize * 1.2, 8, 8]} />
+          <mesh ref={eyeRightRef} position={[0.1, 0, 0]}>
+            <sphereGeometry args={[personality.eyeSize, 12, 12]} />
             <meshBasicMaterial color="white" />
             <mesh position={[0, 0, 0.04]}>
-              <sphereGeometry args={[personality.eyeSize * 0.4, 6, 6]} />
+              <sphereGeometry args={[personality.eyeSize * 0.5, 8, 8]} />
               <meshBasicMaterial color="black" />
             </mesh>
           </mesh>
         </group>
 
-        {/* Smile */}
-        <mesh position={[0, -0.05, 0.18]} rotation={[0, 0, Math.PI / 2]}>
-          <torusGeometry args={[0.06, 0.015, 8, 16, Math.PI]} />
-          <meshBasicMaterial color="#222" />
+        {/* Tongue - Pivot at the base */}
+        <mesh ref={tongueRef} position={[0, -0.08, 0.18]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.02, 0.03, personality.tongueLength, 8]} />
+          <meshBasicMaterial color="#ff6688" />
         </mesh>
 
-        {/* Silly tongue sticking out */}
-        <mesh ref={tongueRef} position={[0, -0.12, 0.18]}>
-          <coneGeometry args={[0.03, personality.tongueLength, 6]} />
-          <meshBasicMaterial color="pink" />
+        <mesh position={[0, -0.04, 0.2]} rotation={[0, 0, Math.PI / 2]}>
+          <torusGeometry args={[0.05, 0.01, 8, 16, Math.PI]} />
+          <meshBasicMaterial color="black" />
         </mesh>
       </group>
     </group>
