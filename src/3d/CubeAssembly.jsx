@@ -42,8 +42,8 @@ const CubeAssembly = React.memo(({
   const cubieRefs = useRef([]);
   const controlsRef = useRef();
   const cubeGroupRef = useRef(null);
-  const pivotRef = useRef(null);
   const gsapAnimRef = useRef(null);
+  const animProgressRef = useRef({ value: 0 });
   const { camera } = useThree();
   const [dragStart, setDragStart] = useState(null);
   const [activeDir, setActiveDir] = useState(null);
@@ -205,97 +205,92 @@ const CubeAssembly = React.memo(({
   const explosionFactorRef = useRef(explosionFactor);
   explosionFactorRef.current = explosionFactor;
 
-  // Update shared time uniform for animated tile styles
-  useFrame((state) => {
-    updateSharedTime(state.clock.elapsedTime);
-  });
+  // Track the previous animation progress for incremental rotation
+  const prevProgressRef = useRef(0);
 
-  // GSAP Pivot-based rotation animation
-  // Creates a temporary pivot group, attaches cubies, animates with snappy easing, then cleans up
+  // Start GSAP animation when animState changes
   useEffect(() => {
-    if (!animState || !cubeGroupRef.current) return;
+    if (!animState) {
+      // Reset progress refs when animation ends
+      animProgressRef.current.value = 0;
+      prevProgressRef.current = 0;
+      return;
+    }
 
     // Kill any existing animation
     if (gsapAnimRef.current) {
       gsapAnimRef.current.kill();
-      gsapAnimRef.current = null;
     }
 
-    const cubeGroup = cubeGroupRef.current;
-    const { axis, dir, sliceIndex } = animState;
-    const targetAngle = (Math.PI / 2) * dir;
+    // Reset progress for new animation
+    animProgressRef.current.value = 0;
+    prevProgressRef.current = 0;
 
-    // Pre-compute which ref indices are in the slice from canonical grid positions
-    const kOffset = (size - 1) / 2;
-    const indices = new Set();
-    items.forEach((it, idx) => {
-      const gx = Math.round(it.pos[0] + kOffset);
-      const gy = Math.round(it.pos[1] + kOffset);
-      const gz = Math.round(it.pos[2] + kOffset);
-      const inSlice = (axis === 'col' && gx === sliceIndex) ||
-                      (axis === 'row' && gy === sliceIndex) ||
-                      (axis === 'depth' && gz === sliceIndex);
-      if (inSlice) indices.add(idx);
-    });
-    sliceIndicesRef.current = indices;
-
-    // Create pivot group at the center of the cube
-    const pivot = new THREE.Group();
-    pivot.position.set(0, 0, 0);
-    cubeGroup.add(pivot);
-    pivotRef.current = pivot;
-
-    // Collect cubies in the slice and attach them to the pivot
-    const movingCubies = [];
-    cubieRefs.current.forEach((g, idx) => {
-      if (g && indices.has(idx)) {
-        movingCubies.push(g);
-        pivot.attach(g);
-      }
-    });
-
-    // Animate the pivot with snappy back.out easing for that tactile "bounce" feel
-    const rotationProp = axis === 'col' ? 'x' : axis === 'row' ? 'y' : 'z';
-    const animTarget = { [rotationProp]: targetAngle };
-
-    gsapAnimRef.current = gsap.to(pivot.rotation, {
-      ...animTarget,
+    // Use GSAP to animate the progress value with snappy easing
+    gsapAnimRef.current = gsap.to(animProgressRef.current, {
+      value: 1,
       duration: 0.35,
       ease: "back.out(1.4)", // Snappy bounce effect - overshoots slightly then settles
       onComplete: () => {
-        // Detach cubies from pivot back to the cube group
-        movingCubies.forEach((cubie) => {
-          cubeGroup.attach(cubie);
-        });
-
-        // Clean up pivot
-        cubeGroup.remove(pivot);
-        pivotRef.current = null;
-        sliceIndicesRef.current = null;
         gsapAnimRef.current = null;
-
-        // Notify parent that animation is complete
+        sliceIndicesRef.current = null;
         vibrate(14);
         onAnimCompleteRef.current();
       }
     });
 
-    // Cleanup function if component unmounts or animState changes mid-animation
     return () => {
       if (gsapAnimRef.current) {
         gsapAnimRef.current.kill();
         gsapAnimRef.current = null;
       }
-      if (pivotRef.current && cubeGroupRef.current) {
-        // Detach all children back to cube group before removing pivot
-        while (pivotRef.current.children.length > 0) {
-          cubeGroupRef.current.attach(pivotRef.current.children[0]);
-        }
-        cubeGroupRef.current.remove(pivotRef.current);
-        pivotRef.current = null;
-      }
     };
-  }, [animState, size, items]);
+  }, [animState]);
+
+  // useFrame applies the rotation based on GSAP-driven progress
+  useFrame((state) => {
+    // Update shared time uniform for animated tile styles
+    updateSharedTime(state.clock.elapsedTime);
+
+    if (!animState) return;
+
+    const { axis, dir, sliceIndex } = animState;
+    const worldAxis = axis === 'col' ? _axisCol : axis === 'row' ? _axisRow : _axisDepth;
+
+    // On animation start, pre-compute which ref indices are in the slice
+    if (!sliceIndicesRef.current) {
+      const kOffset = (size - 1) / 2;
+      const indices = new Set();
+      const n = size * size * size;
+      for (let idx = 0; idx < n; idx++) {
+        const z = idx % size;
+        const y = Math.floor(idx / size) % size;
+        const x = Math.floor(idx / (size * size));
+        const inSlice = (axis === 'col' && x === sliceIndex) ||
+                        (axis === 'row' && y === sliceIndex) ||
+                        (axis === 'depth' && z === sliceIndex);
+        if (inSlice) indices.add(idx);
+      }
+      sliceIndicesRef.current = indices;
+    }
+
+    // Calculate incremental rotation from GSAP progress
+    const currentProgress = animProgressRef.current.value;
+    const deltaProgress = currentProgress - prevProgressRef.current;
+    prevProgressRef.current = currentProgress;
+
+    const dRot = deltaProgress * (Math.PI / 2);
+
+    // Apply rotation to cubies in the slice
+    const sliceSet = sliceIndicesRef.current;
+    if (sliceSet && Math.abs(dRot) > 0.0001) {
+      cubieRefs.current.forEach((g, idx) => {
+        if (!g || !sliceSet.has(idx)) return;
+        g.position.applyAxisAngle(worldAxis, dRot * dir);
+        g.rotateOnWorldAxis(worldAxis, dRot * dir);
+      });
+    }
+  });
 
   // Stable ref callbacks so that passing ref={fn} doesn't defeat React.memo on Cubie.
   // We create one callback per index, memoized by size.
