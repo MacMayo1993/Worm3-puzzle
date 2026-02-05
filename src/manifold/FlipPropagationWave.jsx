@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { FACE_COLORS, ANTIPODAL_COLOR } from '../utils/constants.js';
+import WormParticle from './WormParticle.jsx';
 
 // Shared geometries for wave effects - created once, reused
 const sharedWaveRingGeometry = new THREE.RingGeometry(0.8, 1.0, 32);
@@ -20,10 +21,13 @@ const FlipPropagationWave = ({ origins, onComplete }) => {
   const ringsRef = useRef([]);
   const trailsRef = useRef([]);
   const materialsRef = useRef([]);
+  const startTimeRef = useRef(null);
+  const { clock } = useThree();
 
   useEffect(() => {
     setProgress(0);
-  }, [origins]);
+    startTimeRef.current = clock.getElapsedTime();
+  }, [origins, clock]);
 
   // Cleanup materials on unmount
   useEffect(() => {
@@ -53,19 +57,6 @@ const FlipPropagationWave = ({ origins, onComplete }) => {
       // Fade out as it expands
       if (ring.material) {
         ring.material.opacity = (1 - easeOut) * 0.8;
-      }
-    });
-
-    // Update trail particles
-    trailsRef.current.forEach((trail, i) => {
-      if (!trail) return;
-
-      const trailProgress = Math.max(0, easeOut - i * 0.1);
-      const trailScale = 0.1 + trailProgress * 0.3;
-      trail.scale.set(trailScale, trailScale, trailScale);
-
-      if (trail.material) {
-        trail.material.opacity = Math.max(0, (1 - trailProgress) * 0.6);
       }
     });
 
@@ -108,29 +99,32 @@ const FlipPropagationWave = ({ origins, onComplete }) => {
             />
           </mesh>
 
-          {/* Trail particles showing propagation direction - uses shared geometry */}
+          {/* Animated worms radiating outward */}
           {[0, 1, 2, 3, 4, 5].map((t, ti) => {
             const angle = (ti / 6) * Math.PI * 2;
-            const dist = progress * 2;
+            const travelDistance = 3.5; // How far worms travel
+
+            // Calculate world-space positions
+            const startPos = new THREE.Vector3(...origin.position);
+            const endPos = new THREE.Vector3(
+              origin.position[0] + Math.cos(angle) * travelDistance,
+              origin.position[1] + Math.sin(angle) * travelDistance,
+              origin.position[2] + 0.05
+            );
+
+            // Stagger each worm's start slightly
+            const staggerDelay = ti * 0.05;
+
             return (
-              <mesh
+              <WormParticle
                 key={ti}
-                ref={el => trailsRef.current[idx * 6 + ti] = el}
-                position={[
-                  Math.cos(angle) * dist,
-                  Math.sin(angle) * dist,
-                  0.05
-                ]}
-                geometry={sharedTrailCircleGeometry}
-              >
-                <meshBasicMaterial
-                  color={origin.color}
-                  transparent
-                  opacity={0.5}
-                  blending={THREE.AdditiveBlending}
-                  depthWrite={false}
-                />
-              </mesh>
+                start={[startPos.x, startPos.y, startPos.z]}
+                end={[endPos.x, endPos.y, endPos.z]}
+                color1={origin.color}
+                color2={origin.color}
+                startTime={startTimeRef.current + staggerDelay}
+                onComplete={null}
+              />
             );
           })}
         </group>
