@@ -601,6 +601,18 @@ export function ElementaryEnvironment({ flipTrigger = 0 }) {
         </group>
       </group>
 
+      {/* Chalk text on blackboard */}
+      <Text
+        position={[0, 15, -36.2]}
+        fontSize={1.8}
+        color="#e8e8d0"
+        anchorX="center"
+        anchorY="middle"
+        maxWidth={30}
+      >
+        Welcome to Miss Cole's Class
+      </Text>
+
       {/* Chalk tray */}
       <mesh position={[0, 4, -36]}>
         <boxGeometry args={[30, 0.5, 1]} />
