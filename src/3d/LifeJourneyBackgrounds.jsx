@@ -528,9 +528,10 @@ export function DaycareEnvironment({ flipTrigger = 0 }) {
   );
 }
 
-// ===========================================
-// 2. ELEMENTARY - Classroom
-// ============================================
+// ───────────────────────────────────────────
+// ELEMENTARY - Classroom
+// ───────────────────────────────────────────
+
 export function ElementaryEnvironment({ flipTrigger = 0 }) {
   const starsRef = useRef();
   const textRef = useRef();
