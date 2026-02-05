@@ -100,8 +100,8 @@ const FlipPropagationWave = ({ origins, onComplete }) => {
           </mesh>
 
           {/* Animated worms radiating outward */}
-          {[0, 1, 2, 3, 4, 5].map((t, ti) => {
-            const angle = (ti / 6) * Math.PI * 2;
+          {[0, 1, 2].map((t, ti) => {
+            const angle = (ti / 3) * Math.PI * 2;
             const travelDistance = 3.5; // How far worms travel
 
             // Calculate world-space positions
