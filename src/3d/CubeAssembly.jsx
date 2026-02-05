@@ -312,11 +312,31 @@ const CubeAssembly = React.memo(({
           const snapDir = currentAngle > 0 ? 1 : -1;
           const savedPos = ds.pos;
           const savedAxis = ld.axis;
+          const targetAngle = snapDir * quarterTurn;
+
+          // Skip the next animState-triggered animation since we're handling the visual here
+          skipNextAnimRef.current = true;
+
           animProgressRef.current.value = currentAngle / quarterTurn;
           gsapAnimRef.current = gsap.to(animProgressRef.current, {
             value: snapDir,
             duration: 0.15,
             ease: "back.out(1.4)",
+            onUpdate: () => {
+              const progress = animProgressRef.current.value;
+              const angle = progress * quarterTurn;
+              const worldAxis = savedAxis === 'col' ? _axisCol :
+                               savedAxis === 'row' ? _axisRow : _axisDepth;
+              ld.sliceIndices.forEach(idx => {
+                const g = cubieRefs.current[idx];
+                if (g && ld.basePositions.has(idx)) {
+                  g.position.copy(ld.basePositions.get(idx)).applyAxisAngle(worldAxis, angle);
+                  g.quaternion.copy(ld.baseRotations.get(idx));
+                  _rotQuat.setFromAxisAngle(worldAxis, angle);
+                  g.quaternion.premultiply(_rotQuat);
+                }
+              });
+            },
             onComplete: () => {
               gsapAnimRef.current = null;
               liveDragRef.current = null;
@@ -409,6 +429,15 @@ const CubeAssembly = React.memo(({
       // Reset progress refs when animation ends
       animProgressRef.current.value = 0;
       prevProgressRef.current = 0;
+      return;
+    }
+
+    // Skip animation if this came from a drag commit (visual already at target)
+    if (skipNextAnimRef.current) {
+      skipNextAnimRef.current = false;
+      // Immediately complete without animation
+      vibrate(14);
+      onAnimCompleteRef.current();
       return;
     }
 
