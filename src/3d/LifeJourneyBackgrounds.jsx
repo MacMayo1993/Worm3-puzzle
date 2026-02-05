@@ -1780,4 +1780,3 @@ export function getLevelBackground(backgroundName, flipTrigger) {
     default:
       return null;
   }
-}
