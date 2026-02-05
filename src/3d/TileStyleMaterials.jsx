@@ -366,6 +366,53 @@ const fragmentShaders = {
     }
   `,
 
+  // Glass - translucent with Fresnel edge glow and specular highlights
+  glass: `
+    uniform vec3 baseColor;
+    uniform float time;
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vViewPosition;
+
+    void main() {
+      vec3 normal = normalize(vNormal);
+      vec3 viewDir = normalize(vViewPosition);
+
+      // Fresnel: more reflective (brighter) at glancing angles, more transparent head-on
+      float fresnel = pow(1.0 - abs(dot(viewDir, normal)), 3.0);
+
+      // Multiple specular highlights simulating light refraction
+      vec3 light1 = normalize(vec3(1.0, 1.0, 1.0));
+      vec3 light2 = normalize(vec3(-0.5, 0.8, 0.3));
+      vec3 half1 = normalize(light1 + viewDir);
+      vec3 half2 = normalize(light2 + viewDir);
+      float spec1 = pow(max(dot(normal, half1), 0.0), 64.0);
+      float spec2 = pow(max(dot(normal, half2), 0.0), 48.0);
+
+      // Subtle color dispersion at edges (chromatic aberration hint)
+      vec3 tint = baseColor;
+      tint.r += fresnel * 0.08;
+      tint.b += fresnel * 0.05;
+
+      // Base glass color: tinted and translucent
+      vec3 color = tint * (0.5 + fresnel * 0.6);
+
+      // Add specular highlights (white glints like real glass)
+      color += vec3(spec1 * 0.9 + spec2 * 0.4);
+
+      // Bright edge rim like light catching glass edges
+      float edgeX = smoothstep(0.0, 0.08, min(vUv.x, 1.0 - vUv.x));
+      float edgeY = smoothstep(0.0, 0.08, min(vUv.y, 1.0 - vUv.y));
+      float edgeFactor = 1.0 - edgeX * edgeY;
+      color += vec3(edgeFactor * 0.6) * (baseColor * 0.5 + 0.5);
+
+      // Alpha: more transparent in center, less at edges (Fresnel)
+      float alpha = 0.25 + fresnel * 0.45 + edgeFactor * 0.3;
+
+      gl_FragColor = vec4(color, alpha);
+    }
+  `,
+
   // Comic Book - bold outlines and halftone
   comic: `
     uniform vec3 baseColor;
@@ -427,6 +474,8 @@ export function getTileStyleMaterial(style, colorHex, useTexture = false, textur
     color = new THREE.Color('#888888');
   }
 
+  const isGlass = safeStyle === 'glass';
+
   const material = new THREE.ShaderMaterial({
     uniforms: {
       baseColor: { value: color },
@@ -434,10 +483,21 @@ export function getTileStyleMaterial(style, colorHex, useTexture = false, textur
     },
     vertexShader: baseVertexShader,
     fragmentShader: fragmentShader,
-    side: THREE.FrontSide,
+    side: isGlass ? THREE.DoubleSide : THREE.FrontSide,
+    transparent: isGlass,
+    depthWrite: !isGlass,
+    blending: isGlass ? THREE.NormalBlending : THREE.NormalBlending,
   });
 
   return material;
+}
+
+/**
+ * Get a glass material for the glass visual mode.
+ * This is a convenience wrapper that always returns a transparent glass shader.
+ */
+export function getGlassMaterial(colorHex) {
+  return getTileStyleMaterial('glass', colorHex);
 }
 
 /**

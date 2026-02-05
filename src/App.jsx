@@ -1318,7 +1318,7 @@ export default function WORM3() {
           }
           break;
         case 'v':
-          setVisualMode((v) => (v === 'classic' ? 'grid' : v === 'grid' ? 'sudokube' : v === 'sudokube' ? 'wireframe' : 'classic'));
+          setVisualMode((v) => (v === 'classic' ? 'grid' : v === 'grid' ? 'sudokube' : v === 'sudokube' ? 'wireframe' : v === 'wireframe' ? 'glass' : 'classic'));
           break;
         case 'c': // Chaos - gated by level
           if (!currentLevelData || currentLevelData.features.chaos) {
@@ -1350,15 +1350,22 @@ export default function WORM3() {
       <div className="canvas-container" onContextMenu={(e) => e.preventDefault()}>
         <Canvas camera={{ position: [0, 0, cameraZ], fov: 40 }}>
           {/* Premium lighting setup */}
-          <ambientLight intensity={visualMode === 'wireframe' ? 0.2 : 0.8} />
-          <directionalLight position={[5, 8, 5]} intensity={visualMode === 'wireframe' ? 0.3 : 1.2} castShadow />
-          <pointLight position={[10, 10, 10]} intensity={visualMode === 'wireframe' ? 0.3 : 0.8} />
-          <pointLight position={[-10, -10, -10]} intensity={visualMode === 'wireframe' ? 0.2 : 0.6} />
+          <ambientLight intensity={visualMode === 'wireframe' ? 0.2 : visualMode === 'glass' ? 0.5 : 0.8} />
+          <directionalLight position={[5, 8, 5]} intensity={visualMode === 'wireframe' ? 0.3 : visualMode === 'glass' ? 1.6 : 1.2} castShadow />
+          <pointLight position={[10, 10, 10]} intensity={visualMode === 'wireframe' ? 0.3 : visualMode === 'glass' ? 1.0 : 0.8} />
+          <pointLight position={[-10, -10, -10]} intensity={visualMode === 'wireframe' ? 0.2 : visualMode === 'glass' ? 0.5 : 0.6} />
           {visualMode === 'wireframe' && (
             <>
               <pointLight position={[0, 0, 0]} intensity={0.5} color="#fefae0" distance={15} decay={2} />
               <pointLight position={[5, 5, 5]} intensity={0.25} color="#dda15e" />
               <pointLight position={[-5, -5, -5]} intensity={0.2} color="#bc6c25" />
+            </>
+          )}
+          {visualMode === 'glass' && (
+            <>
+              {/* Extra rim light for glass specular highlights */}
+              <pointLight position={[-8, 6, 8]} intensity={0.6} color="#ffffff" />
+              <pointLight position={[8, -4, -6]} intensity={0.3} color="#e0e8ff" />
             </>
           )}
           <Suspense fallback={null}>
@@ -1529,7 +1536,7 @@ export default function WORM3() {
               <button
                 className="btn-compact text"
                 onClick={() =>
-                  setVisualMode((v) => (v === 'classic' ? 'grid' : v === 'grid' ? 'sudokube' : v === 'sudokube' ? 'wireframe' : 'classic'))
+                  setVisualMode((v) => (v === 'classic' ? 'grid' : v === 'grid' ? 'sudokube' : v === 'sudokube' ? 'wireframe' : v === 'wireframe' ? 'glass' : 'classic'))
                 }
               >
                 {visualMode.toUpperCase()}

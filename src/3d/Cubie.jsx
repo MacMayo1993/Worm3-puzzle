@@ -206,10 +206,12 @@ const Cubie = React.forwardRef(function Cubie({
     <group position={explodedPos} ref={ref}>
       <RoundedBox args={[0.98, 0.98, 0.98]} radius={0.08} smoothness={4} onPointerDown={handleDown}>
         <meshStandardMaterial
-          color={visualMode === 'wireframe' ? "#000000" : "#0a0a0a"}
-          roughness={visualMode === 'wireframe' ? 0.9 : 0.25}
-          metalness={visualMode === 'wireframe' ? 0 : 0.15}
-          envMapIntensity={0.4}
+          color={visualMode === 'wireframe' ? "#000000" : visualMode === 'glass' ? "#111111" : "#0a0a0a"}
+          roughness={visualMode === 'wireframe' ? 0.9 : visualMode === 'glass' ? 0.05 : 0.25}
+          metalness={visualMode === 'wireframe' ? 0 : visualMode === 'glass' ? 0.3 : 0.15}
+          envMapIntensity={visualMode === 'glass' ? 0.8 : 0.4}
+          transparent={visualMode === 'glass'}
+          opacity={visualMode === 'glass' ? 0.12 : 1.0}
         />
       </RoundedBox>
 

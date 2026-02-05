@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { COLORS, FACE_COLORS, ANTIPODAL_COLOR } from '../utils/constants.js';
 import { play, vibrate } from '../utils/audio.js';
 import TallyMarks from '../manifold/TallyMarks.jsx';
-import { getTileStyleMaterial, updateSharedTime, isAnimatedStyle } from './TileStyleMaterials.jsx';
+import { getTileStyleMaterial, getGlassMaterial, updateSharedTime, isAnimatedStyle } from './TileStyleMaterials.jsx';
 
 // Shared geometries for all particle/glow systems (created once, reused globally)
 const sharedParticleGeometry = new THREE.PlaneGeometry(1, 1);
@@ -445,6 +445,7 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
   });
 
   const isSudokube = mode==='sudokube';
+  const isGlass = mode==='glass';
   // Texture and style follow the CURRENT displayed face (meta.curr)
   // So M1 tiles always get M1's texture/style, M4 tiles get M4's, etc.
   const currTexture = faceTextures?.[meta?.curr] || null;
@@ -458,8 +459,21 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
   // Get the tile style for the current displayed face
   const tileStyle = manifoldStyles?.[meta?.curr] || 'solid';
 
+  // Glass mode overrides all tile styles with glass material
+  const useGlassStyle = isGlass && !isSudokube;
+  const glassMaterial = useMemo(() => {
+    if (!useGlassStyle) return null;
+    const colorHex = baseColor || '#888888';
+    try {
+      return getGlassMaterial(colorHex);
+    } catch (e) {
+      console.warn('Failed to create glass material:', e);
+      return null;
+    }
+  }, [useGlassStyle, baseColor]);
+
   // Use shader material for non-solid styles (when no texture is applied)
-  const useShaderStyle = tileStyle !== 'solid' && !currTexture && !isSudokube;
+  const useShaderStyle = !isGlass && tileStyle !== 'solid' && !currTexture && !isSudokube;
   const styleMaterial = useMemo(() => {
     if (!useShaderStyle) return null;
     // Ensure we have a valid color string
@@ -521,7 +535,9 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
     <group position={pos} rotation={rot} ref={groupRef}>
       <mesh ref={meshRef}>
         <planeGeometry ref={geoRef} args={[0.85,0.85]} />
-        {useShaderStyle && styleMaterial ? (
+        {useGlassStyle && glassMaterial ? (
+          <primitive object={glassMaterial} attach="material" />
+        ) : useShaderStyle && styleMaterial ? (
           <primitive object={styleMaterial} attach="material" />
         ) : (
           <meshStandardMaterial
