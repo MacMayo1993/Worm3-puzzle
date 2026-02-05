@@ -128,7 +128,10 @@ const CubeAssembly = React.memo(({
 
   const onPointerDown = useCallback(({ pos, worldPos, event }) => {
     if (animStateRef.current) return;
-    if (event.button === 2) event.preventDefault();
+
+    // Prevent default to stop touch scrolling and other gestures
+    event.preventDefault();
+    event.stopPropagation();
 
     // Immediately clear any tile selection UI when touching the cube
     if (onClearTileSelectionRef.current) onClearTileSelectionRef.current();
@@ -145,9 +148,6 @@ const CubeAssembly = React.memo(({
 
     setDragStart(dragData);
     longPressTriggeredRef.current = false;
-
-    // Long-press disabled - was too sensitive on mobile
-    // Timer logic removed
 
     if (controlsRef.current) controlsRef.current.enabled = false;
   }, []);
@@ -189,9 +189,19 @@ const CubeAssembly = React.memo(({
   }, []);
 
   useEffect(() => {
+    const getClientCoords = (e) => {
+      // Handle both mouse/pointer and touch events
+      if (e.touches && e.touches.length > 0) {
+        return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+      }
+      return { clientX: e.clientX, clientY: e.clientY };
+    };
+
     const move = e => {
       if (!dragStart) return;
-      const dx = e.clientX - dragStart.screenX, dy = e.clientY - dragStart.screenY;
+      e.preventDefault(); // Prevent scrolling while dragging
+      const { clientX, clientY } = getClientCoords(e);
+      const dx = clientX - dragStart.screenX, dy = clientY - dragStart.screenY;
       const dist = Math.hypot(dx, dy);
 
       // Cancel long-press timer if user moves significantly
@@ -359,7 +369,8 @@ const CubeAssembly = React.memo(({
 
       // Handle tap (no drag) - only flip mode uses tap now
       // Drag-to-rotate replaces the tile selector UI
-      const dx = e.clientX - dragStart.screenX, dy = e.clientY - dragStart.screenY;
+      const { clientX, clientY } = getClientCoords(e);
+      const dx = clientX - dragStart.screenX, dy = clientY - dragStart.screenY;
       const dist = Math.hypot(dx, dy);
       if (dist < DRAG_THRESHOLD) {
         const dirKey = dirFromNormal(dragStart.n);
@@ -373,11 +384,16 @@ const CubeAssembly = React.memo(({
       setActiveDir(null);
       if (controlsRef.current) controlsRef.current.enabled = true;
     };
-    window.addEventListener('pointermove', move);
+    // Use passive: false so we can call preventDefault() to stop scrolling
+    window.addEventListener('pointermove', move, { passive: false });
     window.addEventListener('pointerup', up);
+    window.addEventListener('touchmove', move, { passive: false });
+    window.addEventListener('touchend', up);
     return () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
+      window.removeEventListener('touchmove', move);
+      window.removeEventListener('touchend', up);
     };
   }, [dragStart, size, getSliceIndex, computeSliceIndices, storeBaseTransforms]);
 
