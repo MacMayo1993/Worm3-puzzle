@@ -109,6 +109,26 @@ const HelpMenu = ({ onClose }) => {
             </div>
           </section>
 
+          <section style={{ marginBottom: '24px' }}>
+            <h3 style={{ color: '#c17035', marginBottom: '12px', fontSize: '18px', fontWeight: 600 }}>🤲 Hands Mode (P)</h3>
+            <div style={{ paddingLeft: '16px', fontSize: '14px' }}>
+              <p style={{ margin: '8px 0', color: '#9b8b7a', fontStyle: 'italic' }}>Speedcuber controls — fixed camera, fast moves, standard notation</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px' }}>
+                <p style={{ margin: '4px 0' }}><strong>I / K</strong> — U / U'</p>
+                <p style={{ margin: '4px 0' }}><strong>O</strong> — U2</p>
+                <p style={{ margin: '4px 0' }}><strong>J / L</strong> — R / R'</p>
+                <p style={{ margin: '4px 0' }}><strong>F / D</strong> — L / L'</p>
+                <p style={{ margin: '4px 0' }}><strong>H / G</strong> — F / F'</p>
+                <p style={{ margin: '4px 0' }}><strong>W / E</strong> — B / B'</p>
+                <p style={{ margin: '4px 0' }}><strong>S / ;</strong> — D / D'</p>
+                <p style={{ margin: '4px 0' }}><strong>, / M</strong> — M' / M</p>
+                <p style={{ margin: '4px 0' }}><strong>.</strong> — M2</p>
+                <p style={{ margin: '4px 0' }}><strong>U / N</strong> — E' / E</p>
+              </div>
+              <p style={{ margin: '8px 0', color: '#a67c52', fontSize: '12px' }}>Combo detection: Sexy Move, Sledgehammer, Sune, T-Perm and more</p>
+            </div>
+          </section>
+
           <section>
             <h3 style={{ color: '#a67c52', marginBottom: '12px', fontSize: '18px', fontWeight: 600 }}>⌨️ Other Shortcuts</h3>
             <div style={{ paddingLeft: '16px', fontSize: '14px' }}>
@@ -120,7 +140,8 @@ const HelpMenu = ({ onClose }) => {
               <p style={{ margin: '8px 0' }}><strong>X</strong> — Toggle explosion view</p>
               <p style={{ margin: '8px 0' }}><strong>V</strong> — Change view mode</p>
               <p style={{ margin: '8px 0' }}><strong>C</strong> — Turn chaos mode on/off</p>
-              <p style={{ margin: '8px 0' }}><strong>Esc</strong> — Close menus / hide cursor</p>
+              <p style={{ margin: '8px 0' }}><strong>P</strong> — Toggle Hands Mode</p>
+              <p style={{ margin: '8px 0' }}><strong>Esc</strong> — Close menus / hide cursor / exit Hands Mode</p>
             </div>
           </section>
         </div>

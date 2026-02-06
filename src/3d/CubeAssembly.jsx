@@ -40,7 +40,8 @@ const CubeAssembly = React.memo(({
   showTunnels, explosionFactor, cascades, onCascadeComplete, manifoldMap,
   cursor, showCursor, flipMode, onSelectTile, onClearTileSelection, flipWaveOrigins, onFlipWaveComplete,
   faceColors, faceTextures, manifoldStyles, solveHighlights,
-  onFaceRotationMode
+  onFaceRotationMode,
+  handsMode
 }) => {
   const cubieRefs = useRef([]);
   const controlsRef = useRef();
@@ -130,6 +131,8 @@ const CubeAssembly = React.memo(({
   onFaceRotationModeRef.current = onFaceRotationMode;
   const onClearTileSelectionRef = useRef(onClearTileSelection);
   onClearTileSelectionRef.current = onClearTileSelection;
+  const handsModeRef = useRef(handsMode);
+  handsModeRef.current = handsMode;
 
   const onPointerDown = useCallback(({ pos, worldPos, event }) => {
     if (animStateRef.current) return;
@@ -414,6 +417,20 @@ const CubeAssembly = React.memo(({
     };
   }, []); // Run once - use refs for all state
 
+  // Lock camera to Home Grip POV when hands mode is enabled
+  useEffect(() => {
+    if (handsMode) {
+      camera.position.set(0, 1.2, 10);
+      camera.lookAt(0, 0, 0);
+      camera.updateProjectionMatrix();
+      // Reset TrackballControls target so it doesn't fight the lock
+      if (controlsRef.current) {
+        controlsRef.current.target.set(0, 0, 0);
+        controlsRef.current.reset();
+      }
+    }
+  }, [handsMode, camera]);
+
   // Store refs for values accessed in useFrame to avoid stale closures
   const onAnimCompleteRef = useRef(onAnimComplete);
   onAnimCompleteRef.current = onAnimComplete;
@@ -451,14 +468,16 @@ const CubeAssembly = React.memo(({
     prevProgressRef.current = 0;
 
     // Use GSAP to animate the progress value with snappy easing
+    // Hands mode uses faster, crisper animations (speedcuber feel)
+    const isHands = handsModeRef.current;
     gsapAnimRef.current = gsap.to(animProgressRef.current, {
       value: 1,
-      duration: 0.35,
-      ease: "back.out(1.4)", // Snappy bounce effect - overshoots slightly then settles
+      duration: isHands ? 0.12 : 0.35,
+      ease: isHands ? "power2.out" : "back.out(1.4)",
       onComplete: () => {
         gsapAnimRef.current = null;
         sliceIndicesRef.current = null;
-        vibrate(14);
+        vibrate(isHands ? 8 : 14);
         onAnimCompleteRef.current();
       }
     });
@@ -648,10 +667,11 @@ const CubeAssembly = React.memo(({
       <TrackballControls
         ref={controlsRef}
         noPan={true}
-        noZoom={false}
+        noZoom={handsMode ? true : false}
+        noRotate={handsMode ? true : false}
         minDistance={5}
         maxDistance={28}
-        enabled={!animState && !dragStart && controlsEnabledRef.current}
+        enabled={!handsMode && !animState && !dragStart && controlsEnabledRef.current}
         staticMoving={false}
         dynamicDampingFactor={isTouchDevice ? 0.15 : 0.08}
         rotateSpeed={isTouchDevice ? 0.8 : 1.2}

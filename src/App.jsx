@@ -14,6 +14,7 @@ import { rotateSliceCubies } from './game/cubeRotation.js';
 import { buildManifoldGridMap, flipStickerPair, findAntipodalStickerByGrid, getManifoldNeighbors } from './game/manifoldLogic.js';
 import { detectWinConditions } from './game/winDetection.js';
 import { getStickerWorldPos } from './game/coordinates.js';
+import { keyToMove, expandMove, namedMoveToRotation } from './game/handsInput.js';
 import * as THREE from 'three';
 import { FACE_COLORS, ANTIPODAL_COLOR } from './utils/constants.js';
 import { DEFAULT_SETTINGS, resolveColors } from './utils/colorSchemes.js';
@@ -40,6 +41,7 @@ import LevelTutorial from './components/screens/LevelTutorial.jsx';
 import RotationPreview from './components/overlays/RotationPreview.jsx';
 import FaceRotationButtons from './components/overlays/FaceRotationButtons.jsx';
 import TileRotationSelector from './components/overlays/TileRotationSelector.jsx';
+import HandsOverlay from './components/overlays/HandsOverlay.jsx';
 import CubeNet from './components/CubeNet.jsx';
 import SolveMode, { SolveModeButton } from './components/SolveMode.jsx';
 import DevConsole from './components/menus/DevConsole.jsx';
@@ -121,6 +123,13 @@ export default function WORM3() {
   const [solveModeActive, setSolveModeActive] = useState(false);
   const [solveFocusedStep, setSolveFocusedStep] = useState(null);
   const [solveHighlights, setSolveHighlights] = useState([]);
+
+  // Hands Mode state
+  const [handsMode, setHandsMode] = useState(false);
+  const [handsMoveHistory, setHandsMoveHistory] = useState([]); // Named moves for HUD (e.g. "R", "U'")
+  const [handsMoveQueue, setHandsMoveQueue] = useState([]);     // Queue for double moves
+  const [handsTps, setHandsTps] = useState(0);                  // Turns per second
+  const handsMoveTimestamps = useRef([]);                        // For TPS calculation
 
   // Face rotation mode state (triggered by long-press on mobile)
   const [faceRotationTarget, setFaceRotationTarget] = useState(null);
@@ -655,6 +664,63 @@ export default function WORM3() {
     setPendingMove(move);
     pendingMoveRef.current = move;
   }, []);
+
+  // Hands Mode: execute a named move (e.g. "R", "U'", "M2")
+  const executeHandsMove = useCallback((moveName) => {
+    if (animState) {
+      // Queue the move if an animation is running
+      setHandsMoveQueue(prev => [...prev, moveName]);
+      return;
+    }
+
+    const rotations = expandMove(moveName, size);
+    if (rotations.length === 0) return;
+
+    // For double moves, queue the second rotation
+    if (rotations.length === 2) {
+      const { axis, dir, sliceIndex } = rotations[0];
+      setAnimState({ axis, dir, sliceIndex, t: 0 });
+      const move = { axis, dir, sliceIndex };
+      setPendingMove(move);
+      pendingMoveRef.current = move;
+      setHandsMoveQueue(prev => [...prev, moveName.replace('2', '')]); // Queue second half
+    } else {
+      const { axis, dir, sliceIndex } = rotations[0];
+      setAnimState({ axis, dir, sliceIndex, t: 0 });
+      const move = { axis, dir, sliceIndex };
+      setPendingMove(move);
+      pendingMoveRef.current = move;
+    }
+
+    // Track the named move for HUD display
+    setHandsMoveHistory(prev => [...prev.slice(-30), moveName]);
+
+    // TPS tracking
+    const now = Date.now();
+    handsMoveTimestamps.current = [...handsMoveTimestamps.current.filter(t => now - t < 5000), now];
+    const elapsed = (now - handsMoveTimestamps.current[0]) / 1000;
+    if (elapsed > 0 && handsMoveTimestamps.current.length > 1) {
+      setHandsTps(handsMoveTimestamps.current.length / elapsed);
+    }
+  }, [animState, size]);
+
+  // Process queued hands moves when animation completes
+  useEffect(() => {
+    if (!handsMode || animState || handsMoveQueue.length === 0) return;
+    const [nextMove, ...rest] = handsMoveQueue;
+    setHandsMoveQueue(rest);
+    // Execute via a microtask so state is settled
+    const timer = setTimeout(() => {
+      const rot = namedMoveToRotation(nextMove, size);
+      if (rot) {
+        setAnimState({ axis: rot.axis, dir: rot.dir, sliceIndex: rot.sliceIndex, t: 0 });
+        const move = { axis: rot.axis, dir: rot.dir, sliceIndex: rot.sliceIndex };
+        setPendingMove(move);
+        pendingMoveRef.current = move;
+      }
+    }, 10);
+    return () => clearTimeout(timer);
+  }, [handsMode, animState, handsMoveQueue, size]);
 
   // Handler for long-press triggering face rotation mode
   const handleFaceRotationMode = useCallback((target) => {
@@ -1577,6 +1643,25 @@ export default function WORM3() {
 
       const key = e.key.toLowerCase();
 
+      // --- HANDS MODE KEYBOARD HANDLER ---
+      // When hands mode is active, intercept cube-move keys and route through handsInput
+      if (handsMode) {
+        // Allow global shortcuts to pass through
+        if (key === 'escape' || key === 'h' || key === '?' || key === '`' ||
+            key === 'r' || key === 'z' || key === 'v' || key === 'x' ||
+            key === 't' || key === 'c' || key === 'p' || key === 'b' ||
+            (e.ctrlKey || e.metaKey)) {
+          // Fall through to normal handler below
+        } else {
+          const moveName = keyToMove(e);
+          if (moveName) {
+            e.preventDefault();
+            executeHandsMove(moveName);
+            return;
+          }
+        }
+      }
+
       // Arrow keys - cursor movement
       if (e.key === 'ArrowUp') {
         e.preventDefault();
@@ -1731,17 +1816,30 @@ export default function WORM3() {
             setChaosLevel((l) => (l > 0 ? 0 : 1));
           }
           break;
+        case 'p':
+          setHandsMode(prev => {
+            if (!prev) {
+              // Entering hands mode - clear state
+              setHandsMoveHistory([]);
+              setHandsMoveQueue([]);
+              setHandsTps(0);
+              handsMoveTimestamps.current = [];
+            }
+            return !prev;
+          });
+          break;
         case 'escape':
           setShowHelp(false);
           setShowSettings(false);
           setShowCursor(false); // Hide cursor on escape
+          if (handsMode) setHandsMode(false);
           break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cursor, animState, size, flipMode, showLevelTutorial, currentLevelData, undo, handleSaveState, handleLoadState, handleLevelSelect, reset, shuffle]);
+  }, [cursor, animState, size, flipMode, showLevelTutorial, currentLevelData, undo, handleSaveState, handleLoadState, handleLevelSelect, reset, shuffle, handsMode, executeHandsMove]);
 
   const cameraZ = { 2: 8, 3: 10, 4: 14, 5: 18 }[size] || 10;
 
@@ -1809,6 +1907,7 @@ export default function WORM3() {
               faceColors={resolvedColors} faceTextures={faceTextures} manifoldStyles={settings.manifoldStyles}
               solveHighlights={solveModeActive ? solveHighlights : []}
               onFaceRotationMode={handleFaceRotationMode}
+              handsMode={handsMode}
             />
           </Suspense>
         </Canvas>
@@ -2023,6 +2122,25 @@ export default function WORM3() {
               >
                 SOLVE
               </button>
+              <button
+                className={`btn-compact text ${handsMode ? 'active' : ''}`}
+                onClick={() => {
+                  setHandsMode(!handsMode);
+                  if (!handsMode) {
+                    setHandsMoveHistory([]);
+                    setHandsMoveQueue([]);
+                    setHandsTps(0);
+                    handsMoveTimestamps.current = [];
+                  }
+                }}
+                style={{
+                  color: handsMode ? '#ff6b35' : undefined,
+                  borderColor: handsMode ? '#ff6b35' : undefined,
+                }}
+                title="Toggle Hands Mode - speedcuber controls (P)"
+              >
+                HANDS
+              </button>
               {/* Level navigation buttons */}
               {currentLevelData && (
                 <>
@@ -2194,6 +2312,15 @@ export default function WORM3() {
           onRotateFaceCW={() => handleTileFaceRotation('cw')}
           onRotateFaceCCW={() => handleTileFaceRotation('ccw')}
           onCancel={() => setSelectedTileForRotation(null)}
+        />
+      )}
+
+      {/* Hands Mode Overlay */}
+      {handsMode && (
+        <HandsOverlay
+          recentMoves={handsMoveHistory}
+          lastMove={handsMoveHistory.length > 0 ? handsMoveHistory[handsMoveHistory.length - 1] : null}
+          tps={handsTps}
         />
       )}
 
