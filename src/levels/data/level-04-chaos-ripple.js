@@ -1,6 +1,6 @@
 /**
  * Level 4: Chaos Ripple
- * High school - Survive the instability
+ * High School - Survive the instability
  */
 
 import { createLevel, GAME_MODES, WIN_CONDITIONS, BACKGROUNDS, DIFFICULTY, LEVEL_TAGS } from '../schema.js';
@@ -19,7 +19,7 @@ export default createLevel({
     rotations: true,
     tunnels: true,
     flips: true,
-    chaos: true,  // NEW: Chaos mode active
+    chaos: true,
     explode: false,
     parity: false,
     net: false,
@@ -27,7 +27,7 @@ export default createLevel({
 
   tutorial: {
     title: 'High School 🏫',
-    text: "Welcome to the chaos! Just like high school, things can get WILD. Flipped stickers might trigger chain reactions. Stay calm and solve fast!",
+    text: 'Welcome to the chaos! Just like high school, things can get WILD. Flipped stickers might trigger chain reactions. Stay calm and solve fast!',
     tip: "Don't panic! Solve before the chaos spreads!",
   },
 

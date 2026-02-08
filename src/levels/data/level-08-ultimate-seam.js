@@ -1,6 +1,6 @@
 /**
  * Level 8: Ultimate Seam
- * Rocket launch - Dual constraints collide
+ * Rocket Launch - Dual constraints collide
  */
 
 import { createLevel, GAME_MODES, WIN_CONDITIONS, BACKGROUNDS, DIFFICULTY, LEVEL_TAGS } from '../schema.js';
@@ -12,7 +12,7 @@ export default createLevel({
 
   cubeSize: 4,
   chaosLevel: 3,
-  mode: GAME_MODES.ULTIMATE,  // NEW: Ultimate mode (colors + sudoku)
+  mode: GAME_MODES.ULTIMATE,
   background: BACKGROUNDS.ROCKET,
 
   features: {

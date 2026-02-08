@@ -1,6 +1,6 @@
 /**
  * Level 3: Flip Gateway
- * Middle school - Master the antipodal flip
+ * Middle School - Master the antipodal flip
  */
 
 import { createLevel, GAME_MODES, WIN_CONDITIONS, BACKGROUNDS, DIFFICULTY, LEVEL_TAGS } from '../schema.js';
@@ -18,7 +18,7 @@ export default createLevel({
   features: {
     rotations: true,
     tunnels: true,
-    flips: true,  // NEW: Flip mode enabled
+    flips: true,
     chaos: false,
     explode: false,
     parity: false,

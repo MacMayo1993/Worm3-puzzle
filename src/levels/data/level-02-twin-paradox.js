@@ -1,6 +1,6 @@
 /**
  * Level 2: Twin Paradox
- * Elementary school - Discover antipodal pairs
+ * Elementary School - Discover antipodal pairs
  */
 
 import { createLevel, GAME_MODES, WIN_CONDITIONS, BACKGROUNDS, DIFFICULTY, LEVEL_TAGS } from '../schema.js';
@@ -17,7 +17,7 @@ export default createLevel({
 
   features: {
     rotations: true,
-    tunnels: true,  // NEW: Wormhole tunnels visible
+    tunnels: true,
     flips: false,
     chaos: false,
     explode: false,
