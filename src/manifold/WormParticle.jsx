@@ -9,7 +9,7 @@ const _v3 = new THREE.Vector3();
 const _color = new THREE.Color();
 const _quat = new THREE.Quaternion();
 
-const WormParticle = ({ start, end, color1, color2, startTime, onComplete }) => {
+const WormParticle = ({ start, end, color1, color2, startTime, currentTime, onComplete }) => {
   const headRef = useRef();
   const trailGeoRef = useRef();
   const segmentRefs = useRef([]);
@@ -38,10 +38,13 @@ const WormParticle = ({ start, end, color1, color2, startTime, onComplete }) => 
   const blinkTimer = useRef(0);
 
   useFrame(({ clock }) => {
-    const currentTime = clock.getElapsedTime();
-    if (currentTime < startTime) return;
-    
-    let elapsed = currentTime - startTime;
+    const clockTime = clock.getElapsedTime();
+    // Use prop currentTime for animation timing (synced with WelcomeScreen)
+    // Fall back to clock time if prop not provided
+    const animTime = currentTime !== undefined ? currentTime : clockTime;
+    if (animTime < startTime) return;
+
+    let elapsed = animTime - startTime;
     if (elapsed >= duration) {
       if (onComplete) onComplete();
       return;
@@ -56,7 +59,7 @@ const WormParticle = ({ start, end, color1, color2, startTime, onComplete }) => 
     const dir = _v3.subVectors(vEnd, vStart).normalize();
     const right = new THREE.Vector3().crossVectors(dir, up).normalize();
 
-    const wiggle = Math.sin(progress * Math.PI * 5 + currentTime * personality.wiggleSpeed) * 0.3;
+    const wiggle = Math.sin(progress * Math.PI * 5 + clockTime * personality.wiggleSpeed) * 0.3;
     const mid = new THREE.Vector3().addVectors(vStart, vEnd).multiplyScalar(0.5);
     const control = mid.add(right.clone().multiplyScalar(wiggle));
     const curve = new THREE.QuadraticBezierCurve3(vStart, control, vEnd);
@@ -76,7 +79,7 @@ const WormParticle = ({ start, end, color1, color2, startTime, onComplete }) => 
     headRef.current.lookAt(vEnd); // Head faces movement direction
 
     _color.set(color1).lerp(_v1.set(color2), progress);
-    _color.offsetHSL(0.1 * Math.sin(currentTime * 3), 0, 0);
+    _color.offsetHSL(0.1 * Math.sin(clockTime * 3), 0, 0);
 
     // 4. Body Segments
     segmentRefs.current.forEach((seg, i) => {
@@ -85,7 +88,7 @@ const WormParticle = ({ start, end, color1, color2, startTime, onComplete }) => 
       const segProg = Math.max(0, progress - segLag);
       const pos = curve.getPoint(segProg);
       
-      const sPulse = (1 + Math.sin(currentTime * 8 + i) * personality.squishAmount) * (1 - i / segmentCount * 0.4);
+      const sPulse = (1 + Math.sin(clockTime * 8 + i) * personality.squishAmount) * (1 - i / segmentCount * 0.4);
       seg.position.copy(pos);
       seg.scale.set(sPulse * 1.2, sPulse * 0.85, sPulse * 1.2);
       seg.material.color.copy(_color).offsetHSL(i * 0.04, 0, 0);
@@ -94,17 +97,17 @@ const WormParticle = ({ start, end, color1, color2, startTime, onComplete }) => 
     // 5. Facial Expressions (Blinking & Tongue)
     if (!isBlinking.current && Math.random() < personality.blinkChance) {
       isBlinking.current = true;
-      blinkTimer.current = currentTime;
+      blinkTimer.current = clockTime;
       [eyeLeftRef, eyeRightRef].forEach(ref => ref.current && (ref.current.scale.y = 0.1));
     }
-    if (isBlinking.current && currentTime - blinkTimer.current > 0.12) {
+    if (isBlinking.current && clockTime - blinkTimer.current > 0.12) {
       isBlinking.current = false;
       [eyeLeftRef, eyeRightRef].forEach(ref => ref.current && (ref.current.scale.y = 1));
     }
 
     if (tongueRef.current) {
-      tongueRef.current.scale.z = 1 + Math.sin(currentTime * 15) * 0.4;
-      tongueRef.current.rotation.y = Math.sin(currentTime * 10) * 0.2;
+      tongueRef.current.scale.z = 1 + Math.sin(clockTime * 15) * 0.4;
+      tongueRef.current.rotation.y = Math.sin(clockTime * 10) * 0.2;
     }
   });
 
