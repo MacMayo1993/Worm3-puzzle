@@ -606,43 +606,43 @@ export default function WORM3() {
               <pointLight position={[8, -4, -6]} intensity={0.3} color="#e0e8ff" />
             </>
           )}
+          {currentLevelData?.background === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
+          {currentLevelData?.background && currentLevelData.background !== 'blackhole' && getLevelBackground(currentLevelData.background, blackHolePulse)}
+          {!currentLevelData && settings.backgroundTheme === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
+          {!currentLevelData && settings.backgroundTheme === 'starfield' && <StarfieldEnvironment flipTrigger={blackHolePulse} />}
+          {!currentLevelData && settings.backgroundTheme === 'nebula' && <NebulaSkyEnvironment flipTrigger={blackHolePulse} />}
           <Suspense fallback={null}>
-            {currentLevelData?.background === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
-            {currentLevelData?.background && currentLevelData.background !== 'blackhole' && getLevelBackground(currentLevelData.background, blackHolePulse)}
-            {!currentLevelData && settings.backgroundTheme === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
-            {!currentLevelData && settings.backgroundTheme === 'starfield' && <StarfieldEnvironment flipTrigger={blackHolePulse} />}
-            {!currentLevelData && settings.backgroundTheme === 'nebula' && <NebulaSkyEnvironment flipTrigger={blackHolePulse} />}
             <Environment preset="city" />
-
-            <CubeAssembly
-              size={size}
-              cubies={cubies}
-              onMove={onMove}
-              onTapFlip={onTapFlip}
-              visualMode={visualMode}
-              animState={animState}
-              onAnimComplete={handleAnimComplete}
-              showTunnels={showTunnels}
-              explosionFactor={explosionT}
-              cascades={cascades}
-              onCascadeComplete={onCascadeComplete}
-              manifoldMap={manifoldMap}
-              showInvitation={!useGameStore.getState().hasFlippedOnce}
-              cursor={cursor}
-              showCursor={showCursor}
-              flipMode={flipMode}
-              onSelectTile={handleSelectTile}
-              onClearTileSelection={() => setSelectedTileForRotation(null)}
-              flipWaveOrigins={flipWaveOrigins}
-              onFlipWaveComplete={onFlipWaveComplete}
-              faceColors={resolvedColors}
-              faceTextures={faceTextures}
-              manifoldStyles={settings.manifoldStyles}
-              solveHighlights={solveModeActive ? solveHighlights : []}
-              onFaceRotationMode={handleFaceRotationMode}
-              handsMode={handsMode}
-            />
           </Suspense>
+
+          <CubeAssembly
+            size={size}
+            cubies={cubies}
+            onMove={onMove}
+            onTapFlip={onTapFlip}
+            visualMode={visualMode}
+            animState={animState}
+            onAnimComplete={handleAnimComplete}
+            showTunnels={showTunnels}
+            explosionFactor={explosionT}
+            cascades={cascades}
+            onCascadeComplete={onCascadeComplete}
+            manifoldMap={manifoldMap}
+            showInvitation={!useGameStore.getState().hasFlippedOnce}
+            cursor={cursor}
+            showCursor={showCursor}
+            flipMode={flipMode}
+            onSelectTile={handleSelectTile}
+            onClearTileSelection={() => setSelectedTileForRotation(null)}
+            flipWaveOrigins={flipWaveOrigins}
+            onFlipWaveComplete={onFlipWaveComplete}
+            faceColors={resolvedColors}
+            faceTextures={faceTextures}
+            manifoldStyles={settings.manifoldStyles}
+            solveHighlights={solveModeActive ? solveHighlights : []}
+            onFaceRotationMode={handleFaceRotationMode}
+            handsMode={handsMode}
+          />
         </Canvas>
       </div>
 
