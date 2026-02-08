@@ -1,117 +1,250 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { Environment } from '@react-three/drei';
+import IntroCubie from '../intro/IntroCubie.jsx';
 
-const MainMenu = ({ onStart }) => {
+// Rotating cube background component
+const MenuCubeBackground = () => {
+  const size = 3;
+  const items = [];
+  const k = (size - 1) / 2;
+
+  for (let x = 0; x < size; x++) {
+    for (let y = 0; y < size; y++) {
+      for (let z = 0; z < size; z++) {
+        items.push({ key: `${x}-${y}-${z}`, pos: [x - k, y - k, z - k] });
+      }
+    }
+  }
+
+  return (
+    <group rotation={[0.3, 0, 0]}>
+      {items.map((it) => (
+        <IntroCubie
+          key={it.key}
+          position={it.pos}
+          size={size}
+          explosionFactor={0}
+        />
+      ))}
+    </group>
+  );
+};
+
+// Animated rotating wrapper
+const RotatingCube = () => {
+  const groupRef = React.useRef();
+
+  React.useEffect(() => {
+    let animationId;
+    const animate = () => {
+      if (groupRef.current) {
+        groupRef.current.rotation.y += 0.003;
+        groupRef.current.rotation.x = Math.sin(Date.now() * 0.0003) * 0.1 + 0.3;
+      }
+      animationId = requestAnimationFrame(animate);
+    };
+    animate();
+    return () => cancelAnimationFrame(animationId);
+  }, []);
+
+  return (
+    <group ref={groupRef}>
+      <MenuCubeBackground />
+    </group>
+  );
+};
+
+const MenuButton = ({ children, onClick, delay, icon, primary }) => {
+  const [visible, setVisible] = useState(false);
+  const [hovered, setHovered] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), delay);
+    return () => clearTimeout(timer);
+  }, [delay]);
+
+  const baseStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '12px',
+    width: '280px',
+    padding: '18px 32px',
+    fontSize: '18px',
+    fontWeight: 600,
+    fontFamily: "'Courier New', monospace",
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase',
+    border: primary
+      ? '2px solid rgba(59, 130, 246, 0.8)'
+      : '2px solid rgba(255, 255, 255, 0.3)',
+    borderRadius: '8px',
+    background: hovered
+      ? primary
+        ? 'rgba(59, 130, 246, 0.4)'
+        : 'rgba(255, 255, 255, 0.15)'
+      : primary
+        ? 'rgba(59, 130, 246, 0.2)'
+        : 'rgba(255, 255, 255, 0.05)',
+    color: primary ? '#60a5fa' : 'rgba(255, 255, 255, 0.9)',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    opacity: visible ? 1 : 0,
+    transform: visible
+      ? hovered ? 'translateY(-2px) scale(1.02)' : 'translateY(0)'
+      : 'translateY(20px)',
+    boxShadow: hovered
+      ? primary
+        ? '0 0 30px rgba(59, 130, 246, 0.5), inset 0 0 20px rgba(59, 130, 246, 0.1)'
+        : '0 0 20px rgba(255, 255, 255, 0.2), inset 0 0 15px rgba(255, 255, 255, 0.05)'
+      : 'none',
+  };
+
+  return (
+    <button
+      style={baseStyle}
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {icon && <span style={{ fontSize: '20px' }}>{icon}</span>}
+      {children}
+    </button>
+  );
+};
+
+const MainMenu = ({ onPlay, onLevels, onFreeplay, onSettings, onHelp }) => {
+  const [titleVisible, setTitleVisible] = useState(false);
+  const [subtitleVisible, setSubtitleVisible] = useState(false);
+
+  useEffect(() => {
+    const titleTimer = setTimeout(() => setTitleVisible(true), 100);
+    const subtitleTimer = setTimeout(() => setSubtitleVisible(true), 400);
+    return () => {
+      clearTimeout(titleTimer);
+      clearTimeout(subtitleTimer);
+    };
+  }, []);
+
   return (
     <div style={{
       position: 'fixed',
-      top: 0, left: 0, right: 0, bottom: 0,
-      height: '100dvh',
-      background: 'rgba(0, 0, 0, 0.85)',
-      backdropFilter: 'blur(20px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 2000,
-      padding: 'env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px)',
-      boxSizing: 'border-box'
+      inset: 0,
+      background: '#000000',
+      zIndex: 9999,
+      overflow: 'hidden',
     }}>
+      {/* 3D Cube Background */}
       <div style={{
-        textAlign: 'center',
-        maxWidth: '650px',
-        width: '90%',
-        padding: '48px',
-        maxHeight: 'calc(100dvh - 60px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
-        overflowY: 'auto',
-        background: 'rgba(30, 35, 50, 0.95)',
-        borderRadius: '16px',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-        border: '1px solid rgba(255, 255, 255, 0.12)',
-        boxSizing: 'border-box'
+        position: 'absolute',
+        inset: 0,
+        opacity: 0.6,
       }}>
-        <h1 style={{
-          fontSize: '72px',
-          fontWeight: 700,
-          margin: '0 0 12px 0',
-          background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          fontFamily: '"Product Sans", "Google Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-          letterSpacing: '0.05em',
-          filter: 'drop-shadow(0 4px 12px rgba(59, 130, 246, 0.4))'
-        }}>WORM³</h1>
+        <Canvas camera={{ position: [0, 2, 10], fov: 45 }}>
+          <ambientLight intensity={0.5} />
+          <directionalLight position={[5, 8, 5]} intensity={1} />
+          <pointLight position={[10, 10, 10]} intensity={0.5} />
+          <RotatingCube />
+          <Environment preset="city" />
+        </Canvas>
+      </div>
 
-        <p style={{
-          fontSize: '18px',
-          color: 'rgba(255, 255, 255, 0.8)',
-          marginBottom: '32px',
-          lineHeight: 1.7,
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-          fontStyle: 'normal'
-        }}>
-          An Interactive Journey into Topology
-        </p>
+      {/* Gradient Overlay */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.9) 100%)',
+        pointerEvents: 'none',
+      }} />
 
+      {/* Menu Content */}
+      <div style={{
+        position: 'relative',
+        zIndex: 10,
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 20px',
+      }}>
+        {/* Title */}
         <div style={{
-          background: 'rgba(59, 130, 246, 0.08)',
-          border: '1px solid rgba(59, 130, 246, 0.2)',
-          borderRadius: '12px',
-          padding: '28px',
-          marginBottom: '36px',
-          textAlign: 'left',
-          fontSize: '15px',
-          lineHeight: 1.9,
-          color: 'rgba(255, 255, 255, 0.9)',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+          textAlign: 'center',
+          marginBottom: '60px',
+          opacity: titleVisible ? 1 : 0,
+          transform: titleVisible ? 'translateY(0)' : 'translateY(-30px)',
+          transition: 'all 0.8s ease-out',
         }}>
-          <p style={{ margin: '0 0 16px 0' }}>
-            Welcome! This puzzle helps you explore <strong style={{ color: '#60a5fa' }}>quotient spaces</strong> –
-            a beautiful concept from topology where we identify opposite points as the same.
-          </p>
-          <p style={{ margin: '0 0 16px 0' }}>
-            Think of it like this: if you could walk far enough in one direction, you'd find yourself
-            coming back from the opposite side, but flipped! The colorful tunnels help you visualize
-            these special connections.
-          </p>
-          <p style={{ margin: '0' }}>
-            Don't worry if it sounds complex – learning happens through play. Click, drag, and discover!
+          <h1 style={{
+            fontSize: 'clamp(48px, 12vw, 96px)',
+            fontWeight: 700,
+            margin: 0,
+            background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 40%, #93c5fd 70%, #60a5fa 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            fontFamily: "'Courier New', monospace",
+            letterSpacing: '0.15em',
+            textShadow: '0 0 60px rgba(59, 130, 246, 0.5)',
+            filter: 'drop-shadow(0 0 30px rgba(59, 130, 246, 0.4))',
+          }}>
+            WORM-3
+          </h1>
+          <p style={{
+            fontSize: 'clamp(14px, 3vw, 18px)',
+            color: 'rgba(255, 255, 255, 0.6)',
+            margin: '16px 0 0 0',
+            fontFamily: "'Courier New', monospace",
+            letterSpacing: '0.3em',
+            textTransform: 'uppercase',
+            opacity: subtitleVisible ? 1 : 0,
+            transform: subtitleVisible ? 'translateY(0)' : 'translateY(10px)',
+            transition: 'all 0.6s ease-out',
+          }}>
+            A Manifold Puzzle Game
           </p>
         </div>
 
-        <button onClick={onStart} style={{
-          background: 'rgba(59, 130, 246, 0.85)',
-          border: '1px solid rgba(96, 165, 250, 0.5)',
-          color: '#ffffff',
-          fontSize: '20px',
-          fontWeight: 600,
-          padding: '16px 48px',
-          borderRadius: '12px',
-          cursor: 'pointer',
-          boxShadow: '0 4px 16px rgba(59, 130, 246, 0.4)',
-          transition: 'all 0.2s',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
-        }}
-        onMouseEnter={e => {
-          e.target.style.transform = 'translateY(-2px)';
-          e.target.style.boxShadow = '0 8px 24px rgba(59, 130, 246, 0.6)';
-          e.target.style.background = 'rgba(59, 130, 246, 0.95)';
-        }}
-        onMouseLeave={e => {
-          e.target.style.transform = 'translateY(0)';
-          e.target.style.boxShadow = '0 4px 16px rgba(59, 130, 246, 0.4)';
-          e.target.style.background = 'rgba(59, 130, 246, 0.85)';
-        }}>
-          Begin Learning
-        </button>
-
+        {/* Menu Buttons */}
         <div style={{
-          marginTop: '32px',
-          fontSize: '13px',
-          color: 'rgba(255, 255, 255, 0.6)',
-          fontStyle: 'normal',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+          alignItems: 'center',
         }}>
-          Press <strong style={{ color: '#60a5fa' }}>H</strong> anytime to see helpful controls
+          <MenuButton onClick={onPlay} delay={600} icon="▶" primary>
+            Play
+          </MenuButton>
+          <MenuButton onClick={onLevels} delay={750} icon="◈">
+            Levels
+          </MenuButton>
+          <MenuButton onClick={onFreeplay} delay={900} icon="∞">
+            Freeplay
+          </MenuButton>
+          <MenuButton onClick={onSettings} delay={1050} icon="⚙">
+            Settings
+          </MenuButton>
+          <MenuButton onClick={onHelp} delay={1200} icon="?">
+            How to Play
+          </MenuButton>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          position: 'absolute',
+          bottom: '30px',
+          left: 0,
+          right: 0,
+          textAlign: 'center',
+          opacity: 0.4,
+          fontSize: '12px',
+          fontFamily: "'Courier New', monospace",
+          color: 'rgba(255, 255, 255, 0.6)',
+          letterSpacing: '0.1em',
+        }}>
+          Explore the topology of quotient spaces
         </div>
       </div>
     </div>
