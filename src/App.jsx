@@ -200,8 +200,35 @@ export default function WORM3() {
   const handleWelcomeComplete = useCallback(() => {
     setShowWelcome(false);
     markIntroSeen();
+    // Show main menu after intro (not tutorial)
+    useGameStore.getState().setShowMainMenu(true);
+  }, [setShowWelcome, markIntroSeen]);
+
+  // Main menu action handlers
+  const handleMenuPlay = useCallback(() => {
+    useGameStore.getState().setShowMainMenu(false);
+    handleLevelSelect(1); // Start at level 1
+  }, [handleLevelSelect]);
+
+  const handleMenuLevels = useCallback(() => {
+    useGameStore.getState().setShowMainMenu(false);
+    setShowLevelSelect(true);
+  }, [setShowLevelSelect]);
+
+  const handleMenuFreeplay = useCallback(() => {
+    useGameStore.getState().setShowMainMenu(false);
+    useGameStore.getState().clearLevel();
+    shuffle();
+  }, [shuffle]);
+
+  const handleMenuSettings = useCallback(() => {
+    setShowSettings(true);
+  }, [setShowSettings]);
+
+  const handleMenuHelp = useCallback(() => {
+    useGameStore.getState().setShowMainMenu(false);
     setShowTutorial(true);
-  }, [setShowWelcome, markIntroSeen, setShowTutorial]);
+  }, [setShowTutorial]);
 
   const closeTutorial = useCallback(() => {
     setShowTutorial(false);
@@ -785,7 +812,15 @@ export default function WORM3() {
         </div>
       )}
 
-      {showMainMenu && <MainMenu onStart={handleShowLevelSelect} />}
+      {showMainMenu && (
+        <MainMenu
+          onPlay={handleMenuPlay}
+          onLevels={handleMenuLevels}
+          onFreeplay={handleMenuFreeplay}
+          onSettings={handleMenuSettings}
+          onHelp={handleMenuHelp}
+        />
+      )}
       {showLevelSelect && <LevelSelectScreen onSelectLevel={handleLevelSelect} onBack={handleBackToMainMenu} />}
       {showSettings && <SettingsMenu onClose={() => setShowSettings(false)} settings={settings} onSettingsChange={setSettings} faceImages={faceImages} onFaceImage={handleFaceImage} />}
       {showHelp && <HelpMenu onClose={() => setShowHelp(false)} />}
