@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useState } from 'react';
+import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -10,14 +10,11 @@ export default function BlackHoleEnvironment({ flipTrigger = 0 }) {
   const sphereRef = useRef();
   const materialRef = useRef();
   const [pulseIntensity, setPulseIntensity] = useState(0);
-  const prevFlipTriggerRef = useRef(flipTrigger);
 
-  // Track flip trigger changes - update ref synchronously, trigger pulse in frame loop
-  if (flipTrigger > 0 && flipTrigger !== prevFlipTriggerRef.current) {
-    prevFlipTriggerRef.current = flipTrigger;
-    // Schedule pulse for next frame to avoid setState during render
-    queueMicrotask(() => setPulseIntensity(1.0));
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (flipTrigger > 0) setPulseIntensity(1.0);
+  }, [flipTrigger]);
 
   // Custom shader for smooth black hole effect
   const shaderMaterial = useMemo(() => {
