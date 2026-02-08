@@ -4,6 +4,27 @@ import { Environment } from '@react-three/drei';
 import IntroScene from '../intro/IntroScene.jsx';
 import TextOverlay from '../intro/TextOverlay.jsx';
 
+// Simple error boundary for debugging on mobile
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ color: 'red', padding: 20, background: '#111', position: 'absolute', top: 0, left: 0, right: 0, zIndex: 9999 }}>
+          <strong>Error:</strong> {this.state.error?.message || 'Unknown error'}
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const WelcomeScreen = ({ onEnter }) => {
   const [time, setTime] = useState(0);
   const [canSkip, setCanSkip] = useState(false);
@@ -36,15 +57,17 @@ const WelcomeScreen = ({ onEnter }) => {
   return (
     <div className="welcome-screen">
       <div className="welcome-canvas">
-        <Canvas camera={{ position: [0, 3, 12], fov: 40 }}>
-          <ambientLight intensity={1.25} />
-          <pointLight position={[10, 10, 10]} intensity={1.35} />
-          <pointLight position={[-10, -10, -10]} intensity={1.0} />
-          <IntroScene time={time} />
-          <Suspense fallback={null}>
-            <Environment preset="city" />
-          </Suspense>
-        </Canvas>
+        <ErrorBoundary>
+          <Canvas camera={{ position: [0, 3, 12], fov: 40 }}>
+            <ambientLight intensity={1.25} />
+            <pointLight position={[10, 10, 10]} intensity={1.35} />
+            <pointLight position={[-10, -10, -10]} intensity={1.0} />
+            <IntroScene time={time} />
+            <Suspense fallback={null}>
+              <Environment preset="city" />
+            </Suspense>
+          </Canvas>
+        </ErrorBoundary>
       </div>
 
       <TextOverlay time={time} />
