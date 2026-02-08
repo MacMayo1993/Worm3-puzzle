@@ -44,14 +44,14 @@ const WormParticle = ({ start, end, color1, color2, startTime, currentTime, onCo
     const animTime = currentTime !== undefined ? currentTime : clockTime;
     if (animTime < startTime) return;
 
-    let elapsed = animTime - startTime;
+    const elapsed = animTime - startTime;
     if (elapsed >= duration) {
       if (onComplete) onComplete();
       return;
     }
 
     // 1. Progress & Path
-    let t = elapsed / duration;
+    const t = elapsed / duration;
     const progress = t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2;
 
     const vStart = _v1.set(...start);

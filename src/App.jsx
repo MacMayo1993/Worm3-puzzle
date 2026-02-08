@@ -146,7 +146,7 @@ export default function WORM3() {
   const { cursor, showCursor, setShowCursor, moveCursor, cursorToCubePos, cubePosToCursor, getRotationParams } = useCursor();
 
   const {
-    currentLevel, currentLevelData, handleShowLevelSelect, handleLevelSelect,
+    currentLevel, currentLevelData, handleLevelSelect,
     handleCutsceneComplete, handleTutorialClose: levelTutorialClose,
     handleBackToMainMenu, handleNextLevel: levelHandleNextLevel
   } = useLevelSystem();
