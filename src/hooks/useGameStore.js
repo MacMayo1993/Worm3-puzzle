@@ -185,7 +185,7 @@ export const useGameStore = create(
     // ========================================================================
     // UI STATE
     // ========================================================================
-    showWelcome: !persistedState.introSeen,
+    showWelcome: true, // Always show intro on each visit
     showTutorial: false,
     showFirstFlipTutorial: false,
     showHelp: false,
