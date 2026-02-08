@@ -567,7 +567,9 @@ const CubeAssembly = React.memo(({
   useLayoutEffect(() => {
     if (!animState) {
       sliceIndicesRef.current = null;
-      const expansionFactor = 1 + explosionFactor * 1.8;
+      // Reduce explosion distance by 15% for larger cubes (4x4, 5x5)
+      const explosionMultiplier = size >= 4 ? 1.53 : 1.8;
+      const expansionFactor = 1 + explosionFactor * explosionMultiplier;
       items.forEach((it, idx) => {
         const g = cubieRefs.current[idx];
         if (g) {
