@@ -271,7 +271,7 @@ const CubeAssembly = React.memo(({
           });
           liveDragRef.current = {
             axis: m.axis, sliceIndex, sliceIndices, basePositions, baseRotations,
-            startDx: dx, startDy: dy, dir: -m.dir // Negate dir to fix backwards rotation
+            startDx: dx, startDy: dy, dir: m.dir // Use mapped direction directly
           };
           sliceIndicesRef.current = sliceIndices;
         }
@@ -280,9 +280,10 @@ const CubeAssembly = React.memo(({
       // Update angle during live drag
       if (liveDragRef.current) {
         const ld = liveDragRef.current;
+        // Dragging right (positive dx) or up (negative dy) should rotate positive
         const dragDist = Math.abs(dx) > Math.abs(dy)
           ? (dx - ld.startDx) * ld.dir
-          : -(dy - ld.startDy) * ld.dir;
+          : (ld.startDy - dy) * ld.dir;  // Flip Y since screen Y is inverted
         ld.angle = (dragDist / PIXELS_PER_90DEG) * (Math.PI / 2);
         setLiveDragAngle(ld.angle);
       }
@@ -309,32 +310,38 @@ const CubeAssembly = React.memo(({
         const ld = liveDragRef.current;
         const currentAngle = ld.angle || 0;
         const quarterTurn = Math.PI / 2;
-        const shouldComplete = Math.abs(currentAngle) > quarterTurn * 0.33;
+
+        // Calculate how many quarter turns to snap to (round to nearest)
+        const quarterTurns = Math.round(currentAngle / quarterTurn);
+        const shouldComplete = quarterTurns !== 0;
 
         if (shouldComplete) {
-          const snapDir = currentAngle > 0 ? 1 : -1;
           const savedPos = ds.pos;
           const savedAxis = ld.axis;
-          const targetAngle = snapDir * quarterTurn;
+          const targetAngle = quarterTurns * quarterTurn;
 
           // Skip the next animState-triggered animation since we're handling the visual here
+          // We'll call onMove multiple times for multi-turn rotations
           skipNextAnimRef.current = true;
+          const savedSliceIndices = ld.sliceIndices;
+          const savedBasePositions = ld.basePositions;
+          const savedBaseRotations = ld.baseRotations;
 
           animProgressRef.current.value = currentAngle / quarterTurn;
           gsapAnimRef.current = gsap.to(animProgressRef.current, {
-            value: snapDir,
-            duration: 0.15,
+            value: quarterTurns,
+            duration: 0.15 * Math.abs(quarterTurns),  // Scale duration by number of turns
             ease: "back.out(1.4)",
             onUpdate: () => {
               const progress = animProgressRef.current.value;
               const angle = progress * quarterTurn;
               const worldAxis = savedAxis === 'col' ? _axisCol :
                                savedAxis === 'row' ? _axisRow : _axisDepth;
-              ld.sliceIndices.forEach(idx => {
+              savedSliceIndices.forEach(idx => {
                 const g = cubieRefs.current[idx];
-                if (g && ld.basePositions.has(idx)) {
-                  g.position.copy(ld.basePositions.get(idx)).applyAxisAngle(worldAxis, angle);
-                  g.quaternion.copy(ld.baseRotations.get(idx));
+                if (g && savedBasePositions.has(idx)) {
+                  g.position.copy(savedBasePositions.get(idx)).applyAxisAngle(worldAxis, angle);
+                  g.quaternion.copy(savedBaseRotations.get(idx));
                   _rotQuat.setFromAxisAngle(worldAxis, angle);
                   g.quaternion.premultiply(_rotQuat);
                 }
@@ -346,7 +353,11 @@ const CubeAssembly = React.memo(({
               sliceIndicesRef.current = null;
               setLiveDragAngle(0);
               vibrate(14);
-              onMoveRef.current(savedAxis, snapDir, savedPos);
+              // Call onMove for each quarter turn
+              const dir = quarterTurns > 0 ? 1 : -1;
+              for (let i = 0; i < Math.abs(quarterTurns); i++) {
+                onMoveRef.current(savedAxis, dir, savedPos);
+              }
             }
           });
         } else {
