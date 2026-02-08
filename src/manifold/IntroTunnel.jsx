@@ -2,7 +2,7 @@ import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-const IntroTunnel = ({ start, end, color1, color2, opacity = 0.8, groupId }) => {
+const IntroTunnel = ({ start, end, color1, color2, opacity = 0.8, groupId: _groupId }) => {
   const linesRef = useRef([]);
   const pulseT = useRef(Math.random() * Math.PI * 2);
 

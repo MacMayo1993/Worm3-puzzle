@@ -532,7 +532,7 @@ export function DaycareEnvironment({ flipTrigger = 0 }) {
 // ELEMENTARY - Classroom
 // ───────────────────────────────────────────
 
-export function ElementaryEnvironment({ flipTrigger = 0 }) {
+export function ElementaryEnvironment({ flipTrigger: _flipTrigger = 0 }) {
   const starsRef = useRef();
   const textRef = useRef();
 
@@ -710,7 +710,7 @@ export function ElementaryEnvironment({ flipTrigger = 0 }) {
 // ============================================
 // 3. MIDDLE SCHOOL - Hallway with lockers
 // ============================================
-export function MiddleSchoolEnvironment({ flipTrigger = 0 }) {
+export function MiddleSchoolEnvironment({ flipTrigger: _flipTrigger = 0 }) {
   const papersRef = useRef();
 
   useFrame((state) => {
@@ -864,7 +864,7 @@ export function MiddleSchoolEnvironment({ flipTrigger = 0 }) {
 // ============================================
 // 4. HIGH SCHOOL - Chaotic cafeteria
 // ============================================
-export function HighSchoolEnvironment({ flipTrigger = 0 }) {
+export function HighSchoolEnvironment({ flipTrigger: _flipTrigger = 0 }) {
   const traysRef = useRef();
 
   useFrame((state) => {
@@ -995,7 +995,7 @@ export function HighSchoolEnvironment({ flipTrigger = 0 }) {
 // ============================================
 // 5. COLLEGE - Dorm room / study space
 // ============================================
-export function CollegeEnvironment({ flipTrigger = 0 }) {
+export function CollegeEnvironment({ flipTrigger: _flipTrigger = 0 }) {
   const booksRef = useRef();
   const steamRef = useRef();
 
@@ -1176,7 +1176,7 @@ export function CollegeEnvironment({ flipTrigger = 0 }) {
 // ============================================
 // 6. FIRST JOB - Office cubicles
 // ============================================
-export function JobEnvironment({ flipTrigger = 0 }) {
+export function JobEnvironment({ flipTrigger: _flipTrigger = 0 }) {
   const chartsRef = useRef();
 
   useFrame((state) => {
@@ -1313,7 +1313,7 @@ export function JobEnvironment({ flipTrigger = 0 }) {
 // ============================================
 // 7. NASA - Mission Control
 // ============================================
-export function NasaEnvironment({ flipTrigger = 0 }) {
+export function NasaEnvironment({ flipTrigger: _flipTrigger = 0 }) {
   const screensRef = useRef();
   const dataRef = useRef();
 
@@ -1437,7 +1437,7 @@ export function NasaEnvironment({ flipTrigger = 0 }) {
 // ============================================
 // 8. ROCKET - Launch pad
 // ============================================
-export function RocketEnvironment({ flipTrigger = 0 }) {
+export function RocketEnvironment({ flipTrigger: _flipTrigger = 0 }) {
   const flameRef = useRef();
   const smokeRef = useRef();
 
@@ -1604,7 +1604,7 @@ export function RocketEnvironment({ flipTrigger = 0 }) {
 // ============================================
 // 9. MOON - Lunar surface
 // ============================================
-export function MoonEnvironment({ flipTrigger = 0 }) {
+export function MoonEnvironment({ flipTrigger: _flipTrigger = 0 }) {
   const earthRef = useRef();
   const flagRef = useRef();
 

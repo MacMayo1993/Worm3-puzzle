@@ -11,7 +11,7 @@ const VictoryScreen = ({
   onNextLevel = null,
   hasNextLevel = false
 }) => {
-  const [showConfetti, setShowConfetti] = useState(true);
+  const [showConfetti, _setShowConfetti] = useState(true);
 
   const formatTime = (s) => {
     const mins = Math.floor(s / 60);

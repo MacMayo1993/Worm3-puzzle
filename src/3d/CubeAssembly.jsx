@@ -52,13 +52,12 @@ const CubeAssembly = React.memo(({
   const { camera } = useThree();
   const [dragStart, setDragStart] = useState(null);
   const dragStartRef = useRef(null); // Ref version for immediate access in listeners
-  const [activeDir, setActiveDir] = useState(null);
   const longPressTimerRef = useRef(null);
   const longPressTriggeredRef = useRef(false);
 
   // Live drag rotation state - tracks real-time rotation as user drags
   const liveDragRef = useRef(null); // { axis, sliceIndex, angle, dir, basePositions, baseRotations }
-  const [liveDragAngle, setLiveDragAngle] = useState(0); // Triggers re-render for useFrame
+  const [, setLiveDragAngle] = useState(0); // Triggers re-render for useFrame
   const sizeRef = useRef(size);
   sizeRef.current = size;
   const skipNextAnimRef = useRef(false); // Skip animState animation after live drag
@@ -183,42 +182,6 @@ const CubeAssembly = React.memo(({
     if (controlsRef.current) controlsRef.current.enabled = false;
   }, []);
 
-  // Helper to get slice index from cubie position (pos is {x, y, z} grid coords)
-  const getSliceIndex = useCallback((pos, axis) => {
-    if (axis === 'col') return pos.x;
-    if (axis === 'row') return pos.y;
-    return pos.z; // depth
-  }, []);
-
-  // Helper to compute slice indices for a given axis and sliceIndex
-  const computeSliceIndices = useCallback((axis, sliceIndex) => {
-    const indices = new Set();
-    const n = size * size * size;
-    for (let idx = 0; idx < n; idx++) {
-      const z = idx % size;
-      const y = Math.floor(idx / size) % size;
-      const x = Math.floor(idx / (size * size));
-      const inSlice = (axis === 'col' && x === sliceIndex) ||
-                      (axis === 'row' && y === sliceIndex) ||
-                      (axis === 'depth' && z === sliceIndex);
-      if (inSlice) indices.add(idx);
-    }
-    return indices;
-  }, [size]);
-
-  // Store base positions/rotations for live drag
-  const storeBaseTransforms = useCallback((sliceIndices) => {
-    const basePositions = new Map();
-    const baseRotations = new Map();
-    sliceIndices.forEach(idx => {
-      const g = cubieRefs.current[idx];
-      if (g) {
-        basePositions.set(idx, g.position.clone());
-        baseRotations.set(idx, g.quaternion.clone());
-      }
-    });
-    return { basePositions, baseRotations };
-  }, []);
 
   // Set up global move/up listeners once - use refs for immediate access
   useEffect(() => {
@@ -318,7 +281,6 @@ const CubeAssembly = React.memo(({
         if (shouldComplete) {
           const savedPos = ds.pos;
           const savedAxis = ld.axis;
-          const targetAngle = quarterTurns * quarterTurn;
 
           // Skip the next animState-triggered animation since we're handling the visual here
           // We'll call onMove multiple times for multi-turn rotations
@@ -535,7 +497,6 @@ const CubeAssembly = React.memo(({
 
     // On animation start, pre-compute which ref indices are in the slice
     if (!sliceIndicesRef.current) {
-      const kOffset = (size - 1) / 2;
       const indices = new Set();
       const n = size * size * size;
       for (let idx = 0; idx < n; idx++) {
@@ -598,7 +559,7 @@ const CubeAssembly = React.memo(({
       i++;
     }
     return arr;
-  }, [cubies, size, k, positionCache]);
+  }, [cubies, size, positionCache]);
 
   // Reset cubie positions/rotations when animation ends or cubies change.
   // Uses useLayoutEffect so the reset happens BEFORE the browser paints,

@@ -8,6 +8,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useGameStore } from './useGameStore.js';
 import { buildManifoldGridMap, flipStickerPair, getManifoldNeighbors } from '../game/manifoldLogic.js';
 import { getStickerWorldPos } from '../game/coordinates.js';
+import { isOnEdge } from '../game/cubeUtils.js';
 
 /**
  * Hook for chaos mode management
@@ -49,14 +50,7 @@ export function useChaosMode() {
           const c = state[x][y][z];
           for (const dirKey of Object.keys(c.stickers)) {
             const st = c.stickers[dirKey];
-            const onEdge =
-              (dirKey === 'PX' && x === S - 1) ||
-              (dirKey === 'NX' && x === 0) ||
-              (dirKey === 'PY' && y === S - 1) ||
-              (dirKey === 'NY' && y === 0) ||
-              (dirKey === 'PZ' && z === S - 1) ||
-              (dirKey === 'NZ' && z === 0);
-            if (onEdge && st.curr !== st.orig) count++;
+            if (isOnEdge(x, y, z, dirKey, S) && st.curr !== st.orig) count++;
           }
         }
     return count;
@@ -101,14 +95,7 @@ export function useChaosMode() {
             const c = state[x][y][z];
             for (const dirKey of Object.keys(c.stickers)) {
               const st = c.stickers[dirKey];
-              const onEdge =
-                (dirKey === 'PX' && x === S - 1) ||
-                (dirKey === 'NX' && x === 0) ||
-                (dirKey === 'PY' && y === S - 1) ||
-                (dirKey === 'NY' && y === 0) ||
-                (dirKey === 'PZ' && z === S - 1) ||
-                (dirKey === 'NZ' && z === 0);
-              if (st.flips > 0 && st.curr !== st.orig && onEdge) {
+              if (st.flips > 0 && st.curr !== st.orig && isOnEdge(x, y, z, dirKey, S)) {
                 candidates.push({ x, y, z, dirKey, flips: st.flips });
               }
             }
@@ -136,7 +123,7 @@ export function useChaosMode() {
         chainStrength = start.strength;
       }
 
-      let next = flipStickerPair(
+      const next = flipStickerPair(
         state, S,
         currentChainTile.x, currentChainTile.y, currentChainTile.z,
         currentChainTile.dirKey, currentManifoldMap
@@ -163,14 +150,7 @@ export function useChaosMode() {
         if (!nc) continue;
         const nst = nc.stickers[neighbor.dirKey];
         if (!nst) continue;
-        const onEdge =
-          (neighbor.dirKey === 'PX' && neighbor.x === S - 1) ||
-          (neighbor.dirKey === 'NX' && neighbor.x === 0) ||
-          (neighbor.dirKey === 'PY' && neighbor.y === S - 1) ||
-          (neighbor.dirKey === 'NY' && neighbor.y === 0) ||
-          (neighbor.dirKey === 'PZ' && neighbor.z === S - 1) ||
-          (neighbor.dirKey === 'NZ' && neighbor.z === 0);
-        if (onEdge) {
+        if (isOnEdge(neighbor.x, neighbor.y, neighbor.z, neighbor.dirKey, S)) {
           validNeighbors.push({ ...neighbor, flips: nst.flips || 0 });
         }
       }

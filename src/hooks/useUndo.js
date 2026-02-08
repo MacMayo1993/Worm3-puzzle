@@ -12,7 +12,6 @@ import { buildManifoldGridMap, flipStickerPair } from '../game/manifoldLogic.js'
  * Hook for undo functionality
  */
 export function useUndo() {
-  const size = useGameStore((state) => state.size);
   const cubies = useGameStore((state) => state.cubies);
   const setCubies = useGameStore((state) => state.setCubies);
   const setMoves = useGameStore((state) => state.setMoves);
@@ -52,7 +51,7 @@ export function useUndo() {
     // Remove from history and decrement move counter
     popFromHistory();
     setMoves((m) => Math.max(0, m - 1));
-  }, [moveHistory, animState, size, setCubies, setMoves, setAnimState, setPendingMove, popFromHistory]);
+  }, [moveHistory, animState, setCubies, setMoves, setAnimState, setPendingMove, popFromHistory]);
 
   // Check if undo is available
   const canUndo = moveHistory.length > 0 && !animState;

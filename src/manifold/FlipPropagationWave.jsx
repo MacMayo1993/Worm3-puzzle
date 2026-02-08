@@ -7,7 +7,6 @@ import WormParticle from './WormParticle.jsx';
 // Shared geometries for wave effects - created once, reused
 const sharedWaveRingGeometry = new THREE.RingGeometry(0.8, 1.0, 32);
 const sharedInnerRingGeometry = new THREE.RingGeometry(0.3, 0.6, 32);
-const sharedTrailCircleGeometry = new THREE.CircleGeometry(0.15, 16);
 // Shared geometries for heat map
 const sharedHeatOuterCircle = new THREE.CircleGeometry(0.55, 32);
 const sharedHeatInnerCircle = new THREE.CircleGeometry(0.3, 32);
@@ -19,7 +18,6 @@ const sharedHeatInnerCircle = new THREE.CircleGeometry(0.3, 32);
 const FlipPropagationWave = ({ origins, onComplete }) => {
   const [progress, setProgress] = useState(0);
   const ringsRef = useRef([]);
-  const trailsRef = useRef([]);
   const materialsRef = useRef([]);
   const startTimeRef = useRef(null);
   const { clock } = useThree();
@@ -47,7 +45,7 @@ const FlipPropagationWave = ({ origins, onComplete }) => {
     const easeOut = 1 - Math.pow(1 - newProgress, 3);
 
     // Update each wave ring
-    ringsRef.current.forEach((ring, i) => {
+    ringsRef.current.forEach((ring, _i) => {
       if (!ring) return;
 
       // Expand outward

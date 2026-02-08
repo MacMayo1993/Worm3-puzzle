@@ -463,9 +463,9 @@ export const getNextSurfacePosition = (pos, moveDir, size) => {
   if (!delta) return null;
 
   // Calculate new position
-  let nx = x + delta.dx;
-  let ny = y + delta.dy;
-  let nz = z + delta.dz;
+  const nx = x + delta.dx;
+  const ny = y + delta.dy;
+  const nz = z + delta.dz;
 
   // Check if we're still on the same face
   const isOnFace = (px, py, pz, dk) => {
@@ -651,7 +651,6 @@ export const createInitialWorm = (size) => {
  * @returns {Array} Array of orb positions {x, y, z, dirKey}
  */
 export const spawnOrbs = (cubies, size, count, wormSegments = [], existingOrbs = []) => {
-  const orbs = [];
   const occupied = new Set();
 
   // Mark worm positions as occupied

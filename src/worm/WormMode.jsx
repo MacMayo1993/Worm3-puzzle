@@ -22,8 +22,7 @@ import {
   findNextTunnel,
   checkTunnelSelfCollision,
   spawnTunnelOrbs,
-  updateTunnelWormAfterRotation,
-  getTargetTunnelId
+  updateTunnelWormAfterRotation
 } from './wormLogic.js';
 import { play } from '../utils/audio.js';
 
@@ -57,7 +56,6 @@ export function useWormGame(cubies, size, animState, onRotate) {
   const [orbs, setOrbs] = useState([]);
   const [score, setScore] = useState(0);
   const [warps, setWarps] = useState(0);
-  const [orbsEaten, setOrbsEaten] = useState(0);
   const [pendingGrowth, setPendingGrowth] = useState(0);
 
   // Camera mode - first-person worm view
@@ -93,7 +91,6 @@ export function useWormGame(cubies, size, animState, onRotate) {
     setOrbs(spawnOrbs(cubies, size, CONFIG.initialOrbs, newWorm, []));
     setScore(0);
     setWarps(0);
-    setOrbsEaten(0);
     setPendingGrowth(0);
     setGameState('playing');
     lastMoveTime.current = 0;
@@ -581,7 +578,7 @@ export function useTunnelWormGame(cubies, size, animState, onRotate) {
   }, [animState, gameState, onRotate]);
 
   // Update after rotation
-  const updateAfterRotation = useCallback((axis, sliceIndex, dir) => {
+  const updateAfterRotation = useCallback((_axis, _sliceIndex, _dir) => {
     // In tunnel mode, we need to recalculate the tunnel network
     updateTunnels();
   }, [updateTunnels]);
@@ -626,7 +623,7 @@ export function useTunnelWormGame(cubies, size, animState, onRotate) {
 
 // Game loop component for TUNNEL mode
 export function TunnelWormGameLoop({
-  cubies,
+  cubies: _cubies,
   size,
   animState,
   game // from useTunnelWormGame
@@ -666,7 +663,7 @@ export function TunnelWormGameLoop({
     let newT = head.t + moveAmount;
     let newTunnelId = head.tunnelId;
     let newTunnel = head.tunnel;
-    let traversedTunnel = false;
+    let _traversedTunnel = false;
 
     // Check if we've reached the end of the tunnel
     if (newT >= 1.0) {
@@ -680,7 +677,7 @@ export function TunnelWormGameLoop({
         // Enter from appropriate end
         newT = nextTunnelInfo.enterFromEntry ? 0.0 : 1.0;
         // If entering from exit, we'll travel backwards (decreasing t)
-        traversedTunnel = true;
+        _traversedTunnel = true;
         setTunnelsTraversed(t => t + 1);
         setScore(s => s + CONFIG.tunnelBonus);
         play('/sounds/warp.mp3');
@@ -735,7 +732,7 @@ export function TunnelWormGameLoop({
         if (i === 0) continue; // Skip old head
 
         // Body follows head with delay
-        const followT = i < prev.length - 1 ? prev[i].t : prev[i].t;
+        const _followT = i < prev.length - 1 ? prev[i].t : prev[i].t;
         newWorm.push({
           tunnelId: seg.tunnelId,
           t: seg.t,

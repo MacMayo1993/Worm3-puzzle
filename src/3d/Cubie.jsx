@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
 import { COLORS, FACE_COLORS } from '../utils/constants.js';
+import { getEdgeFlags } from '../game/cubeUtils.js';
 import StickerPlane from './StickerPlane.jsx';
 import WireframeEdge from './WireframeEdge.jsx';
 
@@ -103,14 +104,7 @@ const Cubie = React.forwardRef(function Cubie({
   };
 
   // Determine which edges are visible (on cube exterior)
-  const isOnEdge = {
-    px: cubie.x === size - 1,
-    nx: cubie.x === 0,
-    py: cubie.y === size - 1,
-    ny: cubie.y === 0,
-    pz: cubie.z === size - 1,
-    nz: cubie.z === 0
-  };
+  const isOnEdge = getEdgeFlags(cubie.x, cubie.y, cubie.z, size);
 
   // Generate wireframe edges for wireframe mode ONLY
   const wireframeEdges = useMemo(() => {

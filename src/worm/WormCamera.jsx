@@ -2,7 +2,7 @@
 // First-person camera that follows the worm's perspective
 // Creates a disorienting effect as the worm crosses faces and teleports through wormholes
 
-import React, { useRef, useMemo } from 'react';
+import React, { useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { getSegmentWorldPos } from './wormLogic.js';

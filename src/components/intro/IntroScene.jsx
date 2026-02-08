@@ -29,7 +29,7 @@ const getStickerWorldPos = (x, y, z, dirKey, size, explosionFactor = 0) => {
   return [explodedX, explodedY, explodedZ];
 };
 
-const IntroScene = ({ time, onComplete }) => {
+const IntroScene = ({ time, onComplete: _onComplete }) => {
   const cubieRefs = useRef([]);
   const { camera } = useThree();
   const size = 3;
@@ -146,7 +146,7 @@ const IntroScene = ({ time, onComplete }) => {
   }, [time]);
 
   const tunnels = useMemo(() => {
-    const k = (size - 1) / 2;
+    const _k = (size - 1) / 2;
     const pairs = [];
 
     for (let x = 0; x < size; x++) {

@@ -192,7 +192,7 @@ export default function SolveMode({
       {/* Steps Overview */}
       <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
         <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-          {STEPS.map((step, idx) => {
+          {STEPS.map((step, _idx) => {
             const status = getStepStatus(step.id);
             const isActive = activeStep === step.id;
             const isFocused = focusedStep === step.id;

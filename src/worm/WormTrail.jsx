@@ -55,7 +55,7 @@ export default function WormTrail({ segments, size, explosionFactor = 0, alive =
       const t = positions.length > 1 ? i / (positions.length - 1) : 0;
       return headColorObj.clone().lerp(tailColorObj, t);
     });
-  }, [positions.length, headColorObj, tailColorObj]);
+  }, [positions, headColorObj, tailColorObj]);
 
   // Animate pulse effect
   useFrame((state, delta) => {

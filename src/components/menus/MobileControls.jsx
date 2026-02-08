@@ -41,7 +41,7 @@ const MobileControls = ({
     touchAction: 'manipulation'
   };
 
-  const activeButtonStyle = {
+  const _activeButtonStyle = {
     ...buttonStyle,
     background: 'rgba(59, 130, 246, 0.8)',
     borderColor: 'rgba(96, 165, 250, 0.5)'

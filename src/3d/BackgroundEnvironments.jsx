@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useState, useEffect } from 'react';
+import React, { useRef, useMemo, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -8,10 +8,14 @@ import * as THREE from 'three';
 export function StarfieldEnvironment({ flipTrigger = 0 }) {
   const materialRef = useRef();
   const [pulseIntensity, setPulseIntensity] = useState(0);
+  const prevFlipTriggerRef = useRef(flipTrigger);
 
-  useEffect(() => {
-    if (flipTrigger > 0) setPulseIntensity(1.0);
-  }, [flipTrigger]);
+  // Track flip trigger changes - update ref synchronously, trigger pulse in frame loop
+  if (flipTrigger > 0 && flipTrigger !== prevFlipTriggerRef.current) {
+    prevFlipTriggerRef.current = flipTrigger;
+    // Schedule pulse for next frame to avoid setState during render
+    queueMicrotask(() => setPulseIntensity(1.0));
+  }
 
   const shaderMaterial = useMemo(() => {
     return new THREE.ShaderMaterial({
@@ -135,10 +139,14 @@ export function StarfieldEnvironment({ flipTrigger = 0 }) {
 export function NebulaSkyEnvironment({ flipTrigger = 0 }) {
   const materialRef = useRef();
   const [pulseIntensity, setPulseIntensity] = useState(0);
+  const prevFlipTriggerRef = useRef(flipTrigger);
 
-  useEffect(() => {
-    if (flipTrigger > 0) setPulseIntensity(1.0);
-  }, [flipTrigger]);
+  // Track flip trigger changes - update ref synchronously, trigger pulse in frame loop
+  if (flipTrigger > 0 && flipTrigger !== prevFlipTriggerRef.current) {
+    prevFlipTriggerRef.current = flipTrigger;
+    // Schedule pulse for next frame to avoid setState during render
+    queueMicrotask(() => setPulseIntensity(1.0));
+  }
 
   const shaderMaterial = useMemo(() => {
     return new THREE.ShaderMaterial({
