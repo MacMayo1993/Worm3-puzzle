@@ -16,6 +16,11 @@ const BG_OPTIONS = [
   { value: 'blackhole', label: 'Black Hole' },
   { value: 'starfield', label: 'Starfield' },
   { value: 'nebula', label: 'Nebula' },
+  { value: 'aurora', label: 'Northern Lights' },
+  { value: 'ocean', label: 'Deep Ocean' },
+  { value: 'crystal', label: 'Crystal Cave' },
+  { value: 'bamboo', label: 'Bamboo Forest' },
+  { value: 'volcanic', label: 'Volcanic' },
   { value: 'dark', label: 'Dark' },
   { value: 'midnight', label: 'Midnight Blue' },
 ];

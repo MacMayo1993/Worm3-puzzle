@@ -35,7 +35,15 @@ import {
 // 3D components
 import CubeAssembly from './3d/CubeAssembly.jsx';
 import BlackHoleEnvironment from './3d/BlackHoleEnvironment.jsx';
-import { StarfieldEnvironment, NebulaSkyEnvironment } from './3d/BackgroundEnvironments.jsx';
+import {
+  StarfieldEnvironment,
+  NebulaSkyEnvironment,
+  AuroraEnvironment,
+  DeepOceanEnvironment,
+  CrystalCaveEnvironment,
+  BambooForestEnvironment,
+  VolcanicEnvironment
+} from './3d/BackgroundEnvironments.jsx';
 import { getLevelBackground } from './3d/LifeJourneyBackgrounds.jsx';
 
 // UI components
@@ -639,6 +647,11 @@ export default function WORM3() {
             {!currentLevelData && settings.backgroundTheme === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
             {!currentLevelData && settings.backgroundTheme === 'starfield' && <StarfieldEnvironment flipTrigger={blackHolePulse} />}
             {!currentLevelData && settings.backgroundTheme === 'nebula' && <NebulaSkyEnvironment flipTrigger={blackHolePulse} />}
+            {!currentLevelData && settings.backgroundTheme === 'aurora' && <AuroraEnvironment flipTrigger={blackHolePulse} />}
+            {!currentLevelData && settings.backgroundTheme === 'ocean' && <DeepOceanEnvironment flipTrigger={blackHolePulse} />}
+            {!currentLevelData && settings.backgroundTheme === 'crystal' && <CrystalCaveEnvironment flipTrigger={blackHolePulse} />}
+            {!currentLevelData && settings.backgroundTheme === 'bamboo' && <BambooForestEnvironment flipTrigger={blackHolePulse} />}
+            {!currentLevelData && settings.backgroundTheme === 'volcanic' && <VolcanicEnvironment flipTrigger={blackHolePulse} />}
             <Environment preset="city" />
 
             <CubeAssembly
