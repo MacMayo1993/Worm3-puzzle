@@ -1,6 +1,6 @@
 /**
  * Level 7: Sudokube Veil
- * NASA - Numbers meet topology
+ * NASA Lab - Numbers meet topology
  */
 
 import { createLevel, GAME_MODES, WIN_CONDITIONS, BACKGROUNDS, DIFFICULTY, LEVEL_TAGS } from '../schema.js';
@@ -12,7 +12,7 @@ export default createLevel({
 
   cubeSize: 4,
   chaosLevel: 2,
-  mode: GAME_MODES.SUDOKUBE,  // NEW: Sudokube mode
+  mode: GAME_MODES.SUDOKUBE,
   background: BACKGROUNDS.NASA,
 
   features: {

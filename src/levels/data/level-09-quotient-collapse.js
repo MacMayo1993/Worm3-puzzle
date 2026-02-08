@@ -22,12 +22,12 @@ export default createLevel({
     chaos: true,
     explode: true,
     parity: true,
-    net: true,  // NEW: Net view available
+    net: true,
   },
 
   tutorial: {
     title: 'The Moon 🌙',
-    text: "One small step for cubes... Press N for the NET view - see everything unfolded! You can see Earth from here. One more challenge awaits...",
+    text: 'One small step for cubes... Press N for the NET view - see everything unfolded! You can see Earth from here. One more challenge awaits...',
     tip: 'The net shows all connections at once.',
   },
 

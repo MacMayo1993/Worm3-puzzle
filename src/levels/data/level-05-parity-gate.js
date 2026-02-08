@@ -21,7 +21,7 @@ export default createLevel({
     flips: true,
     chaos: true,
     explode: false,
-    parity: true,  // NEW: Parity indicators visible
+    parity: true,
     net: false,
   },
 

@@ -1,6 +1,6 @@
 /**
  * Level 6: Manifold Axes
- * First job - Explore projective planes
+ * First Job - Explore projective planes
  */
 
 import { createLevel, GAME_MODES, WIN_CONDITIONS, BACKGROUNDS, DIFFICULTY, LEVEL_TAGS } from '../schema.js';
@@ -20,7 +20,7 @@ export default createLevel({
     tunnels: true,
     flips: true,
     chaos: true,
-    explode: true,  // NEW: Explode view available
+    explode: true,
     parity: true,
     net: false,
   },
