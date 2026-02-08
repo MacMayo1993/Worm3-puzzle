@@ -16,10 +16,20 @@ const TUNNEL_GLOW = '#00ffaa';
 /**
  * Single tunnel tube visualization
  */
+// Generate stable random offset based on tunnel id
+function getStableOffset(tunnelId) {
+  let hash = 0;
+  for (let i = 0; i < tunnelId.length; i++) {
+    hash = ((hash << 5) - hash) + tunnelId.charCodeAt(i);
+    hash |= 0;
+  }
+  return (Math.abs(hash) % 1000) / 1000 * Math.PI * 2;
+}
+
 function TunnelTube({ tunnel, size, explosionFactor = 0, isTarget = false, wormInTunnel = false }) {
   const tubeRef = useRef();
   const glowRef = useRef();
-  const timeRef = useRef(Math.random() * Math.PI * 2);
+  const timeRef = useRef(getStableOffset(tunnel.id));
 
   // Calculate tunnel path
   const { curve, entryPos, exitPos } = useMemo(() => {
@@ -56,9 +66,7 @@ function TunnelTube({ tunnel, size, explosionFactor = 0, isTarget = false, wormI
 
     if (tubeRef.current) {
       // Pulse effect - stronger for target tunnels
-      const pulseIntensity = isTarget ? 0.4 : 0.2;
       const pulseSpeed = isTarget ? 4 : 2;
-      const scale = 1 + Math.sin(t * pulseSpeed) * pulseIntensity * 0.1;
 
       // Opacity pulse
       const baseOpacity = wormInTunnel ? 0.9 : (isTarget ? 0.7 : 0.4);

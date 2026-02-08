@@ -469,7 +469,7 @@ export function getTileStyleMaterial(style, colorHex, useTexture = false, textur
   let color;
   try {
     color = new THREE.Color(safeColorHex);
-  } catch (e) {
+  } catch (_e) {
     console.warn('Invalid color:', safeColorHex, '- using fallback');
     color = new THREE.Color('#888888');
   }

@@ -7,7 +7,7 @@ export default function DevConsole({
   onSaveState,
   onLoadState,
   hasSavedState,
-  size,
+  size: _size,
   onJumpToLevel,
   onInstantChaos,
   moveHistory

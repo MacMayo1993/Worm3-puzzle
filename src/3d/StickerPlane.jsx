@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { COLORS, FACE_COLORS, ANTIPODAL_COLOR } from '../utils/constants.js';
 import { play, vibrate } from '../utils/audio.js';
 import TallyMarks from '../manifold/TallyMarks.jsx';
-import { getTileStyleMaterial, getGlassMaterial, updateSharedTime, isAnimatedStyle } from './TileStyleMaterials.jsx';
+import { getTileStyleMaterial, getGlassMaterial } from './TileStyleMaterials.jsx';
 
 // Shared geometries for all particle/glow systems (created once, reused globally)
 const sharedParticleGeometry = new THREE.PlaneGeometry(1, 1);
@@ -528,8 +528,6 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
   const currIsWhite = meta?.curr === 3;
   const origIsWhite = meta?.orig === 3;
   const antipodalIsWhite = ANTIPODAL_COLOR[meta?.orig] === 3;
-
-  const shadowIntensity = Math.min(0.5, (meta?.flips ?? 0) * 0.03);
 
   return (
     <group position={pos} rotation={rot} ref={groupRef}>

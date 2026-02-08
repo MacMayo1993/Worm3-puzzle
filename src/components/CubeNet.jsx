@@ -8,12 +8,12 @@ import { faceRCFor } from '../game/coordinates.js';
 // [Left/NX][Front/PZ][Right/PX][Back/NZ]
 //          [Bottom/NY]
 const FACES = [
-  { dirKey: 'PY', label: 'U', gridRow: 1, gridCol: 2, filter: (x, y, z, s) => y === s - 1 },
-  { dirKey: 'NX', label: 'L', gridRow: 2, gridCol: 1, filter: (x, y, z, s) => x === 0 },
-  { dirKey: 'PZ', label: 'F', gridRow: 2, gridCol: 2, filter: (x, y, z, s) => z === s - 1 },
-  { dirKey: 'PX', label: 'R', gridRow: 2, gridCol: 3, filter: (x, y, z, s) => x === s - 1 },
-  { dirKey: 'NZ', label: 'B', gridRow: 2, gridCol: 4, filter: (x, y, z, s) => z === 0 },
-  { dirKey: 'NY', label: 'D', gridRow: 3, gridCol: 2, filter: (x, y, z, s) => y === 0 },
+  { dirKey: 'PY', label: 'U', gridRow: 1, gridCol: 2, filter: (_x, y, _z, s) => y === s - 1 },
+  { dirKey: 'NX', label: 'L', gridRow: 2, gridCol: 1, filter: (x, _y, _z, _s) => x === 0 },
+  { dirKey: 'PZ', label: 'F', gridRow: 2, gridCol: 2, filter: (_x, _y, z, s) => z === s - 1 },
+  { dirKey: 'PX', label: 'R', gridRow: 2, gridCol: 3, filter: (x, _y, _z, s) => x === s - 1 },
+  { dirKey: 'NZ', label: 'B', gridRow: 2, gridCol: 4, filter: (_x, _y, z, _s) => z === 0 },
+  { dirKey: 'NY', label: 'D', gridRow: 3, gridCol: 2, filter: (_x, y, _z, _s) => y === 0 },
 ];
 
 export default function CubeNet({ cubies, size, onTapFlip, flipMode, onClose, faceColors }) {

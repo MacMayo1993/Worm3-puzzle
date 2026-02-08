@@ -4,9 +4,8 @@ import { Environment, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { gsap } from 'gsap';
 import BlackHoleEnvironment from '../../3d/BlackHoleEnvironment.jsx';
-import { makeCubies } from '../../game/cubeState.js';
 import { FACE_COLORS } from '../../utils/constants.js';
-import { play, vibrate } from '../../utils/audio.js';
+import { vibrate } from '../../utils/audio.js';
 
 // Simplified cubie for cutscene performance
 const CutsceneCubie = ({ position, size, scale = 1, emissiveIntensity = 0 }) => {
@@ -64,7 +63,7 @@ const WormholeTunnel = ({ start, end, color, progress, opacity = 1 }) => {
     );
   }, [start, end]);
 
-  useFrame((state) => {
+  useFrame((_state) => {
     if (ref.current) {
       ref.current.material.dashOffset -= 0.02;
     }
@@ -109,7 +108,7 @@ const HyperspaceParticle = ({ position, velocity, color }) => {
 // Star field for hyperspace
 const HyperspaceStars = ({ count = 200, active }) => {
   const particles = useMemo(() => {
-    return Array.from({ length: count }, (_, i) => ({
+    return Array.from({ length: count }, (_) => ({
       position: [
         (Math.random() - 0.5) * 40,
         (Math.random() - 0.5) * 40,
@@ -151,7 +150,7 @@ const DistortionOverlay = ({ intensity }) => {
 };
 
 // Main cutscene 3D scene
-const CutsceneScene = ({ progress, onComplete }) => {
+const CutsceneScene = ({ progress, onComplete: _onComplete }) => {
   const { camera } = useThree();
   const cubeGroupRef = useRef();
   const size = 5; // 5x5 cube for epic feel
@@ -274,7 +273,7 @@ const CutsceneScene = ({ progress, onComplete }) => {
   }, [progress]);
 
   // Emissive pulsing during hyperspace
-  useFrame((state, delta) => {
+  useFrame((state, _delta) => {
     if (phase === 'hyperspace' || phase === 'eventHorizon') {
       setEmissive(0.2 + Math.sin(state.clock.elapsedTime * 5) * 0.15);
     } else if (phase === 'ignite') {
@@ -358,7 +357,7 @@ const CutsceneScene = ({ progress, onComplete }) => {
 };
 
 // Text overlay component
-const CutsceneOverlay = ({ progress, phase }) => {
+const CutsceneOverlay = ({ progress, phase: _phase }) => {
   const getOverlayContent = () => {
     if (progress < 5) return null;
 

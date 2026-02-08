@@ -6,13 +6,12 @@
  * Original 2343 lines reduced to ~700 lines with modular architecture.
  */
 
-import React, { useMemo, useRef, useEffect, useCallback, Suspense } from 'react';
+import React, { useRef, useEffect, useCallback, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import './App.css';
 
 // Utils
-import { play } from './utils/audio.js';
 import { completeLevel } from './utils/levels.js';
 import { keyToMove } from './game/handsInput.js';
 import { makeCubies } from './game/cubeState.js';
@@ -129,14 +128,13 @@ export default function WORM3() {
   // ========================================================================
   const {
     size, cubies, manifoldMap, metrics, resolvedColors,
-    cubiesRef, setCubies, changeSize, shuffle, reset, flipSticker, getRotationForDir
+    setCubies, changeSize, shuffle, reset, flipSticker
   } = useCubeState();
 
   const { moves, gameTime, victory, achievedWins, setVictory } = useGameSession();
 
   const {
-    animState, pendingMoveRef, startAnimation, handleAnimComplete, onMove,
-    setAnimState, setPendingMove
+    animState, startAnimation, handleAnimComplete, onMove
   } = useAnimation();
 
   const {
@@ -161,7 +159,7 @@ export default function WORM3() {
   } = useHandsMode();
   const handsMoveTimestamps = useRef([]);
 
-  const { moveHistory, canUndo, undo } = useUndo();
+  const { moveHistory, undo } = useUndo();
 
   // ========================================================================
   // EXPLOSION ANIMATION
@@ -261,7 +259,6 @@ export default function WORM3() {
     const { face } = cur;
     const pos = cursorToCubePos(cur);
 
-    let axis, dir;
     const directionMap = {
       up: { PZ: ['col', -1], NZ: ['col', 1], PX: ['depth', 1], NX: ['depth', -1], PY: ['depth', -1], NY: ['depth', 1] },
       down: { PZ: ['col', 1], NZ: ['col', -1], PX: ['depth', -1], NX: ['depth', 1], PY: ['depth', 1], NY: ['depth', -1] },
@@ -269,7 +266,7 @@ export default function WORM3() {
       right: { PZ: ['row', 1], NZ: ['row', 1], PX: ['row', 1], NX: ['row', 1], PY: ['col', 1], NY: ['col', -1] },
     };
 
-    [axis, dir] = directionMap[direction]?.[face] || [];
+    const [axis, dir] = directionMap[direction]?.[face] || [];
     if (axis && dir !== undefined) {
       onMove(axis, dir, pos);
     }

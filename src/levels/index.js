@@ -116,7 +116,7 @@ export const getNextLevel = (currentId) => levelsManager.getNextLevel(currentId)
 /**
  * @deprecated Use progressManager.isLevelUnlocked(id) instead
  */
-export const isLevelUnlocked = (levelId, completedLevels) => {
+export const isLevelUnlocked = (levelId, _completedLevels) => {
   // For backwards compatibility, accept completedLevels parameter
   // but use progressManager internally
   return progressManager.isLevelUnlocked(levelId);

@@ -116,6 +116,16 @@ export function WormModeHUD({ onQuit, gameData }) {
   // Use context if available, otherwise fall back to props
   const game = contextGame || gameData;
 
+  // Define handlers unconditionally to satisfy hooks rules
+  const setGameState = game?.setGameState;
+  const handlePause = useCallback(() => {
+    if (setGameState) setGameState('paused');
+  }, [setGameState]);
+
+  const handleResume = useCallback(() => {
+    if (setGameState) setGameState('playing');
+  }, [setGameState]);
+
   if (!game) {
     // No game data available - show minimal HUD
     return (
@@ -146,17 +156,8 @@ export function WormModeHUD({ onQuit, gameData }) {
     orbsTotal,
     wormCameraEnabled,
     mode,
-    setGameState,
     restart
   } = game;
-
-  const handlePause = useCallback(() => {
-    setGameState('paused');
-  }, [setGameState]);
-
-  const handleResume = useCallback(() => {
-    setGameState('playing');
-  }, [setGameState]);
 
   const isTunnelMode = mode === 'tunnel';
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const InstabilityTracker = ({ entropy, wormholes, chaosLevel }) => {
+const InstabilityTracker = ({ entropy, wormholes, chaosLevel: _chaosLevel }) => {
   const [pulse, setPulse] = useState(0);
 
   useEffect(() => {

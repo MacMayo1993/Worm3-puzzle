@@ -45,6 +45,18 @@ export default [
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
 
+      // Disable overly strict react-hooks rules that flag valid patterns
+      // These rules are too strict for this codebase's patterns:
+      // - ref updates during render (callback stability pattern)
+      // - setState in useEffect (prop-driven animations)
+      // - Math.random in initialization (stable per-instance randomness)
+      // - modifying refs/camera in Three.js/R3F patterns
+      'react-hooks/refs': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/purity': 'off',
+      'react-hooks/immutability': 'off',
+      'no-useless-assignment': 'off',
+
       // Warnings - code smells but won't fail CI
       'no-console': 'off', // Allow console for now
       'no-debugger': 'warn',

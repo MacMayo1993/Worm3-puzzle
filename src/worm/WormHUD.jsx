@@ -14,7 +14,7 @@ export default function WormHUD({
   speed,
   wormCameraEnabled = false,
   mode = 'surface', // 'surface' or 'tunnel'
-  onPause,
+  onPause: _onPause,
   onResume,
   onRestart,
   onQuit

@@ -123,7 +123,7 @@ export function useChaosMode() {
         chainStrength = start.strength;
       }
 
-      let next = flipStickerPair(
+      const next = flipStickerPair(
         state, S,
         currentChainTile.x, currentChainTile.y, currentChainTile.z,
         currentChainTile.dirKey, currentManifoldMap

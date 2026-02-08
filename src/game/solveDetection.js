@@ -192,7 +192,7 @@ export const checkF2L = (cubies, size) => {
 // ============================================
 
 export const checkOLL = (cubies, size) => {
-  const max = size - 1;
+  const _max = size - 1;
   let yellowCount = 0;
   const total = size * size;
 
@@ -223,10 +223,10 @@ export const checkPLL = (cubies, size) => {
 
   // Check if each side of bottom layer is uniform
   const sides = [
-    { face: 'PZ', y: 0, check: (x, z) => z === 0 }, // Front row
-    { face: 'NZ', y: 0, check: (x, z) => z === max }, // Back row
-    { face: 'PX', y: 0, check: (x, z) => x === max }, // Right row
-    { face: 'NX', y: 0, check: (x, z) => x === 0 }, // Left row
+    { face: 'PZ', y: 0, check: (_x, z) => z === 0 }, // Front row
+    { face: 'NZ', y: 0, check: (_x, z) => z === max }, // Back row
+    { face: 'PX', y: 0, check: (x, _z) => x === max }, // Right row
+    { face: 'NX', y: 0, check: (x, _z) => x === 0 }, // Left row
   ];
 
   let solvedSides = 0;

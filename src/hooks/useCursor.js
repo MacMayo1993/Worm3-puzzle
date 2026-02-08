@@ -70,28 +70,28 @@ export function useCursor() {
     // Define face adjacencies for wrapping
     const adjacencies = {
       PZ: {
-        up: ['PY', (r, c) => [maxIdx, c]],
-        down: ['NY', (r, c) => [0, c]],
-        left: ['NX', (r, c) => [r, maxIdx]],
-        right: ['PX', (r, c) => [r, 0]]
+        up: ['PY', (_r, c) => [maxIdx, c]],
+        down: ['NY', (_r, c) => [0, c]],
+        left: ['NX', (r, _c) => [r, maxIdx]],
+        right: ['PX', (r, _c) => [r, 0]]
       },
       NZ: {
-        up: ['PY', (r, c) => [0, maxIdx - c]],
-        down: ['NY', (r, c) => [maxIdx, maxIdx - c]],
-        left: ['PX', (r, c) => [r, maxIdx]],
-        right: ['NX', (r, c) => [r, 0]]
+        up: ['PY', (_r, c) => [0, maxIdx - c]],
+        down: ['NY', (_r, c) => [maxIdx, maxIdx - c]],
+        left: ['PX', (r, _c) => [r, maxIdx]],
+        right: ['NX', (r, _c) => [r, 0]]
       },
       PX: {
-        up: ['PY', (r, c) => [maxIdx - c, maxIdx]],
-        down: ['NY', (r, c) => [c, maxIdx]],
-        left: ['PZ', (r, c) => [r, maxIdx]],
-        right: ['NZ', (r, c) => [r, 0]]
+        up: ['PY', (_r, c) => [maxIdx - c, maxIdx]],
+        down: ['NY', (_r, c) => [c, maxIdx]],
+        left: ['PZ', (r, _c) => [r, maxIdx]],
+        right: ['NZ', (r, _c) => [r, 0]]
       },
       NX: {
-        up: ['PY', (r, c) => [c, 0]],
-        down: ['NY', (r, c) => [maxIdx - c, 0]],
-        left: ['NZ', (r, c) => [r, maxIdx]],
-        right: ['PZ', (r, c) => [r, 0]]
+        up: ['PY', (_r, c) => [c, 0]],
+        down: ['NY', (_r, c) => [maxIdx - c, 0]],
+        left: ['NZ', (r, _c) => [r, maxIdx]],
+        right: ['PZ', (r, _c) => [r, 0]]
       },
       PY: {
         up: ['NZ', (r, c) => [0, maxIdx - c]],
