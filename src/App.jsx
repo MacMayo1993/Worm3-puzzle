@@ -35,16 +35,13 @@ import {
 // 3D components
 import CubeAssembly from './3d/CubeAssembly.jsx';
 import BlackHoleEnvironment from './3d/BlackHoleEnvironment.jsx';
-import {
-  StarfieldEnvironment,
-  NebulaSkyEnvironment,
-  AuroraEnvironment,
-  DeepOceanEnvironment,
-  CrystalCaveEnvironment,
-  BambooForestEnvironment,
-  VolcanicEnvironment
-} from './3d/BackgroundEnvironments.jsx';
 import { getLevelBackground } from './3d/LifeJourneyBackgrounds.jsx';
+
+// Photo environment presets available from @react-three/drei (real HDR panoramas)
+const PHOTO_PRESETS = new Set([
+  'sunset', 'forest', 'city', 'dawn', 'night',
+  'apartment', 'studio', 'park', 'warehouse', 'lobby',
+]);
 
 // UI components
 import TopMenuBar from './components/menus/TopMenuBar.jsx';
@@ -644,15 +641,12 @@ export default function WORM3() {
           <Suspense fallback={null}>
             {currentLevelData?.background === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
             {currentLevelData?.background && currentLevelData.background !== 'blackhole' && getLevelBackground(currentLevelData.background, blackHolePulse)}
-            {!currentLevelData && settings.backgroundTheme === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
-            {!currentLevelData && settings.backgroundTheme === 'starfield' && <StarfieldEnvironment flipTrigger={blackHolePulse} />}
-            {!currentLevelData && settings.backgroundTheme === 'nebula' && <NebulaSkyEnvironment flipTrigger={blackHolePulse} />}
-            {!currentLevelData && settings.backgroundTheme === 'aurora' && <AuroraEnvironment flipTrigger={blackHolePulse} />}
-            {!currentLevelData && settings.backgroundTheme === 'ocean' && <DeepOceanEnvironment flipTrigger={blackHolePulse} />}
-            {!currentLevelData && settings.backgroundTheme === 'crystal' && <CrystalCaveEnvironment flipTrigger={blackHolePulse} />}
-            {!currentLevelData && settings.backgroundTheme === 'bamboo' && <BambooForestEnvironment flipTrigger={blackHolePulse} />}
-            {!currentLevelData && settings.backgroundTheme === 'volcanic' && <VolcanicEnvironment flipTrigger={blackHolePulse} />}
-            <Environment preset="city" />
+            {/* Free play: real photo panorama backgrounds via HDR environment presets */}
+            {!currentLevelData && PHOTO_PRESETS.has(settings.backgroundTheme) ? (
+              <Environment preset={settings.backgroundTheme} background />
+            ) : (
+              <Environment preset="city" />
+            )}
 
             <CubeAssembly
               size={size}
