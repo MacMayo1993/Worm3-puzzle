@@ -45,6 +45,17 @@ import {
   VolcanicEnvironment
 } from './3d/BackgroundEnvironments.jsx';
 import { getLevelBackground } from './3d/LifeJourneyBackgrounds.jsx';
+import {
+  StaticStarfieldEnvironment,
+  StaticNebulaSkyEnvironment,
+  StaticAuroraEnvironment,
+  StaticDeepOceanEnvironment,
+  StaticCrystalCaveEnvironment,
+  StaticBambooForestEnvironment,
+  StaticVolcanicEnvironment,
+  StaticBlackHoleEnvironment,
+} from './3d/StaticBackgroundEnvironments.jsx';
+import { getStaticLevelBackground } from './3d/StaticLifeJourneyBackgrounds.jsx';
 
 // UI components
 import TopMenuBar from './components/menus/TopMenuBar.jsx';
@@ -644,14 +655,16 @@ export default function WORM3() {
           <Suspense fallback={null}>
             {currentLevelData?.background === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
             {currentLevelData?.background && currentLevelData.background !== 'blackhole' && getLevelBackground(currentLevelData.background, blackHolePulse)}
-            {!currentLevelData && settings.backgroundTheme === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
-            {!currentLevelData && settings.backgroundTheme === 'starfield' && <StarfieldEnvironment flipTrigger={blackHolePulse} />}
-            {!currentLevelData && settings.backgroundTheme === 'nebula' && <NebulaSkyEnvironment flipTrigger={blackHolePulse} />}
-            {!currentLevelData && settings.backgroundTheme === 'aurora' && <AuroraEnvironment flipTrigger={blackHolePulse} />}
-            {!currentLevelData && settings.backgroundTheme === 'ocean' && <DeepOceanEnvironment flipTrigger={blackHolePulse} />}
-            {!currentLevelData && settings.backgroundTheme === 'crystal' && <CrystalCaveEnvironment flipTrigger={blackHolePulse} />}
-            {!currentLevelData && settings.backgroundTheme === 'bamboo' && <BambooForestEnvironment flipTrigger={blackHolePulse} />}
-            {!currentLevelData && settings.backgroundTheme === 'volcanic' && <VolcanicEnvironment flipTrigger={blackHolePulse} />}
+            {/* Free play: static 3D backgrounds (no per-frame animation for performance) */}
+            {!currentLevelData && settings.backgroundTheme === 'blackhole' && <StaticBlackHoleEnvironment />}
+            {!currentLevelData && settings.backgroundTheme === 'starfield' && <StaticStarfieldEnvironment />}
+            {!currentLevelData && settings.backgroundTheme === 'nebula' && <StaticNebulaSkyEnvironment />}
+            {!currentLevelData && settings.backgroundTheme === 'aurora' && <StaticAuroraEnvironment />}
+            {!currentLevelData && settings.backgroundTheme === 'ocean' && <StaticDeepOceanEnvironment />}
+            {!currentLevelData && settings.backgroundTheme === 'crystal' && <StaticCrystalCaveEnvironment />}
+            {!currentLevelData && settings.backgroundTheme === 'bamboo' && <StaticBambooForestEnvironment />}
+            {!currentLevelData && settings.backgroundTheme === 'volcanic' && <StaticVolcanicEnvironment />}
+            {!currentLevelData && ['daycare', 'elementary', 'middleschool', 'highschool', 'college', 'job', 'nasa', 'rocket', 'moon'].includes(settings.backgroundTheme) && getStaticLevelBackground(settings.backgroundTheme)}
             <Environment preset="city" />
 
             <CubeAssembly
