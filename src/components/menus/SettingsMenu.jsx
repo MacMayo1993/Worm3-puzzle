@@ -13,6 +13,7 @@ const SCHEME_LABELS = {
 };
 
 const BG_OPTIONS = [
+  { value: 'blackhole', label: 'Black Hole' },
   { value: 'sunset', label: 'Sunset' },
   { value: 'forest', label: 'Forest' },
   { value: 'dawn', label: 'Sunrise' },
