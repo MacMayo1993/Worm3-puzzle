@@ -7,7 +7,7 @@
  */
 
 import React, { useRef, useEffect, useCallback, Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import './App.css';
 
@@ -42,6 +42,29 @@ const PHOTO_PRESETS = new Set([
   'sunset', 'forest', 'city', 'dawn', 'night',
   'apartment', 'studio', 'park', 'warehouse', 'lobby',
 ]);
+
+/**
+ * InteractivePhotoBackground - Real HDR panorama that slowly drifts around you.
+ * Orbit the camera (drag empty space) to look around the environment.
+ * A gentle auto-rotation keeps the scene alive even when idle.
+ */
+function InteractivePhotoBackground({ preset }) {
+  useFrame((state, delta) => {
+    // Slow drift: ~6° per second so the panorama feels alive
+    if (state.scene.backgroundRotation) {
+      state.scene.backgroundRotation.y += delta * 0.1;
+    }
+  });
+
+  return (
+    <Environment
+      preset={preset}
+      background
+      backgroundBlurriness={0}
+      backgroundIntensity={1.2}
+    />
+  );
+}
 
 // UI components
 import TopMenuBar from './components/menus/TopMenuBar.jsx';
@@ -641,9 +664,11 @@ export default function WORM3() {
           <Suspense fallback={null}>
             {currentLevelData?.background === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
             {currentLevelData?.background && currentLevelData.background !== 'blackhole' && getLevelBackground(currentLevelData.background, blackHolePulse)}
-            {/* Free play: real photo panorama backgrounds via HDR environment presets */}
+            {/* Free play: Black Hole (animated favorite) */}
+            {!currentLevelData && settings.backgroundTheme === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
+            {/* Free play: interactive photo panoramas - orbit to look around, auto-drifts when idle */}
             {!currentLevelData && PHOTO_PRESETS.has(settings.backgroundTheme) ? (
-              <Environment preset={settings.backgroundTheme} background />
+              <InteractivePhotoBackground preset={settings.backgroundTheme} />
             ) : (
               <Environment preset="city" />
             )}
