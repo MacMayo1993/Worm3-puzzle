@@ -26,7 +26,7 @@ export const TILE_STYLES = {
 export const DEFAULT_SETTINGS = {
   colorScheme: 'standard',
   customColors: null,
-  backgroundTheme: 'blackhole',
+  backgroundTheme: 'sunset',
   showStats: true,
   showManifoldFooter: true,
   showFaceProgress: true,

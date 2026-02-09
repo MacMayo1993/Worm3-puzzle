@@ -35,27 +35,13 @@ import {
 // 3D components
 import CubeAssembly from './3d/CubeAssembly.jsx';
 import BlackHoleEnvironment from './3d/BlackHoleEnvironment.jsx';
-import {
-  StarfieldEnvironment,
-  NebulaSkyEnvironment,
-  AuroraEnvironment,
-  DeepOceanEnvironment,
-  CrystalCaveEnvironment,
-  BambooForestEnvironment,
-  VolcanicEnvironment
-} from './3d/BackgroundEnvironments.jsx';
 import { getLevelBackground } from './3d/LifeJourneyBackgrounds.jsx';
-import {
-  StaticStarfieldEnvironment,
-  StaticNebulaSkyEnvironment,
-  StaticAuroraEnvironment,
-  StaticDeepOceanEnvironment,
-  StaticCrystalCaveEnvironment,
-  StaticBambooForestEnvironment,
-  StaticVolcanicEnvironment,
-  StaticBlackHoleEnvironment,
-} from './3d/StaticBackgroundEnvironments.jsx';
-import { getStaticLevelBackground } from './3d/StaticLifeJourneyBackgrounds.jsx';
+
+// Photo environment presets available from @react-three/drei (real HDR panoramas)
+const PHOTO_PRESETS = new Set([
+  'sunset', 'forest', 'city', 'dawn', 'night',
+  'apartment', 'studio', 'park', 'warehouse', 'lobby',
+]);
 
 // UI components
 import TopMenuBar from './components/menus/TopMenuBar.jsx';
@@ -655,17 +641,12 @@ export default function WORM3() {
           <Suspense fallback={null}>
             {currentLevelData?.background === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
             {currentLevelData?.background && currentLevelData.background !== 'blackhole' && getLevelBackground(currentLevelData.background, blackHolePulse)}
-            {/* Free play: static 3D backgrounds (no per-frame animation for performance) */}
-            {!currentLevelData && settings.backgroundTheme === 'blackhole' && <StaticBlackHoleEnvironment />}
-            {!currentLevelData && settings.backgroundTheme === 'starfield' && <StaticStarfieldEnvironment />}
-            {!currentLevelData && settings.backgroundTheme === 'nebula' && <StaticNebulaSkyEnvironment />}
-            {!currentLevelData && settings.backgroundTheme === 'aurora' && <StaticAuroraEnvironment />}
-            {!currentLevelData && settings.backgroundTheme === 'ocean' && <StaticDeepOceanEnvironment />}
-            {!currentLevelData && settings.backgroundTheme === 'crystal' && <StaticCrystalCaveEnvironment />}
-            {!currentLevelData && settings.backgroundTheme === 'bamboo' && <StaticBambooForestEnvironment />}
-            {!currentLevelData && settings.backgroundTheme === 'volcanic' && <StaticVolcanicEnvironment />}
-            {!currentLevelData && ['daycare', 'elementary', 'middleschool', 'highschool', 'college', 'job', 'nasa', 'rocket', 'moon'].includes(settings.backgroundTheme) && getStaticLevelBackground(settings.backgroundTheme)}
-            <Environment preset="city" />
+            {/* Free play: real photo panorama backgrounds via HDR environment presets */}
+            {!currentLevelData && PHOTO_PRESETS.has(settings.backgroundTheme) ? (
+              <Environment preset={settings.backgroundTheme} background />
+            ) : (
+              <Environment preset="city" />
+            )}
 
             <CubeAssembly
               size={size}
