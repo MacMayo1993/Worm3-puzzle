@@ -696,6 +696,134 @@ const fragmentShaders = {
       gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
     }
   `,
+
+  // Café Wall — alternating offset brick rows; perfectly horizontal mortar lines
+  // appear to lean in opposite directions on alternating rows (classic 1979 illusion).
+  cafeWall: `
+    uniform vec3 baseColor;
+    varying vec2 vUv;
+
+    void main() {
+      // 6 columns × 8 rows
+      vec2 uv = vUv * vec2(6.0, 8.0);
+      float row   = floor(uv.y);
+      // Odd rows shift by half a brick → the "café wall" offset
+      float shift = mod(row, 2.0) * 0.5;
+      float bx    = uv.x + shift;
+      float brick = mod(floor(bx), 2.0);
+
+      // Mortar gap between every brick
+      vec2 local  = fract(vec2(bx, uv.y));
+      float mortar = 1.0 - step(0.07, min(min(local.x, 1.0-local.x),
+                                          min(local.y, 1.0-local.y)));
+
+      // Two brick colours + medium grey mortar
+      vec3 brickA   = baseColor * 1.05 + vec3(0.06);
+      vec3 brickB   = baseColor * 0.10;
+      vec3 mortarC  = mix(brickA, brickB, 0.52);
+
+      vec3 color = mix(brickA, brickB, brick);
+      color = mix(color, mortarC, mortar);
+      gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+    }
+  `,
+
+  // Hermann Grid — dark cells in a bright grid; ghostly grey spots materialise at
+  // every intersection where you are NOT looking (lateral-inhibition illusion).
+  hermanGrid: `
+    uniform vec3 baseColor;
+    varying vec2 vUv;
+
+    void main() {
+      float N  = 7.0;
+      float gw = 0.24;          // gutter (grid-line) fraction
+      vec2  uv = vUv * N;
+      vec2  f  = fract(uv);
+
+      // Inside a grid channel?
+      float onX = step(1.0 - gw, f.x);
+      float onY = step(1.0 - gw, f.y);
+      float onGrid = max(onX, onY);
+
+      // Intersection: both channels active — here ghost spots appear
+      float intersect = onX * onY;
+
+      vec3 cellCol  = baseColor * 0.08;
+      vec3 gridCol  = baseColor * 1.15 + vec3(0.12);
+      // Ghost: intersection looks slightly darker than the lines
+      vec3 ghostCol = mix(gridCol, cellCol, 0.38);
+
+      vec3 color = mix(cellCol, gridCol, onGrid);
+      color = mix(color, ghostCol, intersect * 0.55);
+      gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+    }
+  `,
+
+  // Peripheral Drift — concentric rings with opposing sawtooth luminance ramps.
+  // Static image; in peripheral vision the rings appear to rotate in opposite
+  // directions (Kitaoka / Bains 2002 class of illusions).
+  opticSpin: `
+    uniform vec3 baseColor;
+    varying vec2 vUv;
+
+    void main() {
+      const float PI = 3.14159265;
+      vec2  c   = vUv - 0.5;
+      float r   = length(c);
+      float ang = atan(c.y, c.x);   // [-π, π]
+
+      // 7 concentric rings; alternating spin direction
+      float rings   = 7.0;
+      float sectors = 14.0;
+      float ringIdx = floor(r * rings * 2.0);
+      float spinDir = mod(ringIdx, 2.0) * 2.0 - 1.0;   // +1 or -1
+
+      float angNorm = ang / (2.0 * PI) + 0.5;           // [0, 1]
+      float saw     = fract(angNorm * sectors + ringIdx * 0.5);
+      saw = spinDir > 0.0 ? saw : 1.0 - saw;
+
+      // 4 discrete luminance bands (sharper bands → stronger illusion)
+      float lum = floor(saw * 4.0) / 3.0;
+      vec3 col  = baseColor * (0.12 + lum * 0.88);
+
+      // Circular vignette
+      col *= 1.0 - smoothstep(0.42, 0.52, r);
+      gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+    }
+  `,
+
+  // Ouchi — a central disc of horizontal stripes floats in front of (or behind)
+  // the vertical-striped surround.  Move your eyes around and the disc appears
+  // to shift and hover independently (Ouchi 1977).
+  ouchi: `
+    uniform vec3 baseColor;
+    varying vec2 vUv;
+
+    void main() {
+      vec2  c    = vUv - 0.5;
+      float r    = length(c);
+      float freq = 18.0;
+
+      // Inner disc: horizontal stripes
+      float stripeH = step(0.5, fract(vUv.y * freq));
+      // Outer ring: vertical stripes
+      float stripeV = step(0.5, fract(vUv.x * freq));
+
+      float inner  = step(r, 0.22);
+      float stripe = mix(stripeV, stripeH, inner);
+
+      vec3 light = baseColor * 1.12 + vec3(0.08);
+      vec3 dark  = baseColor * 0.10;
+
+      vec3 color = mix(dark, light, stripe);
+
+      // Narrow anti-aliased boundary ring
+      float bound = smoothstep(0.20, 0.22, r) * (1.0 - smoothstep(0.22, 0.24, r));
+      color = mix(color, baseColor * 0.55, bound * 0.50);
+
+      gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+    }
+  `,
 };
 
 // Cache for created materials (key: style_colorHex)
