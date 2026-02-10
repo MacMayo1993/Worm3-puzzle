@@ -115,14 +115,24 @@ export const useGameStore = create(
     explosionT: 0,
     showNetPanel: false,
 
-    setVisualMode: (visualMode) => set({ visualMode }),
-    setFlipMode: (flipMode) => set({ flipMode }),
-    setShowTunnels: (showTunnels) => set({ showTunnels }),
-    setExploded: (exploded) => set({ exploded }),
+    setVisualMode: (visualMode) => set(typeof visualMode === 'function'
+      ? (state) => ({ visualMode: visualMode(state.visualMode) })
+      : { visualMode }),
+    setFlipMode: (flipMode) => set(typeof flipMode === 'function'
+      ? (state) => ({ flipMode: flipMode(state.flipMode) })
+      : { flipMode }),
+    setShowTunnels: (showTunnels) => set(typeof showTunnels === 'function'
+      ? (state) => ({ showTunnels: showTunnels(state.showTunnels) })
+      : { showTunnels }),
+    setExploded: (exploded) => set(typeof exploded === 'function'
+      ? (state) => ({ exploded: exploded(state.exploded) })
+      : { exploded }),
     setExplosionT: (explosionT) => set(typeof explosionT === 'function'
       ? (state) => ({ explosionT: explosionT(state.explosionT) })
       : { explosionT }),
-    setShowNetPanel: (showNetPanel) => set({ showNetPanel }),
+    setShowNetPanel: (showNetPanel) => set(typeof showNetPanel === 'function'
+      ? (state) => ({ showNetPanel: showNetPanel(state.showNetPanel) })
+      : { showNetPanel }),
 
     toggleFlipMode: () => set((state) => ({ flipMode: !state.flipMode })),
     toggleTunnels: () => set((state) => ({ showTunnels: !state.showTunnels })),
@@ -145,7 +155,9 @@ export const useGameStore = create(
     blackHolePulse: 0,
     flipWaveOrigins: [],
 
-    setChaosLevel: (chaosLevel) => set({ chaosLevel }),
+    setChaosLevel: (chaosLevel) => set(typeof chaosLevel === 'function'
+      ? (state) => ({ chaosLevel: chaosLevel(state.chaosLevel) })
+      : { chaosLevel }),
     setAutoRotateEnabled: (autoRotateEnabled) => set({ autoRotateEnabled }),
     setCascades: (cascades) => set(typeof cascades === 'function'
       ? (state) => ({ cascades: cascades(state.cascades) })
@@ -199,7 +211,9 @@ export const useGameStore = create(
     setShowWelcome: (showWelcome) => set({ showWelcome }),
     setShowTutorial: (showTutorial) => set({ showTutorial }),
     setShowFirstFlipTutorial: (showFirstFlipTutorial) => set({ showFirstFlipTutorial }),
-    setShowHelp: (showHelp) => set({ showHelp }),
+    setShowHelp: (showHelp) => set(typeof showHelp === 'function'
+      ? (state) => ({ showHelp: showHelp(state.showHelp) })
+      : { showHelp }),
     setShowSettings: (showSettings) => set({ showSettings }),
     setShowMainMenu: (showMainMenu) => set({ showMainMenu }),
     setShowLevelSelect: (showLevelSelect) => set({ showLevelSelect }),

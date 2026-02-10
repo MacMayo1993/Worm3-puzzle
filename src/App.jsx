@@ -86,7 +86,7 @@ import HandsOverlay from './components/overlays/HandsOverlay.jsx';
 import CubeNet from './components/CubeNet.jsx';
 import SolveMode from './components/SolveMode.jsx';
 import DevConsole from './components/menus/DevConsole.jsx';
-import PlatformerWormMode from './worm/PlatformerWormMode.jsx';
+const PlatformerWormMode = React.lazy(() => import('./worm/PlatformerWormMode.jsx'));
 
 // Mobile detection
 const isMobile = typeof window !== 'undefined' && (
@@ -653,15 +653,17 @@ export default function WORM3() {
 
   if (coopMode) {
     return (
-      <PlatformerWormMode
-        cubies={cubies}
-        size={size}
-        faceColors={resolvedColors}
-        onQuit={() => {
-          setCoopMode(false);
-          useGameStore.getState().setShowMainMenu(true);
-        }}
-      />
+      <Suspense fallback={<div style={{ background: '#000', width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60a5fa', fontFamily: "'Courier New', monospace" }}>Loading Co-op Crawler...</div>}>
+        <PlatformerWormMode
+          cubies={cubies}
+          size={size}
+          faceColors={resolvedColors}
+          onQuit={() => {
+            setCoopMode(false);
+            useGameStore.getState().setShowMainMenu(true);
+          }}
+        />
+      </Suspense>
     );
   }
 
@@ -689,14 +691,19 @@ export default function WORM3() {
             </>
           )}
           <Suspense fallback={null}>
+            {/* Level backgrounds */}
             {currentLevelData?.background === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
             {currentLevelData?.background && currentLevelData.background !== 'blackhole' && getLevelBackground(currentLevelData.background, blackHolePulse)}
             {/* Free play: Black Hole (animated favorite) */}
             {!currentLevelData && settings.backgroundTheme === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
             {/* Free play: interactive photo panoramas - orbit to look around, auto-drifts when idle */}
-            {!currentLevelData && PHOTO_PRESETS.has(settings.backgroundTheme) ? (
+            {!currentLevelData && PHOTO_PRESETS.has(settings.backgroundTheme) && (
               <InteractivePhotoBackground preset={settings.backgroundTheme} />
-            ) : (
+            )}
+            {/* Default environment for lighting/reflections when no custom background */}
+            {!currentLevelData?.background && !(
+              !currentLevelData && (PHOTO_PRESETS.has(settings.backgroundTheme) || settings.backgroundTheme === 'blackhole')
+            ) && (
               <Environment preset="city" />
             )}
 
