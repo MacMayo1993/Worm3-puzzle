@@ -8,6 +8,13 @@ import TallyMarks from '../manifold/TallyMarks.jsx';
 import { getTileStyleMaterial, getGlassMaterial } from './TileStyleMaterials.jsx';
 import GrassBlades from './GrassBlades.jsx';
 import WaterVolume from './WaterVolume.jsx';
+import LavaVolume from './LavaVolume.jsx';
+import IceVolume from './IceVolume.jsx';
+import GalaxyVolume from './GalaxyVolume.jsx';
+import NeuralVolume from './NeuralVolume.jsx';
+import CircuitVolume from './CircuitVolume.jsx';
+import SandVolume from './SandVolume.jsx';
+import WoodVolume from './WoodVolume.jsx';
 
 // Shared geometries for all particle/glow systems (created once, reused globally)
 const sharedParticleGeometry = new THREE.PlaneGeometry(1, 1);
@@ -724,6 +731,41 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
       {/* 3D water volume — transparent box + animated rippling surface */}
       {tileStyle === 'water' && !isGlass && !isSudokube && (
         <WaterVolume faceColor={baseColor} />
+      )}
+
+      {/* 3D lava volume — bubbling molten surface + floating embers */}
+      {tileStyle === 'lava' && !isGlass && !isSudokube && (
+        <LavaVolume faceColor={baseColor} />
+      )}
+
+      {/* 3D ice volume — crystal depth + sparkle frost surface */}
+      {tileStyle === 'ice' && !isGlass && !isSudokube && (
+        <IceVolume faceColor={baseColor} />
+      )}
+
+      {/* 3D galaxy volume — parallax star-field depth layers */}
+      {tileStyle === 'galaxy' && !isGlass && !isSudokube && (
+        <GalaxyVolume faceColor={baseColor} />
+      )}
+
+      {/* 3D neural volume — floating soma nodes + traveling signal arcs */}
+      {tileStyle === 'neural' && !isGlass && !isSudokube && (
+        <NeuralVolume faceColor={baseColor} />
+      )}
+
+      {/* 3D circuit volume — raised PCB board + glowing trace pulses */}
+      {tileStyle === 'circuit' && !isGlass && !isSudokube && (
+        <CircuitVolume faceColor={baseColor} />
+      )}
+
+      {/* 3D sand volume — displaced dune surface + blowing dust particles */}
+      {tileStyle === 'sand' && !isGlass && !isSudokube && (
+        <SandVolume faceColor={baseColor} />
+      )}
+
+      {/* 3D wood volume — lacquered grain-ridge surface with deep specular sheen */}
+      {tileStyle === 'wood' && !isGlass && !isSudokube && (
+        <WoodVolume faceColor={baseColor} />
       )}
 
       {/* Tally Marks - skip if origColor is white on non-white tile */}
