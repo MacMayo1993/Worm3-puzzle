@@ -238,6 +238,110 @@ const AntipodalGlowFill = ({ active, color }) => {
   );
 };
 
+// Persistent "parity breaking through" effect for flipped tiles.
+// The original orientation's color glows behind the tile and leaks through
+// cracks at the edges, with periodic surges of intensity.
+const ParityBreakthrough = ({ origColor, flipCount }) => {
+  const backGlowRef = useRef();
+  const throughGlowRef = useRef();
+  const cracksRef = useRef([]);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    const intensity = Math.min(0.3 + flipCount * 0.2, 1.2);
+
+    // Surge: multiple sin waves align periodically for dramatic peaks
+    const raw = Math.sin(t * 1.5) * 0.45 + Math.sin(t * 2.7) * 0.3 + Math.sin(t * 0.6) * 0.25;
+    const surge = Math.pow(Math.max(0, raw), 2.0);
+
+    // Back halo pulses
+    if (backGlowRef.current) {
+      backGlowRef.current.material.opacity = (0.12 + surge * 0.35) * intensity;
+      const s = 1.0 + surge * 0.12;
+      backGlowRef.current.scale.set(s, s, 1);
+    }
+
+    // Through-glow on front face during surges
+    if (throughGlowRef.current) {
+      throughGlowRef.current.material.opacity = surge * 0.18 * intensity;
+    }
+
+    // Edge cracks pulse with staggered timing
+    cracksRef.current.forEach((ref, i) => {
+      if (!ref) return;
+      const crackPulse = Math.pow(Math.max(0, Math.sin(t * 2.0 + i * 1.3)), 3.0);
+      ref.material.opacity = (0.05 + crackPulse * 0.45 + surge * 0.3) * intensity;
+    });
+  });
+
+  // Crack count scales with flips — more damage = more cracks
+  const cracks = useMemo(() => {
+    const base = [
+      { pos: [0.12, 0.40, 0.003], rot: 0.08, size: [0.38, 0.016] },
+      { pos: [-0.08, -0.39, 0.003], rot: -0.12, size: [0.42, 0.014] },
+      { pos: [0.39, 0.06, 0.003], rot: 1.52, size: [0.34, 0.015] },
+      { pos: [-0.38, -0.05, 0.003], rot: 1.62, size: [0.36, 0.013] },
+    ];
+    if (flipCount >= 2) base.push(
+      { pos: [0.22, -0.18, 0.003], rot: 0.75, size: [0.22, 0.012] },
+      { pos: [-0.18, 0.24, 0.003], rot: -0.6, size: [0.26, 0.011] },
+    );
+    if (flipCount >= 3) base.push(
+      { pos: [0.05, 0.12, 0.003], rot: 1.1, size: [0.18, 0.010] },
+      { pos: [-0.1, -0.15, 0.003], rot: -0.9, size: [0.20, 0.010] },
+    );
+    return base;
+  }, [flipCount]);
+
+  return (
+    <group>
+      {/* Back halo — original color bleeding around tile edges */}
+      <mesh ref={backGlowRef} position={[0, 0, -0.015]}>
+        <circleGeometry args={[0.52, 24]} />
+        <meshBasicMaterial
+          color={origColor}
+          transparent
+          opacity={0.15}
+          blending={THREE.AdditiveBlending}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Through-glow — original color bleeding through front during surges */}
+      <mesh ref={throughGlowRef} position={[0, 0, 0.002]}>
+        <circleGeometry args={[0.35, 16]} />
+        <meshBasicMaterial
+          color={origColor}
+          transparent
+          opacity={0}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Edge cracks — light leaking through gaps */}
+      {cracks.map((crack, i) => (
+        <mesh
+          key={i}
+          ref={el => cracksRef.current[i] = el}
+          position={crack.pos}
+          rotation={[0, 0, crack.rot]}
+        >
+          <planeGeometry args={crack.size} />
+          <meshBasicMaterial
+            color={origColor}
+            transparent
+            opacity={0.05}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+};
+
 // Worm component for disparity visualization
 const Worm = ({ position, rotation, scale = 1 }) => {
   const wormRef = useRef();
@@ -324,9 +428,12 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
     prevCurr.current = curr;
   }, [meta?.curr, meta?.flips]);
 
-  useFrame((_, delta) => {
-    // Fast bail-out: skip entirely when nothing is animating on this sticker
-    if (spinT.current <= 0 && shakeT.current <= 0 && !ringRef.current && !glowRef.current) return;
+  useFrame((state, delta) => {
+    // Detect flipped tiles for persistent tremor
+    const wormhole = (meta?.flips ?? 0) > 0 && meta?.curr !== meta?.orig;
+
+    // Fast bail-out: skip when nothing is animating AND tile isn't flipped
+    if (spinT.current <= 0 && shakeT.current <= 0 && !ringRef.current && !glowRef.current && !wormhole) return;
 
     // Flip animation with SNAPPY acceleration
     if (spinT.current > 0 && groupRef.current) {
@@ -442,6 +549,27 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
     if (glowRef.current) {
       const glowIntensity = 0.3 + Math.sin(pulseT.current * 1.5) * 0.2;
       glowRef.current.material.opacity = glowIntensity;
+    }
+
+    // Persistent tremor for flipped tiles — the parity violation makes the tile unstable
+    if (wormhole && groupRef.current && spinT.current <= 0 && shakeT.current <= 0) {
+      const t = state.clock.elapsedTime;
+      const flips = Math.min(meta?.flips ?? 1, 5);
+      const tremIntensity = 0.002 + flips * 0.0015;
+
+      // Multi-frequency vibration for organic feel
+      const jX = Math.sin(t * 19 + pos[0] * 7) * tremIntensity
+               + Math.sin(t * 33 + pos[1] * 11) * tremIntensity * 0.4;
+      const jZ = Math.cos(t * 24 + pos[1] * 9) * tremIntensity * 0.8
+               + Math.cos(t * 41 + pos[0] * 13) * tremIntensity * 0.3;
+
+      // Surge amplification — tremor intensifies during breakthrough moments
+      const raw = Math.sin(t * 1.5) * 0.45 + Math.sin(t * 2.7) * 0.3 + Math.sin(t * 0.6) * 0.25;
+      const surge = Math.pow(Math.max(0, raw), 2.0);
+      const mult = 1 + surge * 3;
+
+      groupRef.current.position.x = pos[0] + jX * mult;
+      groupRef.current.position.z = pos[2] + jZ * mult;
     }
   });
 
@@ -584,6 +712,9 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
 
       {!isSudokube && isWormhole && (
         <>
+          {/* Parity breakthrough — original color trying to push through */}
+          <ParityBreakthrough origColor={origColor} flipCount={meta?.flips ?? 1} />
+
           <mesh ref={ringRef} position={[0,0,0.02]}>
             <ringGeometry args={[0.36,0.40,16]} />
             <meshBasicMaterial color="#dda15e" transparent opacity={0.85} />
@@ -602,10 +733,10 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
           {Array.from({ length: Math.min(meta?.flips ?? 0, 4) }, (_, i) => {
             const count = Math.min(meta?.flips ?? 0, 4);
             const angle = (i / count) * Math.PI * 2;
-            const radius = count <= 4 ? 0.25 : 0.28; // Spread out more if many worms
+            const radius = count <= 4 ? 0.25 : 0.28;
             const x = Math.cos(angle) * radius;
             const y = Math.sin(angle) * radius;
-            const scale = count <= 4 ? 0.7 + (i % 2) * 0.1 : 0.6; // Smaller if crowded
+            const scale = count <= 4 ? 0.7 + (i % 2) * 0.1 : 0.6;
             return (
               <Worm
                 key={i}
