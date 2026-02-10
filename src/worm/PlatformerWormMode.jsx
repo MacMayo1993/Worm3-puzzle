@@ -2,7 +2,7 @@
 // Dual-screen co-op mode: Manifolder (P1) rotates the cube, Crawler (P2) navigates the surface.
 // Uses two <Canvas> elements in a horizontal split layout sharing React state.
 
-import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment, TrackballControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -13,7 +13,6 @@ import PlatformerHUD from './PlatformerHUD.jsx';
 import {
   stepCrawler,
   projectOntoCube,
-  getDefaultForward,
   getGroundPosition,
   worldToGrid,
   rotateCrawlerWithSlice,
@@ -113,7 +112,7 @@ function CrawlerScene({ cubies, size, faceColors, crawlerState, orbs, rotationAn
 }
 
 // Chase camera that follows behind the crawler
-function ChaseCam({ crawlerState, size }) {
+function ChaseCam({ crawlerState, size: _size }) {
   const { camera } = useThree();
   const targetPos = useRef(new THREE.Vector3(0, 0, 10));
   const targetLookAt = useRef(new THREE.Vector3());
@@ -145,7 +144,7 @@ function ChaseCam({ crawlerState, size }) {
 // ============================================================================
 // GAME LOOP — runs in the Crawler canvas to drive physics each frame
 // ============================================================================
-function CrawlerGameLoop({ crawlerRef, inputRef, gameStateRef, size, cubies, orbsRef, healthRef, onOrbCollect, onDamage, lastParityDamage }) {
+function CrawlerGameLoop({ crawlerRef, inputRef, gameStateRef, size, cubies, orbsRef, healthRef: _healthRef, onOrbCollect, onDamage, lastParityDamage }) {
   useFrame((_, delta) => {
     if (gameStateRef.current !== 'playing') return;
 
@@ -261,7 +260,6 @@ export default function PlatformerWormMode({ cubies: initialCubies, size, faceCo
   }, [initGame]);
 
   // --- Sync crawler display (throttled to avoid re-render every frame) ---
-  const displayTickRef = useRef(0);
   useEffect(() => {
     const interval = setInterval(() => {
       if (crawlerRef.current) {
