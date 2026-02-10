@@ -18,17 +18,17 @@ export const TILE_STYLES = {
   hexGrid:     { label: 'Hex Grid',     cost: 'low', type: 'procedural' },
   comic:       { label: 'Comic Book',   cost: 'low', type: 'pattern' },
   // Living (3D / animated) — natural, elemental, or organic
-  circuit:     { label: 'Circuit',      cost: 'med', type: 'animated' },
+  circuit:     { label: 'Circuit',      cost: 'med', type: '3d' },
   holographic: { label: 'Holographic',  cost: 'med', type: 'animated' },
   pulse:       { label: 'Pulse',        cost: 'med', type: 'animated' },
-  lava:        { label: 'Lava',         cost: 'med', type: 'animated' },
-  galaxy:      { label: 'Galaxy',       cost: 'med', type: 'animated' },
+  lava:        { label: 'Lava',         cost: 'med', type: '3d' },
+  galaxy:      { label: 'Galaxy',       cost: 'med', type: '3d' },
   grass:       { label: 'Grass',        cost: 'med', type: '3d' },
-  ice:         { label: 'Ice',          cost: 'med', type: 'animated' },
-  sand:        { label: 'Sand',         cost: 'med', type: 'animated' },
+  ice:         { label: 'Ice',          cost: 'med', type: '3d' },
+  sand:        { label: 'Sand',         cost: 'med', type: '3d' },
   water:       { label: 'Water',        cost: 'med', type: '3d' },
-  wood:        { label: 'Wood',         cost: 'low', type: 'pattern'  },
-  neural:      { label: 'Neural',       cost: 'med', type: 'animated' },
+  wood:        { label: 'Wood',         cost: 'med', type: '3d' },
+  neural:      { label: 'Neural',       cost: 'med', type: '3d' },
 };
 
 export const DEFAULT_SETTINGS = {
