@@ -56,18 +56,30 @@ const WORM_START        = 7.5;
 const IMPLODE_START     = 9;
 const IMPLODE_END       = 10;
 
-// Individual tile flipping — random stickers flip throughout phase 1
+// Antipodal face mapping - shows which faces are antipodal pairs
+const ANTIPODAL_PAIRS = {
+  PZ: 'NZ',  // Front ↔ Back
+  NZ: 'PZ',
+  PX: 'NX',  // Right ↔ Left
+  NX: 'PX',
+  PY: 'NY',  // Top ↔ Bottom
+  NY: 'PY',
+};
+
+// Individual tile flipping — tiles flip to show antipodal pairs
 const getTileFlips = () => {
   const flips = [];
-  const numFlips = 18; // Random tiles flip
+  const numFlips = 24; // More tiles flip to showcase the mechanic
   for (let i = 0; i < numFlips; i++) {
+    const face = ['PZ', 'NZ', 'PX', 'NX', 'PY', 'NY'][Math.floor(Math.random() * 6)];
     flips.push({
-      start: 0.5 + Math.random() * 3.5,
-      dur: 0.3 + Math.random() * 0.2,
+      start: 0.3 + Math.random() * 3.8,
+      dur: 0.4 + Math.random() * 0.3,
       x: Math.floor(Math.random() * 3),
       y: Math.floor(Math.random() * 3),
       z: Math.floor(Math.random() * 3),
-      face: ['PZ', 'NZ', 'PX', 'NX', 'PY', 'NY'][Math.floor(Math.random() * 6)],
+      face,
+      antipodalFace: ANTIPODAL_PAIRS[face],
     });
   }
   return flips;
@@ -141,7 +153,7 @@ const IntroScene = ({ time, onComplete: _onComplete }) => {
 
   // Dynamic style cycling - styles rotate through the sequence
   const faceStyles = useMemo(() => {
-    const cycleSpeed = 0.5; // Complete cycle every 2 seconds
+    const cycleSpeed = 0.3; // Complete cycle every ~3.3 seconds (slower, more visible)
     const cycleIndex = Math.floor(time * cycleSpeed) % STYLE_SEQUENCE.length;
 
     return {
@@ -186,14 +198,14 @@ const IntroScene = ({ time, onComplete: _onComplete }) => {
       // Swoop-in: start far above, pull down to close orbit
       const t    = time / 0.8;
       const e    = 1 - Math.pow(1 - t, 3);
-      radius     = 20 - e * 9;   // 20 → 11
-      camY       = 8  - e * 5;   // 8  → 3
-      speed      = 0.10;
+      radius     = 18 - e * 8;   // 18 → 10 (closer start)
+      camY       = 7  - e * 4;   // 7  → 3
+      speed      = 0.15;
     } else if (time < EXPLOSION_START) {
-      // Close, slightly elevated orbit — good angle to watch the flips
-      radius     = 11;
-      camY       = 3 + Math.sin((time - 0.8) * 1.1) * 1.8;
-      speed      = 0.20;
+      // Close, slightly elevated orbit — perfect angle to watch the colorful tiles and flips
+      radius     = 10;
+      camY       = 2.5 + Math.sin((time - 0.8) * 1.1) * 1.5;
+      speed      = 0.25;
     } else if (time < EXPLOSION_START + 1.5) {
       // Pull back as the cube explodes
       const t    = (time - EXPLOSION_START) / 1.5;
@@ -365,12 +377,18 @@ const IntroScene = ({ time, onComplete: _onComplete }) => {
 
           // Calculate individual tile flips for this cubie
           const cubieFlips = {};
+          const antipodalSwaps = {};
+
           tileFlips.forEach(flip => {
             if (flip.x === x && flip.y === y && flip.z === z) {
               const elapsed = time - flip.start;
               if (elapsed > 0 && elapsed < flip.dur) {
                 const progress = ease(elapsed / flip.dur);
-                cubieFlips[flip.face] = progress * Math.PI * 2; // Full 360° flip
+                const rotation = progress * Math.PI * 2; // Full 360° flip
+                cubieFlips[flip.face] = rotation;
+
+                // After 180° (π radians), show antipodal color/style
+                antipodalSwaps[flip.face] = rotation > Math.PI && rotation < Math.PI * 2;
               }
             }
           });
@@ -388,6 +406,7 @@ const IntroScene = ({ time, onComplete: _onComplete }) => {
                 explosionFactor={ef}
                 faceStyles={faceStyles}
                 cubieFlips={cubieFlips}
+                antipodalSwaps={antipodalSwaps}
                 time={time}
               />
             </group>

@@ -11,8 +11,11 @@ import { FACE_COLORS } from '../../utils/constants.js';
  *
  * cubieFlips — optional object mapping face keys to flip rotations (radians):
  *   { PZ, NZ, PX, NX, PY, NY }
+ *
+ * antipodalSwaps — optional object indicating which faces show antipodal colors:
+ *   { PZ: true/false, ... } - true means showing antipodal pair's properties
  */
-const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, faceStyles = {}, cubieFlips = {} }, ref) => {
+const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, faceStyles = {}, cubieFlips = {}, antipodalSwaps = {} }, ref) => {
   const limit = (size - 1) / 2;
   const x = Math.round(position[0] / (1 + explosionFactor * 1.8) + limit);
   const y = Math.round(position[1] / (1 + explosionFactor * 1.8) + limit);
@@ -27,11 +30,40 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
   const isOuterPY = y === size - 1;
   const isOuterNY = y === 0;
 
+  // Antipodal color mapping - when a tile flips, it shows its antipodal pair's color
+  const getDisplayColor = (face) => {
+    const colorMap = { PZ: 1, NZ: 4, PX: 5, NX: 2, PY: 3, NY: 6 };
+    const antipodalMap = { PZ: 'NZ', NZ: 'PZ', PX: 'NX', NX: 'PX', PY: 'NY', NY: 'PY' };
+
+    if (antipodalSwaps[face]) {
+      const antipodalFace = antipodalMap[face];
+      return FACE_COLORS[colorMap[antipodalFace]];
+    }
+    return FACE_COLORS[colorMap[face]];
+  };
+
+  // Antipodal style mapping
+  const getDisplayStyle = (face) => {
+    const antipodalMap = { PZ: 'NZ', NZ: 'PZ', PX: 'NX', NX: 'PX', PY: 'NY', NY: 'PY' };
+
+    if (antipodalSwaps[face]) {
+      const antipodalFace = antipodalMap[face];
+      return faceStyles[antipodalFace];
+    }
+    return faceStyles[face];
+  };
+
   return (
     <group position={position} ref={ref}>
-      {/* Cubie body — sleek dark with subtle metallic sheen */}
+      {/* Cubie body — dark frame that lets tiles shine */}
       <RoundedBox args={[0.98, 0.98, 0.98]} radius={0.05} smoothness={4}>
-        <meshStandardMaterial color="#111827" roughness={0.35} metalness={0.45} />
+        <meshStandardMaterial
+          color="#0a0a0a"
+          roughness={0.8}
+          metalness={0.1}
+          transparent={explosionFactor > 0.05}
+          opacity={explosionFactor > 0.05 ? 0.3 : 1}
+        />
       </RoundedBox>
 
       {/* Front (PZ) */}
@@ -39,8 +71,8 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
         <IntroSticker
           pos={[0, 0, 0.51]}
           rot={[0, 0, 0]}
-          color={FACE_COLORS[1]}
-          styleKey={isOuterPZ ? faceStyles.PZ : undefined}
+          color={getDisplayColor('PZ')}
+          styleKey={isOuterPZ ? getDisplayStyle('PZ') : undefined}
           isBack={!isOuterPZ && showAllFaces}
           flipRotation={cubieFlips.PZ || 0}
         />
@@ -51,8 +83,8 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
         <IntroSticker
           pos={[0, 0, -0.51]}
           rot={[0, Math.PI, 0]}
-          color={FACE_COLORS[4]}
-          styleKey={isOuterNZ ? faceStyles.NZ : undefined}
+          color={getDisplayColor('NZ')}
+          styleKey={isOuterNZ ? getDisplayStyle('NZ') : undefined}
           isBack={!isOuterNZ && showAllFaces}
           flipRotation={cubieFlips.NZ || 0}
         />
@@ -63,8 +95,8 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
         <IntroSticker
           pos={[0.51, 0, 0]}
           rot={[0, Math.PI / 2, 0]}
-          color={FACE_COLORS[5]}
-          styleKey={isOuterPX ? faceStyles.PX : undefined}
+          color={getDisplayColor('PX')}
+          styleKey={isOuterPX ? getDisplayStyle('PX') : undefined}
           isBack={!isOuterPX && showAllFaces}
           flipRotation={cubieFlips.PX || 0}
         />
@@ -75,8 +107,8 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
         <IntroSticker
           pos={[-0.51, 0, 0]}
           rot={[0, -Math.PI / 2, 0]}
-          color={FACE_COLORS[2]}
-          styleKey={isOuterNX ? faceStyles.NX : undefined}
+          color={getDisplayColor('NX')}
+          styleKey={isOuterNX ? getDisplayStyle('NX') : undefined}
           isBack={!isOuterNX && showAllFaces}
           flipRotation={cubieFlips.NX || 0}
         />
@@ -87,8 +119,8 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
         <IntroSticker
           pos={[0, 0.51, 0]}
           rot={[-Math.PI / 2, 0, 0]}
-          color={FACE_COLORS[3]}
-          styleKey={isOuterPY ? faceStyles.PY : undefined}
+          color={getDisplayColor('PY')}
+          styleKey={isOuterPY ? getDisplayStyle('PY') : undefined}
           isBack={!isOuterPY && showAllFaces}
           flipRotation={cubieFlips.PY || 0}
         />
@@ -99,8 +131,8 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
         <IntroSticker
           pos={[0, -0.51, 0]}
           rot={[Math.PI / 2, 0, 0]}
-          color={FACE_COLORS[6]}
-          styleKey={isOuterNY ? faceStyles.NY : undefined}
+          color={getDisplayColor('NY')}
+          styleKey={isOuterNY ? getDisplayStyle('NY') : undefined}
           isBack={!isOuterNY && showAllFaces}
           flipRotation={cubieFlips.NY || 0}
         />
