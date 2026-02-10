@@ -6,6 +6,7 @@ import { COLORS, FACE_COLORS, ANTIPODAL_COLOR } from '../utils/constants.js';
 import { play, vibrate } from '../utils/audio.js';
 import TallyMarks from '../manifold/TallyMarks.jsx';
 import { getTileStyleMaterial, getGlassMaterial } from './TileStyleMaterials.jsx';
+import GrassBlades from './GrassBlades.jsx';
 
 // Shared geometries for all particle/glow systems (created once, reused globally)
 const sharedParticleGeometry = new THREE.PlaneGeometry(1, 1);
@@ -548,6 +549,11 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
           />
         )}
       </mesh>
+
+      {/* 3D grass blades overlay */}
+      {tileStyle === 'grass' && !isGlass && !isSudokube && (
+        <GrassBlades faceColor={baseColor} />
+      )}
 
       {/* Tally Marks - skip if origColor is white on non-white tile */}
       {!isSudokube && hasFlipHistory && !(origIsWhite && !currIsWhite) && (

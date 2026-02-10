@@ -21,6 +21,8 @@ export const TILE_STYLES = {
   lava:        { label: 'Lava', cost: 'med', type: 'animated' },
   galaxy:      { label: 'Galaxy', cost: 'med', type: 'animated' },
   comic:       { label: 'Comic Book', cost: 'low', type: 'pattern' },
+  grass:       { label: 'Grass', cost: 'med', type: '3d' },
+  ice:         { label: 'Ice', cost: 'med', type: 'animated' },
 };
 
 export const DEFAULT_SETTINGS = {
