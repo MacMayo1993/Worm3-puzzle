@@ -1545,6 +1545,13 @@ body {
   border-bottom-color: #3b82f6;
 }
 
+/* Tile preview canvas (shared by style cards and per-face rows) */
+.tile-preview-canvas {
+  display: block;
+  border-radius: 5px;
+  image-rendering: pixelated; /* keep it crisp at small sizes */
+}
+
 /* Style Card Grid (Tiles panel — Classic / Living sections) */
 .style-card-grid {
   display: grid;
@@ -1556,7 +1563,7 @@ body {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  padding: 8px 4px 7px;
+  padding: 6px 4px 6px;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
   display: flex;
@@ -1564,6 +1571,15 @@ body {
   align-items: center;
   gap: 4px;
   text-align: center;
+}
+
+/* Preview canvas inside a style card */
+.style-card-preview {
+  border-radius: 4px;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 .style-card:hover {
@@ -1633,13 +1649,21 @@ body {
   gap: 8px;
 }
 
-.per-face-swatch {
-  width: 20px;
-  height: 20px;
-  border-radius: 5px;
+/* Tile preview thumbnail in per-face rows */
+.per-face-preview-wrap {
   flex-shrink: 0;
-  border: 1px solid rgba(0, 0, 0, 0.25);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  width: 36px;
+  height: 36px;
+}
+
+.per-face-preview {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 0;
 }
 
 .per-face-select {
