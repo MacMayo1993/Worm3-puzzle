@@ -1,5 +1,10 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { COLOR_SCHEMES, TILE_STYLES } from '../../utils/colorSchemes.js';
+import {
+  registerTilePreview,
+  updateTilePreview,
+  unregisterTilePreview,
+} from '../../3d/TilePreviewRenderer.js';
 
 const FACE_LABELS = { 1: 'Front', 2: 'Left', 3: 'Top', 4: 'Back', 5: 'Right', 6: 'Bottom' };
 
@@ -234,6 +239,43 @@ function ColorsPanel({ settings, onSettingsChange, faceImages, onFaceImage }) {
   );
 }
 
+// ─── Tile preview canvas ──────────────────────────────────────────────────────
+
+/**
+ * Renders a live tile-style preview using the shared off-screen WebGL renderer.
+ * `colorHex` defaults to a neutral mid-blue so style-card previews look good
+ * without needing a specific face color.
+ */
+function TilePreviewCanvas({ styleKey, colorHex = '#4a7fa5', size = 48, className = '' }) {
+  const canvasRef = useRef(null);
+  const idRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.width = size;
+    canvas.height = size;
+    idRef.current = registerTilePreview(canvas, styleKey, colorHex);
+    return () => {
+      if (idRef.current !== null) unregisterTilePreview(idRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally mount-only
+
+  useEffect(() => {
+    if (idRef.current !== null) updateTilePreview(idRef.current, styleKey, colorHex);
+  }, [styleKey, colorHex]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={size}
+      height={size}
+      className={`tile-preview-canvas${className ? ` ${className}` : ''}`}
+    />
+  );
+}
+
 function StyleGrid({ keys, label, globalStyle, onApply }) {
   return (
     <section className="settings-section">
@@ -249,6 +291,7 @@ function StyleGrid({ keys, label, globalStyle, onApply }) {
               onClick={() => onApply(key)}
               title={`Apply ${style.label} to all faces`}
             >
+              <TilePreviewCanvas styleKey={key} size={56} className="style-card-preview" />
               <span className="style-card-label">{style.label}</span>
             </button>
           );
@@ -313,28 +356,39 @@ function TilesPanel({ settings, onSettingsChange }) {
       <section className="settings-section">
         <h3 className="settings-section-title">Per Face</h3>
         <div className="per-face-grid">
-          {[1,2,3,4,5,6].map(faceId => (
-            <div key={faceId} className="per-face-item">
-              <div className="per-face-swatch"
-                style={{ background: resolvedColors[faceId] }} />
-              <select
-                className="per-face-select"
-                value={currentStyles[faceId] || 'solid'}
-                onChange={e => applyToFace(faceId, e.target.value)}
-              >
-                <optgroup label="Classic">
-                  {CLASSIC_STYLE_KEYS.map(k => (
-                    <option key={k} value={k}>{TILE_STYLES[k]?.label}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Living">
-                  {LIVING_STYLE_KEYS.map(k => (
-                    <option key={k} value={k}>{TILE_STYLES[k]?.label}</option>
-                  ))}
-                </optgroup>
-              </select>
-            </div>
-          ))}
+          {[1,2,3,4,5,6].map(faceId => {
+            const faceStyle = currentStyles[faceId] || 'solid';
+            const faceColor = resolvedColors[faceId];
+            return (
+              <div key={faceId} className="per-face-item">
+                {/* Tile preview thumbnail for the active style + face color */}
+                <div className="per-face-preview-wrap" style={{ borderColor: faceColor + '88' }}>
+                  <TilePreviewCanvas
+                    styleKey={faceStyle}
+                    colorHex={faceColor}
+                    size={36}
+                    className="per-face-preview"
+                  />
+                </div>
+                <select
+                  className="per-face-select"
+                  value={faceStyle}
+                  onChange={e => applyToFace(faceId, e.target.value)}
+                >
+                  <optgroup label="Classic">
+                    {CLASSIC_STYLE_KEYS.map(k => (
+                      <option key={k} value={k}>{TILE_STYLES[k]?.label}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Living">
+                    {LIVING_STYLE_KEYS.map(k => (
+                      <option key={k} value={k}>{TILE_STYLES[k]?.label}</option>
+                    ))}
+                  </optgroup>
+                </select>
+              </div>
+            );
+          })}
         </div>
       </section>
     </>
