@@ -40,6 +40,12 @@ export function useChaosMode() {
   cubiesRef.current = cubies;
   const pendingMoveRef = useRef(null);
 
+  // Cache the manifold map between ticks — it only changes on face rotations,
+  // not on sticker flips, so rebuilding every 100ms is wasteful.
+  const manifoldMapCacheRef = useRef(null);
+  const animStateRef = useRef(animState);
+  animStateRef.current = animState;
+
   // Helper: count stickers where curr !== orig (disparity)
   const countDisparity = useCallback((state) => {
     let count = 0;
@@ -70,6 +76,7 @@ export function useChaosMode() {
     if (!chaosMode) return;
 
     let raf = 0, last = performance.now(), tickAcc = 0, cooldownAcc = 0;
+    let wasAnimating = !!animStateRef.current;
 
     const delayByLevel = [0, 500, 350, 200, 100];
     const baseChanceByLevel = [0, 0.03, 0.05, 0.08, 0.12];
@@ -114,7 +121,12 @@ export function useChaosMode() {
 
     const stepChain = (state) => {
       const S = state.length;
-      const currentManifoldMap = buildManifoldGridMap(state, S);
+      // Use cached manifold map — it only depends on cube geometry (positions/dirs),
+      // not on sticker colors/flips, so it stays valid across all flip operations.
+      if (!manifoldMapCacheRef.current) {
+        manifoldMapCacheRef.current = buildManifoldGridMap(state, S);
+      }
+      const currentManifoldMap = manifoldMapCacheRef.current;
 
       if (!currentChainTile) {
         const start = findChainStart(state);
@@ -199,6 +211,13 @@ export function useChaosMode() {
       const dt = now - last;
       last = now;
 
+      // When a face rotation completes, cube geometry changes — invalidate the cache.
+      const isAnimating = !!animStateRef.current;
+      if (wasAnimating && !isAnimating) {
+        manifoldMapCacheRef.current = null;
+      }
+      wasAnimating = isAnimating;
+
       if (inCooldown) {
         cooldownAcc += dt;
         if (cooldownAcc >= chainCooldown) {
@@ -208,7 +227,10 @@ export function useChaosMode() {
       } else {
         tickAcc += dt;
         if (tickAcc >= tickPeriod) {
-          setCubies((prev) => stepChain(prev));
+          // Pre-compute outside Zustand's setter so clone3D/chain work happens
+          // in the RAF callback, not inside React's state reconciliation.
+          const next = stepChain(cubiesRef.current);
+          if (next !== cubiesRef.current) setCubies(next);
           tickAcc = 0;
         }
       }

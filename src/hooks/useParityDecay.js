@@ -27,13 +27,16 @@ export function useParityDecay() {
   const setCubies = useGameStore((s) => s.setCubies);
   const showMainMenu = useGameStore((s) => s.showMainMenu);
   const showWelcome = useGameStore((s) => s.showWelcome);
+  const chaosLevel = useGameStore((s) => s.chaosLevel);
 
   const cubiesRef = useRef(cubies);
   cubiesRef.current = cubies;
 
   useEffect(() => {
-    // Don't run during menus/welcome/animations
-    if (showMainMenu || showWelcome) return;
+    // Don't run during menus/welcome/animations, or while chaos mode is active.
+    // Chaos already drives sticker propagation at a much higher rate; running
+    // parity decay on top adds a competing RAF loop and periodic clone3D spikes.
+    if (showMainMenu || showWelcome || chaosLevel > 0) return;
 
     let raf = 0;
     let last = performance.now();
@@ -125,5 +128,5 @@ export function useParityDecay() {
 
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [showMainMenu, showWelcome, setCubies]);
+  }, [showMainMenu, showWelcome, chaosLevel, setCubies]);
 }
