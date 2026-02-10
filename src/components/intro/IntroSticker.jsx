@@ -40,19 +40,19 @@ const IntroSticker = ({ pos, rot, color, styleKey, isBack = false, flipRotation 
 
   return (
     <mesh position={pos} rotation={finalRotation}>
-      <planeGeometry args={[0.82, 0.82]} />
+      <planeGeometry args={[0.95, 0.95]} />
       {shaderMat ? (
         <primitive object={shaderMat} attach="material" />
       ) : (
         <meshStandardMaterial
           color={color}
-          roughness={isBack ? 0.5 : 0.2}
-          metalness={isBack ? 0.05 : 0}
+          roughness={isBack ? 0.4 : 0.1}
+          metalness={isBack ? 0.1 : 0.3}
           side={THREE.DoubleSide}
           emissive={color}
-          emissiveIntensity={isBack ? 0.06 : 0.12}
+          emissiveIntensity={isBack ? 0.15 : 0.35}
           transparent={isBack}
-          opacity={isBack ? 0.80 : 1}
+          opacity={isBack ? 0.85 : 1}
         />
       )}
     </mesh>
