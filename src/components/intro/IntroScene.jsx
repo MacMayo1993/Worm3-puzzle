@@ -138,11 +138,19 @@ const getStickerWorldPos = (x, y, z, dirKey, size, ef = 0) => {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-const IntroScene = ({ time, onComplete: _onComplete }) => {
+const IntroScene = ({ time, onComplete }) => {
   const cubeGroupRef = useRef();
   const cubieRefs    = useRef([]);
   const { camera }   = useThree();
   const size = 3;
+  const completedRef = useRef(false);
+
+  // Automatically transition to menu after recomposition
+  if (time >= IMPLODE_END && !completedRef.current && onComplete) {
+    completedRef.current = true;
+    // Small delay to let the final frame render
+    setTimeout(() => onComplete(), 100);
+  }
 
   const [wormComplete, setWormComplete] = useState({});
   const [showBurst,    setShowBurst]    = useState({});
@@ -152,9 +160,15 @@ const IntroScene = ({ time, onComplete: _onComplete }) => {
   const tileFlips = useMemo(() => getTileFlips(), []);
 
   // Dynamic style cycling - styles rotate through the sequence
+  // Start with plain colors for first 1 second, then activate shader styles
   const faceStyles = useMemo(() => {
+    if (time < 1.0) {
+      // First second: no shader styles, just bright plain colors
+      return {};
+    }
+
     const cycleSpeed = 0.3; // Complete cycle every ~3.3 seconds (slower, more visible)
-    const cycleIndex = Math.floor(time * cycleSpeed) % STYLE_SEQUENCE.length;
+    const cycleIndex = Math.floor((time - 1.0) * cycleSpeed) % STYLE_SEQUENCE.length;
 
     return {
       PZ: STYLE_SEQUENCE[(cycleIndex + 0) % STYLE_SEQUENCE.length],

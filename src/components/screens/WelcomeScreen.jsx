@@ -62,7 +62,7 @@ const WelcomeScreen = ({ onEnter }) => {
             <ambientLight intensity={1.25} />
             <pointLight position={[10, 10, 10]} intensity={1.35} />
             <pointLight position={[-10, -10, -10]} intensity={1.0} />
-            <IntroScene time={time} />
+            <IntroScene time={time} onComplete={handleEnter} />
             <Suspense fallback={null}>
               <Environment preset="city" />
             </Suspense>
