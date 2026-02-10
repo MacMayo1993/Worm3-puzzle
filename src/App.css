@@ -1510,6 +1510,135 @@ body {
   transform: translateX(18px);
 }
 
+/* Settings Tab Bar */
+.settings-tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0 16px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.settings-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 10px 4px 9px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.settings-tab:hover {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.settings-tab.active {
+  color: rgba(255, 255, 255, 0.95);
+  border-bottom-color: #3b82f6;
+}
+
+/* Style Card Grid (Tiles panel — Classic / Living sections) */
+.style-card-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.style-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 4px 7px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.style-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+.style-card.selected {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: rgba(59, 130, 246, 0.6);
+}
+
+.style-card-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.2;
+}
+
+.style-card.selected .style-card-label {
+  color: #93c5fd;
+}
+
+/* Per-face overrides (Tiles panel) */
+.per-face-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.per-face-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.per-face-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.per-face-select {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 12px;
+  background: rgba(20, 24, 38, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  transition: border-color 0.15s ease;
+}
+
+.per-face-select:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.per-face-select:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.55);
+}
+
+.per-face-select option,
+.per-face-select optgroup {
+  background: #1a1e2e;
+  color: rgba(255, 255, 255, 0.9);
+}
+
 /* Background Themes */
 .bg-dark {
   background: #0a0a0a !important;

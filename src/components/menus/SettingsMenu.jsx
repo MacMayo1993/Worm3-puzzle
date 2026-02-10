@@ -2,54 +2,54 @@ import React, { useRef, useState } from 'react';
 import { COLOR_SCHEMES, TILE_STYLES } from '../../utils/colorSchemes.js';
 
 const FACE_LABELS = { 1: 'Front', 2: 'Left', 3: 'Top', 4: 'Back', 5: 'Right', 6: 'Bottom' };
-const FACE_COLOR_NAMES = { 1: 'Red', 2: 'Green', 3: 'White', 4: 'Orange', 5: 'Blue', 6: 'Yellow' };
 
 const SCHEME_LABELS = {
   standard: 'Standard',
-  neon: 'Neon',
-  pastel: 'Pastel',
-  mono: 'Mono',
-  custom: 'Custom',
+  neon:     'Neon',
+  pastel:   'Pastel',
+  mono:     'Mono',
+  custom:   'Custom',
 };
 
 const BG_OPTIONS = [
   { value: 'blackhole', label: 'Black Hole' },
-  { value: 'sunset', label: 'Sunset' },
-  { value: 'forest', label: 'Forest' },
-  { value: 'dawn', label: 'Sunrise' },
-  { value: 'park', label: 'Park' },
-  { value: 'night', label: 'Night Sky' },
-  { value: 'city', label: 'City Skyline' },
+  { value: 'sunset',    label: 'Sunset' },
+  { value: 'forest',    label: 'Forest' },
+  { value: 'dawn',      label: 'Sunrise' },
+  { value: 'park',      label: 'Park' },
+  { value: 'night',     label: 'Night Sky' },
+  { value: 'city',      label: 'City Skyline' },
   { value: 'apartment', label: 'Apartment' },
-  { value: 'lobby', label: 'Modern Lobby' },
+  { value: 'lobby',     label: 'Modern Lobby' },
   { value: 'warehouse', label: 'Warehouse' },
-  { value: 'studio', label: 'Photo Studio' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'midnight', label: 'Midnight Blue' },
+  { value: 'studio',    label: 'Photo Studio' },
+  { value: 'dark',      label: 'Dark' },
+  { value: 'midnight',  label: 'Midnight Blue' },
 ];
 
-// Extract N dominant colors from an image using pixel sampling + median-cut-like bucketing
+// Styles shown in the Classic (2D) section
+const CLASSIC_STYLE_KEYS = ['solid', 'glossy', 'matte', 'metallic', 'carbonFiber', 'hexGrid', 'comic'];
+// Styles shown in the Living (3D / animated) section
+const LIVING_STYLE_KEYS  = ['grass', 'ice', 'sand', 'water', 'wood', 'circuit', 'holographic', 'pulse', 'lava', 'galaxy', 'neural'];
+
+// Extract N dominant colors from an image using pixel sampling + k-means
 function extractColorsFromImage(img, count = 6) {
   const canvas = document.createElement('canvas');
-  const size = 64; // downsample for speed
+  const size = 64;
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(img, 0, 0, size, size);
   const data = ctx.getImageData(0, 0, size, size).data;
 
-  // Collect all pixels (skip very dark / very light)
   const pixels = [];
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i], g = data[i + 1], b = data[i + 2];
     const brightness = r * 0.299 + g * 0.587 + b * 0.114;
-    if (brightness > 20 && brightness < 240) {
-      pixels.push([r, g, b]);
-    }
+    if (brightness > 20 && brightness < 240) pixels.push([r, g, b]);
   }
 
   if (pixels.length < count) {
-    // Not enough usable pixels, fall back to evenly spaced samples
     const fallback = [];
     for (let i = 0; i < count; i++) {
       const idx = Math.floor((i / count) * data.length / 4) * 4;
@@ -58,64 +58,51 @@ function extractColorsFromImage(img, count = 6) {
     return fallback.map(([r, g, b]) => '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join(''));
   }
 
-  // Simple k-means clustering
-  // Initialize centroids by picking evenly spaced pixels
   let centroids = [];
   for (let i = 0; i < count; i++) {
     centroids.push([...pixels[Math.floor((i / count) * pixels.length)]]);
   }
-
   for (let iter = 0; iter < 10; iter++) {
     const clusters = Array.from({ length: count }, () => []);
-
-    // Assign pixels to nearest centroid
     for (const px of pixels) {
       let minDist = Infinity, best = 0;
       for (let c = 0; c < count; c++) {
         const dr = px[0] - centroids[c][0];
         const dg = px[1] - centroids[c][1];
         const db = px[2] - centroids[c][2];
-        const dist = dr * dr + dg * dg + db * db;
-        if (dist < minDist) { minDist = dist; best = c; }
+        if (dr*dr + dg*dg + db*db < minDist) { minDist = dr*dr+dg*dg+db*db; best = c; }
       }
       clusters[best].push(px);
     }
-
-    // Recompute centroids
     for (let c = 0; c < count; c++) {
-      if (clusters[c].length === 0) continue;
-      const sum = [0, 0, 0];
-      for (const px of clusters[c]) {
-        sum[0] += px[0]; sum[1] += px[1]; sum[2] += px[2];
-      }
+      if (!clusters[c].length) continue;
+      const sum = [0,0,0];
+      for (const px of clusters[c]) { sum[0]+=px[0]; sum[1]+=px[1]; sum[2]+=px[2]; }
       centroids[c] = [
-        Math.round(sum[0] / clusters[c].length),
-        Math.round(sum[1] / clusters[c].length),
-        Math.round(sum[2] / clusters[c].length),
+        Math.round(sum[0]/clusters[c].length),
+        Math.round(sum[1]/clusters[c].length),
+        Math.round(sum[2]/clusters[c].length),
       ];
     }
   }
-
-  // Sort centroids by hue for a nicer palette order
   centroids.sort((a, b) => {
-    const hueA = Math.atan2(Math.sqrt(3) * (a[1] - a[2]), 2 * a[0] - a[1] - a[2]);
-    const hueB = Math.atan2(Math.sqrt(3) * (b[1] - b[2]), 2 * b[0] - b[1] - b[2]);
-    return hueA - hueB;
+    const hA = Math.atan2(Math.sqrt(3)*(a[1]-a[2]), 2*a[0]-a[1]-a[2]);
+    const hB = Math.atan2(Math.sqrt(3)*(b[1]-b[2]), 2*b[0]-b[1]-b[2]);
+    return hA - hB;
   });
-
-  return centroids.map(([r, g, b]) =>
-    '#' + [r, g, b].map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('')
+  return centroids.map(([r,g,b]) =>
+    '#' + [r,g,b].map(v => Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')).join('')
   );
 }
 
-const SettingsMenu = ({ onClose, settings, onSettingsChange, faceImages = {}, onFaceImage }) => {
-  const fileInputRef = useRef(null);
-  const faceFileInputRefs = useRef({});
-  const [imagePreview, setImagePreview] = useState(null);
+// ─── Sub-panels ──────────────────────────────────────────────────────────────
 
-  const update = (key, value) => {
-    onSettingsChange({ ...settings, [key]: value });
-  };
+function ColorsPanel({ settings, onSettingsChange, faceImages, onFaceImage }) {
+  const fileInputRef     = useRef(null);
+  const faceFileRefs     = useRef({});
+  const [preview, setPreview] = useState(null);
+
+  const update = (key, val) => onSettingsChange({ ...settings, [key]: val });
 
   const updateCustomColor = (faceId, color) => {
     const current = settings.customColors || { ...COLOR_SCHEMES.standard };
@@ -129,20 +116,14 @@ const SettingsMenu = ({ onClose, settings, onSettingsChange, faceImages = {}, on
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const img = new Image();
     const url = URL.createObjectURL(file);
-
     img.onload = () => {
-      setImagePreview(url);
+      setPreview(url);
       const colors = extractColorsFromImage(img, 6);
       const customColors = {};
       colors.forEach((c, i) => { customColors[i + 1] = c; });
-      onSettingsChange({
-        ...settings,
-        colorScheme: 'custom',
-        customColors,
-      });
+      onSettingsChange({ ...settings, colorScheme: 'custom', customColors });
     };
     img.src = url;
   };
@@ -150,8 +131,7 @@ const SettingsMenu = ({ onClose, settings, onSettingsChange, faceImages = {}, on
   const handleFaceImageUpload = (faceId, e) => {
     const file = e.target.files?.[0];
     if (!file || !onFaceImage) return;
-    const url = URL.createObjectURL(file);
-    onFaceImage(faceId, url);
+    onFaceImage(faceId, URL.createObjectURL(file));
   };
 
   const resolvedColors = settings.colorScheme === 'custom' && settings.customColors
@@ -159,200 +139,285 @@ const SettingsMenu = ({ onClose, settings, onSettingsChange, faceImages = {}, on
     : COLOR_SCHEMES[settings.colorScheme] || COLOR_SCHEMES.standard;
 
   return (
+    <>
+      {/* Color Scheme */}
+      <section className="settings-section">
+        <h3 className="settings-section-title">Color Scheme</h3>
+        <div className="settings-radio-group">
+          {Object.keys(SCHEME_LABELS).map(key => (
+            <label key={key} className={`settings-radio${settings.colorScheme === key ? ' active' : ''}`}>
+              <input type="radio" name="colorScheme" value={key}
+                checked={settings.colorScheme === key}
+                onChange={() => update('colorScheme', key)} />
+              <span className="settings-radio-label">{SCHEME_LABELS[key]}</span>
+              {key !== 'custom' && (
+                <span className="scheme-preview">
+                  {Object.values(COLOR_SCHEMES[key]).map((c, i) => (
+                    <span key={i} className="scheme-dot" style={{ background: c }} />
+                  ))}
+                </span>
+              )}
+            </label>
+          ))}
+        </div>
+      </section>
+
+      {/* Custom Colors — only shown when custom scheme is active */}
+      {settings.colorScheme === 'custom' && (
+        <section className="settings-section">
+          <h3 className="settings-section-title">Custom Colors</h3>
+          <div className="image-upload-area">
+            <input ref={fileInputRef} type="file" accept="image/*"
+              onChange={handleImageUpload} style={{ display: 'none' }} />
+            <button className="image-upload-btn" onClick={() => fileInputRef.current?.click()}>
+              Extract from Image
+            </button>
+            {preview && (
+              <div className="image-preview-row">
+                <img src={preview} alt="Source" className="image-preview-thumb" />
+                <span className="scheme-preview">
+                  {[1,2,3,4,5,6].map(i => (
+                    <span key={i} className="scheme-dot" style={{ background: resolvedColors[i] }} />
+                  ))}
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="color-picker-grid">
+            {[1,2,3,4,5,6].map(faceId => (
+              <div key={faceId} className="color-picker-item">
+                <input type="color" value={resolvedColors[faceId]}
+                  onChange={e => updateCustomColor(faceId, e.target.value)}
+                  className="color-input" />
+                <span className="color-picker-label">{FACE_LABELS[faceId]}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Face Textures */}
+      <section className="settings-section">
+        <h3 className="settings-section-title">Face Textures</h3>
+        <p className="settings-hint">Upload an image to map onto a cube face</p>
+        <div className="face-texture-grid">
+          {[1,2,3,4,5,6].map(faceId => (
+            <div key={faceId} className="face-texture-item">
+              <input
+                ref={el => faceFileRefs.current[faceId] = el}
+                type="file" accept="image/*"
+                onChange={e => handleFaceImageUpload(faceId, e)}
+                style={{ display: 'none' }} />
+              {faceImages[faceId] ? (
+                <div className="face-texture-preview"
+                  onClick={() => faceFileRefs.current[faceId]?.click()}>
+                  <img src={faceImages[faceId]} alt={FACE_LABELS[faceId]}
+                    className="face-texture-thumb" />
+                  <button className="face-texture-remove"
+                    onClick={e => { e.stopPropagation(); onFaceImage?.(faceId, null); }}>
+                    &times;
+                  </button>
+                </div>
+              ) : (
+                <div className="face-texture-upload"
+                  style={{ borderColor: resolvedColors[faceId] + '66' }}
+                  onClick={() => faceFileRefs.current[faceId]?.click()}>
+                  <span className="face-texture-plus">+</span>
+                </div>
+              )}
+              <span className="color-picker-label">{FACE_LABELS[faceId]}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
+function TilesPanel({ settings, onSettingsChange }) {
+  const resolvedColors = settings.colorScheme === 'custom' && settings.customColors
+    ? { ...COLOR_SCHEMES.standard, ...settings.customColors }
+    : COLOR_SCHEMES[settings.colorScheme] || COLOR_SCHEMES.standard;
+
+  const currentStyles = settings.manifoldStyles || {};
+
+  // Derive the "active" style for the quick-pick grid:
+  // if all 6 faces share the same style, highlight it; otherwise show nothing highlighted
+  const faceValues = [1,2,3,4,5,6].map(id => currentStyles[id] || 'solid');
+  const allSame = faceValues.every(v => v === faceValues[0]);
+  const globalStyle = allSame ? faceValues[0] : null;
+
+  const applyToAll = (styleKey) => {
+    const newStyles = {};
+    [1,2,3,4,5,6].forEach(id => { newStyles[id] = styleKey; });
+    onSettingsChange({ ...settings, manifoldStyles: newStyles });
+  };
+
+  const applyToFace = (faceId, styleKey) => {
+    onSettingsChange({
+      ...settings,
+      manifoldStyles: { ...currentStyles, [faceId]: styleKey },
+    });
+  };
+
+  const StyleGrid = ({ keys, label }) => (
+    <section className="settings-section">
+      <h3 className="settings-section-title">{label}</h3>
+      <div className="style-card-grid">
+        {keys.map(key => {
+          const style = TILE_STYLES[key];
+          if (!style) return null;
+          const isSelected = globalStyle === key;
+          return (
+            <button
+              key={key}
+              className={`style-card${isSelected ? ' selected' : ''}`}
+              onClick={() => applyToAll(key)}
+              title={`Apply ${style.label} to all faces`}
+            >
+              <span className="style-card-label">{style.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+
+  return (
+    <>
+      <StyleGrid keys={CLASSIC_STYLE_KEYS} label="Classic" />
+      <StyleGrid keys={LIVING_STYLE_KEYS}  label="Living" />
+
+      {/* Per-face overrides */}
+      <section className="settings-section">
+        <h3 className="settings-section-title">Per Face</h3>
+        <div className="per-face-grid">
+          {[1,2,3,4,5,6].map(faceId => (
+            <div key={faceId} className="per-face-item">
+              <div className="per-face-swatch"
+                style={{ background: resolvedColors[faceId] }} />
+              <select
+                className="per-face-select"
+                value={currentStyles[faceId] || 'solid'}
+                onChange={e => applyToFace(faceId, e.target.value)}
+              >
+                <optgroup label="Classic">
+                  {CLASSIC_STYLE_KEYS.map(k => (
+                    <option key={k} value={k}>{TILE_STYLES[k]?.label}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Living">
+                  {LIVING_STYLE_KEYS.map(k => (
+                    <option key={k} value={k}>{TILE_STYLES[k]?.label}</option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
+function ScenePanel({ settings, onSettingsChange }) {
+  const update = (key, val) => onSettingsChange({ ...settings, [key]: val });
+  return (
+    <section className="settings-section">
+      <h3 className="settings-section-title">Background</h3>
+      <div className="settings-radio-group">
+        {BG_OPTIONS.map(opt => (
+          <label key={opt.value}
+            className={`settings-radio${settings.backgroundTheme === opt.value ? ' active' : ''}`}>
+            <input type="radio" name="backgroundTheme" value={opt.value}
+              checked={settings.backgroundTheme === opt.value}
+              onChange={() => update('backgroundTheme', opt.value)} />
+            <span className="settings-radio-label">{opt.label}</span>
+          </label>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function DisplayPanel({ settings, onSettingsChange }) {
+  const update = (key, val) => onSettingsChange({ ...settings, [key]: val });
+  return (
+    <section className="settings-section">
+      <h3 className="settings-section-title">UI Layout</h3>
+      <div className="settings-toggles">
+        {[
+          { key: 'showStats',           label: 'Stats Bar' },
+          { key: 'showManifoldFooter',  label: 'Manifold Footer' },
+          { key: 'showFaceProgress',    label: 'Face Progress Bars' },
+        ].map(item => (
+          <label key={item.key} className="settings-toggle-row">
+            <span className="toggle-label">{item.label}</span>
+            <div className={`toggle-switch${settings[item.key] ? ' on' : ''}`}
+              onClick={() => update(item.key, !settings[item.key])}>
+              <div className="toggle-knob" />
+            </div>
+          </label>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+const TABS = [
+  { id: 'colors',  label: 'Colors'  },
+  { id: 'tiles',   label: 'Tiles'   },
+  { id: 'scene',   label: 'Scene'   },
+  { id: 'display', label: 'Display' },
+];
+
+const SettingsMenu = ({ onClose, settings, onSettingsChange, faceImages = {}, onFaceImage }) => {
+  const [activeTab, setActiveTab] = useState('colors');
+
+  return (
     <div className="settings-overlay" onClick={onClose}>
       <div className="settings-panel" onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
         <div className="settings-header">
           <h2 className="settings-title">Settings</h2>
           <button className="settings-close-btn" onClick={onClose}>&times;</button>
         </div>
 
+        {/* Tab bar */}
+        <div className="settings-tabs">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              className={`settings-tab${activeTab === tab.id ? ' active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Active panel */}
         <div className="settings-body">
-          {/* Color Scheme */}
-          <section className="settings-section">
-            <h3 className="settings-section-title">Color Scheme</h3>
-            <div className="settings-radio-group">
-              {Object.keys(SCHEME_LABELS).map(key => (
-                <label key={key} className={`settings-radio${settings.colorScheme === key ? ' active' : ''}`}>
-                  <input
-                    type="radio"
-                    name="colorScheme"
-                    value={key}
-                    checked={settings.colorScheme === key}
-                    onChange={() => update('colorScheme', key)}
-                  />
-                  <span className="settings-radio-label">{SCHEME_LABELS[key]}</span>
-                  {key !== 'custom' && (
-                    <span className="scheme-preview">
-                      {Object.values(COLOR_SCHEMES[key]).map((c, i) => (
-                        <span key={i} className="scheme-dot" style={{ background: c }} />
-                      ))}
-                    </span>
-                  )}
-                </label>
-              ))}
-            </div>
-          </section>
-
-          {/* Custom Colors */}
-          {settings.colorScheme === 'custom' && (
-            <section className="settings-section">
-              <h3 className="settings-section-title">Custom Colors</h3>
-
-              {/* Image upload */}
-              <div className="image-upload-area">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  style={{ display: 'none' }}
-                />
-                <button
-                  className="image-upload-btn"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  Extract from Image
-                </button>
-                {imagePreview && (
-                  <div className="image-preview-row">
-                    <img src={imagePreview} alt="Source" className="image-preview-thumb" />
-                    <span className="scheme-preview">
-                      {[1,2,3,4,5,6].map(i => (
-                        <span key={i} className="scheme-dot" style={{ background: resolvedColors[i] }} />
-                      ))}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="color-picker-grid">
-                {[1, 2, 3, 4, 5, 6].map(faceId => (
-                  <div key={faceId} className="color-picker-item">
-                    <input
-                      type="color"
-                      value={resolvedColors[faceId]}
-                      onChange={e => updateCustomColor(faceId, e.target.value)}
-                      className="color-input"
-                    />
-                    <span className="color-picker-label">{FACE_LABELS[faceId]}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
+          {activeTab === 'colors' && (
+            <ColorsPanel
+              settings={settings}
+              onSettingsChange={onSettingsChange}
+              faceImages={faceImages}
+              onFaceImage={onFaceImage}
+            />
           )}
-
-          {/* Face Textures */}
-          <section className="settings-section">
-            <h3 className="settings-section-title">Face Textures</h3>
-            <p className="settings-hint">Upload an image to map onto a cube face</p>
-            <div className="face-texture-grid">
-              {[1, 2, 3, 4, 5, 6].map(faceId => (
-                <div key={faceId} className="face-texture-item">
-                  <input
-                    ref={el => faceFileInputRefs.current[faceId] = el}
-                    type="file"
-                    accept="image/*"
-                    onChange={e => handleFaceImageUpload(faceId, e)}
-                    style={{ display: 'none' }}
-                  />
-                  {faceImages[faceId] ? (
-                    <div className="face-texture-preview" onClick={() => faceFileInputRefs.current[faceId]?.click()}>
-                      <img src={faceImages[faceId]} alt={FACE_LABELS[faceId]} className="face-texture-thumb" />
-                      <button
-                        className="face-texture-remove"
-                        onClick={e => { e.stopPropagation(); onFaceImage?.(faceId, null); }}
-                      >&times;</button>
-                    </div>
-                  ) : (
-                    <div
-                      className="face-texture-upload"
-                      style={{ borderColor: resolvedColors[faceId] + '66' }}
-                      onClick={() => faceFileInputRefs.current[faceId]?.click()}
-                    >
-                      <span className="face-texture-plus">+</span>
-                    </div>
-                  )}
-                  <span className="color-picker-label">{FACE_LABELS[faceId]}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Background Theme */}
-          <section className="settings-section">
-            <h3 className="settings-section-title">Background</h3>
-            <div className="settings-radio-group">
-              {BG_OPTIONS.map(opt => (
-                <label key={opt.value} className={`settings-radio${settings.backgroundTheme === opt.value ? ' active' : ''}`}>
-                  <input
-                    type="radio"
-                    name="backgroundTheme"
-                    value={opt.value}
-                    checked={settings.backgroundTheme === opt.value}
-                    onChange={() => update('backgroundTheme', opt.value)}
-                  />
-                  <span className="settings-radio-label">{opt.label}</span>
-                </label>
-              ))}
-            </div>
-          </section>
-
-          {/* Tile Styles per Manifold */}
-          <section className="settings-section">
-            <h3 className="settings-section-title">Tile Styles</h3>
-            <p className="settings-hint">Set a visual style for each manifold face</p>
-            <div className="tile-style-grid">
-              {[1, 2, 3, 4, 5, 6].map(faceId => {
-                const currentStyle = settings.manifoldStyles?.[faceId] || 'solid';
-                return (
-                  <div key={faceId} className="tile-style-item">
-                    <div
-                      className="tile-style-preview"
-                      style={{ backgroundColor: resolvedColors[faceId] }}
-                    >
-                      <span className="tile-style-face-label">{FACE_COLOR_NAMES[faceId]}</span>
-                    </div>
-                    <select
-                      className="tile-style-select"
-                      value={currentStyle}
-                      onChange={(e) => {
-                        const newStyles = { ...(settings.manifoldStyles || {}), [faceId]: e.target.value };
-                        onSettingsChange({ ...settings, manifoldStyles: newStyles });
-                      }}
-                    >
-                      {Object.entries(TILE_STYLES).map(([key, style]) => (
-                        <option key={key} value={key}>
-                          {style.label} {style.type === 'animated' ? '~' : style.type === '3d' ? '*' : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          {/* UI Layout Toggles */}
-          <section className="settings-section">
-            <h3 className="settings-section-title">UI Layout</h3>
-            <div className="settings-toggles">
-              {[
-                { key: 'showStats', label: 'Stats Bar' },
-                { key: 'showManifoldFooter', label: 'Manifold Footer' },
-                { key: 'showFaceProgress', label: 'Face Progress Bars' },
-              ].map(item => (
-                <label key={item.key} className="settings-toggle-row">
-                  <span className="toggle-label">{item.label}</span>
-                  <div
-                    className={`toggle-switch${settings[item.key] ? ' on' : ''}`}
-                    onClick={() => update(item.key, !settings[item.key])}
-                  >
-                    <div className="toggle-knob" />
-                  </div>
-                </label>
-              ))}
-            </div>
-          </section>
+          {activeTab === 'tiles' && (
+            <TilesPanel settings={settings} onSettingsChange={onSettingsChange} />
+          )}
+          {activeTab === 'scene' && (
+            <ScenePanel settings={settings} onSettingsChange={onSettingsChange} />
+          )}
+          {activeTab === 'display' && (
+            <DisplayPanel settings={settings} onSettingsChange={onSettingsChange} />
+          )}
         </div>
       </div>
     </div>
