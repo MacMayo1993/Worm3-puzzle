@@ -504,6 +504,8 @@ export default function WORM3() {
   // KEYBOARD HANDLER
   // ========================================================================
   useEffect(() => {
+    if (coopMode) return; // Co-op mode handles its own input
+
     const handleKeyDown = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
@@ -632,7 +634,7 @@ export default function WORM3() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
-    cursor, animState, flipMode, showLevelTutorial, currentLevelData, handsMode,
+    coopMode, cursor, animState, flipMode, showLevelTutorial, currentLevelData, handsMode,
     moveCursor, performCursorRotation, performCursorFlip, undo, executeHandsMove,
     handleSaveState, handleLoadState, handleLevelSelect, handleTutorialClose,
     reset, shuffle, showDevConsole, setShowDevConsole, setShowHelp, setFlipMode,
