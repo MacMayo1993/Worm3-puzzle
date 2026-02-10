@@ -46,11 +46,11 @@ const IntroSticker = ({ pos, rot, color, styleKey, isBack = false, flipRotation 
       ) : (
         <meshStandardMaterial
           color={color}
-          roughness={isBack ? 0.4 : 0.1}
-          metalness={isBack ? 0.1 : 0.3}
+          roughness={isBack ? 0.4 : 0.05}
+          metalness={isBack ? 0.1 : 0.4}
           side={THREE.DoubleSide}
           emissive={color}
-          emissiveIntensity={isBack ? 0.15 : 0.35}
+          emissiveIntensity={isBack ? 0.2 : 0.6}
           transparent={isBack}
           opacity={isBack ? 0.85 : 1}
           depthTest={true}
