@@ -58,7 +58,7 @@ function extractColorsFromImage(img, count = 6) {
     return fallback.map(([r, g, b]) => '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join(''));
   }
 
-  let centroids = [];
+  const centroids = [];
   for (let i = 0; i < count; i++) {
     centroids.push([...pixels[Math.floor((i / count) * pixels.length)]]);
   }
@@ -234,6 +234,30 @@ function ColorsPanel({ settings, onSettingsChange, faceImages, onFaceImage }) {
   );
 }
 
+function StyleGrid({ keys, label, globalStyle, onApply }) {
+  return (
+    <section className="settings-section">
+      <h3 className="settings-section-title">{label}</h3>
+      <div className="style-card-grid">
+        {keys.map(key => {
+          const style = TILE_STYLES[key];
+          if (!style) return null;
+          return (
+            <button
+              key={key}
+              className={`style-card${globalStyle === key ? ' selected' : ''}`}
+              onClick={() => onApply(key)}
+              title={`Apply ${style.label} to all faces`}
+            >
+              <span className="style-card-label">{style.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function TilesPanel({ settings, onSettingsChange }) {
   const resolvedColors = settings.colorScheme === 'custom' && settings.customColors
     ? { ...COLOR_SCHEMES.standard, ...settings.customColors }
@@ -241,8 +265,7 @@ function TilesPanel({ settings, onSettingsChange }) {
 
   const currentStyles = settings.manifoldStyles || {};
 
-  // Derive the "active" style for the quick-pick grid:
-  // if all 6 faces share the same style, highlight it; otherwise show nothing highlighted
+  // If all 6 faces share the same style, highlight it in the grid
   const faceValues = [1,2,3,4,5,6].map(id => currentStyles[id] || 'solid');
   const allSame = faceValues.every(v => v === faceValues[0]);
   const globalStyle = allSame ? faceValues[0] : null;
@@ -260,33 +283,10 @@ function TilesPanel({ settings, onSettingsChange }) {
     });
   };
 
-  const StyleGrid = ({ keys, label }) => (
-    <section className="settings-section">
-      <h3 className="settings-section-title">{label}</h3>
-      <div className="style-card-grid">
-        {keys.map(key => {
-          const style = TILE_STYLES[key];
-          if (!style) return null;
-          const isSelected = globalStyle === key;
-          return (
-            <button
-              key={key}
-              className={`style-card${isSelected ? ' selected' : ''}`}
-              onClick={() => applyToAll(key)}
-              title={`Apply ${style.label} to all faces`}
-            >
-              <span className="style-card-label">{style.label}</span>
-            </button>
-          );
-        })}
-      </div>
-    </section>
-  );
-
   return (
     <>
-      <StyleGrid keys={CLASSIC_STYLE_KEYS} label="Classic" />
-      <StyleGrid keys={LIVING_STYLE_KEYS}  label="Living" />
+      <StyleGrid keys={CLASSIC_STYLE_KEYS} label="Classic" globalStyle={globalStyle} onApply={applyToAll} />
+      <StyleGrid keys={LIVING_STYLE_KEYS}  label="Living"  globalStyle={globalStyle} onApply={applyToAll} />
 
       {/* Per-face overrides */}
       <section className="settings-section">
