@@ -598,15 +598,16 @@ const fragmentShaders = {
       // ── Surface grain texture ──────────────────────────────────────
       float shimmer = noise(uv * 55.0 + vec2(time * 0.08, 0.0)) * 0.07;
 
-      // ── Colors — baseColor-driven so every face looks distinct ─────
-      // Sand: mostly baseColor, slight warm offset
-      vec3 sandTone = baseColor * 0.82 + vec3(0.12, 0.08, 0.01) + shimmer;
-      vec3 upperC   = sandTone;
-      vec3 lowerC   = sandTone * 0.84;        // pile slightly shadowed
-      vec3 streamC  = sandTone * 1.30;        // bright falling grains
+      // ── Colors ────────────────────────────────────────────────────
+      // Sand: face color is the dominant hue; earthy brown mixed in for grit
+      vec3 sandBrown = vec3(0.52, 0.35, 0.16);
+      vec3 sandTone  = mix(baseColor, sandBrown, 0.28) + shimmer;
+      vec3 upperC    = sandTone;
+      vec3 lowerC    = sandTone * 0.82;           // pile slightly shadowed
+      vec3 streamC   = mix(sandTone, vec3(1.0), 0.15) * 1.15;  // bright falling grains
 
-      // Glass edge: baseColor lightened + a cool translucent tint
-      vec3 glassC   = baseColor * 0.45 + vec3(0.38, 0.42, 0.48);
+      // Glass edge: baseColor brightened toward white — looks like translucent glass
+      vec3 glassC    = mix(baseColor, vec3(0.88, 0.92, 0.96), 0.55);
 
       vec3 bg    = baseColor * 0.05 + vec3(0.02, 0.03, 0.06);
       vec3 inner = bg * 1.6;   // slightly lighter interior void

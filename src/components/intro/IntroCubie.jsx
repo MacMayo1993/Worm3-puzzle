@@ -3,16 +3,20 @@ import { RoundedBox } from '@react-three/drei';
 import IntroSticker from './IntroSticker.jsx';
 import { FACE_COLORS } from '../../utils/constants.js';
 
-const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0 }, ref) => {
+/**
+ * faceStyles — optional object mapping face keys to tile style names:
+ *   { PZ, NZ, PX, NX, PY, NY }
+ * When provided, the outer sticker for that face renders the live shader
+ * instead of a plain colour swatch.
+ */
+const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, faceStyles = {} }, ref) => {
   const limit = (size - 1) / 2;
   const x = Math.round(position[0] / (1 + explosionFactor * 1.8) + limit);
   const y = Math.round(position[1] / (1 + explosionFactor * 1.8) + limit);
   const z = Math.round(position[2] / (1 + explosionFactor * 1.8) + limit);
 
-  // When exploded, show all faces; when collapsed, only show outer faces
   const showAllFaces = explosionFactor > 0.1;
 
-  // Determine which faces should show based on position (outer faces of the cube)
   const isOuterPZ = z === size - 1;
   const isOuterNZ = z === 0;
   const isOuterPX = x === size - 1;
@@ -22,66 +26,73 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0 }, re
 
   return (
     <group position={position} ref={ref}>
+      {/* Cubie body — sleek dark with subtle metallic sheen */}
       <RoundedBox args={[0.98, 0.98, 0.98]} radius={0.05} smoothness={4}>
-        <meshStandardMaterial color="#3d3225" roughness={0.6} metalness={0.1} />
+        <meshStandardMaterial color="#111827" roughness={0.35} metalness={0.45} />
       </RoundedBox>
 
-      {/* Front face (PZ) - Red */}
+      {/* Front (PZ) */}
       {(showAllFaces || isOuterPZ) && (
         <IntroSticker
           pos={[0, 0, 0.51]}
           rot={[0, 0, 0]}
           color={FACE_COLORS[1]}
+          styleKey={isOuterPZ ? faceStyles.PZ : undefined}
           isBack={!isOuterPZ && showAllFaces}
         />
       )}
 
-      {/* Back face (NZ) - Orange */}
+      {/* Back (NZ) */}
       {(showAllFaces || isOuterNZ) && (
         <IntroSticker
           pos={[0, 0, -0.51]}
           rot={[0, Math.PI, 0]}
           color={FACE_COLORS[4]}
+          styleKey={isOuterNZ ? faceStyles.NZ : undefined}
           isBack={!isOuterNZ && showAllFaces}
         />
       )}
 
-      {/* Right face (PX) - Blue */}
+      {/* Right (PX) */}
       {(showAllFaces || isOuterPX) && (
         <IntroSticker
           pos={[0.51, 0, 0]}
           rot={[0, Math.PI / 2, 0]}
           color={FACE_COLORS[5]}
+          styleKey={isOuterPX ? faceStyles.PX : undefined}
           isBack={!isOuterPX && showAllFaces}
         />
       )}
 
-      {/* Left face (NX) - Green */}
+      {/* Left (NX) */}
       {(showAllFaces || isOuterNX) && (
         <IntroSticker
           pos={[-0.51, 0, 0]}
           rot={[0, -Math.PI / 2, 0]}
           color={FACE_COLORS[2]}
+          styleKey={isOuterNX ? faceStyles.NX : undefined}
           isBack={!isOuterNX && showAllFaces}
         />
       )}
 
-      {/* Top face (PY) - White */}
+      {/* Top (PY) */}
       {(showAllFaces || isOuterPY) && (
         <IntroSticker
           pos={[0, 0.51, 0]}
           rot={[-Math.PI / 2, 0, 0]}
           color={FACE_COLORS[3]}
+          styleKey={isOuterPY ? faceStyles.PY : undefined}
           isBack={!isOuterPY && showAllFaces}
         />
       )}
 
-      {/* Bottom face (NY) - Yellow */}
+      {/* Bottom (NY) */}
       {(showAllFaces || isOuterNY) && (
         <IntroSticker
           pos={[0, -0.51, 0]}
           rot={[Math.PI / 2, 0, 0]}
           color={FACE_COLORS[6]}
+          styleKey={isOuterNY ? faceStyles.NY : undefined}
           isBack={!isOuterNY && showAllFaces}
         />
       )}
