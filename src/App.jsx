@@ -30,6 +30,7 @@ import {
   useSettings,
   useHandsMode,
   useUndo,
+  useParityDecay,
 } from './hooks/index.js';
 
 // 3D components
@@ -189,6 +190,9 @@ export default function WORM3() {
   const handsMoveTimestamps = useRef([]);
 
   const { moveHistory, undo } = useUndo();
+
+  // Parity instability — flipped tiles spontaneously re-flip and propagate
+  useParityDecay();
 
   // Co-op Crawler mode
   const [coopMode, setCoopMode] = useState(false);

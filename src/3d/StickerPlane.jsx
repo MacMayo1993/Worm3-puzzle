@@ -239,78 +239,113 @@ const AntipodalGlowFill = ({ active, color }) => {
 };
 
 // Persistent "parity breaking through" effect for flipped tiles.
-// The original orientation's color glows behind the tile and leaks through
-// cracks at the edges, with periodic surges of intensity.
+// Square glow fills the full cubie face (0.98×0.98 > 0.85 sticker) so the
+// original color's light shines outward through the black grid lines.
 const ParityBreakthrough = ({ origColor, flipCount }) => {
   const backGlowRef = useRef();
   const throughGlowRef = useRef();
   const cracksRef = useRef([]);
+  const edgesRef = useRef([]);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
-    const intensity = Math.min(0.3 + flipCount * 0.2, 1.2);
+    const intensity = Math.min(0.4 + flipCount * 0.25, 1.5);
 
     // Surge: multiple sin waves align periodically for dramatic peaks
     const raw = Math.sin(t * 1.5) * 0.45 + Math.sin(t * 2.7) * 0.3 + Math.sin(t * 0.6) * 0.25;
     const surge = Math.pow(Math.max(0, raw), 2.0);
 
-    // Back halo pulses
+    // Back glow — fills the cubie face, light bleeds through grid gaps
     if (backGlowRef.current) {
-      backGlowRef.current.material.opacity = (0.12 + surge * 0.35) * intensity;
-      const s = 1.0 + surge * 0.12;
+      backGlowRef.current.material.opacity = (0.2 + surge * 0.5) * intensity;
+      const s = 1.0 + surge * 0.08;
       backGlowRef.current.scale.set(s, s, 1);
     }
 
     // Through-glow on front face during surges
     if (throughGlowRef.current) {
-      throughGlowRef.current.material.opacity = surge * 0.18 * intensity;
+      throughGlowRef.current.material.opacity = surge * 0.25 * intensity;
     }
 
-    // Edge cracks pulse with staggered timing
+    // Grid-edge glow bars — these sit right at the sticker borders to
+    // simulate light pouring through the grid lines
+    edgesRef.current.forEach((ref) => {
+      if (!ref) return;
+      ref.material.opacity = (0.15 + surge * 0.55) * intensity;
+    });
+
+    // Surface cracks pulse with staggered timing
     cracksRef.current.forEach((ref, i) => {
       if (!ref) return;
       const crackPulse = Math.pow(Math.max(0, Math.sin(t * 2.0 + i * 1.3)), 3.0);
-      ref.material.opacity = (0.05 + crackPulse * 0.45 + surge * 0.3) * intensity;
+      ref.material.opacity = (0.08 + crackPulse * 0.5 + surge * 0.35) * intensity;
     });
   });
 
-  // Crack count scales with flips — more damage = more cracks
+  // Cracks scale with flips — more damage = more fractures
   const cracks = useMemo(() => {
     const base = [
-      { pos: [0.12, 0.40, 0.003], rot: 0.08, size: [0.38, 0.016] },
-      { pos: [-0.08, -0.39, 0.003], rot: -0.12, size: [0.42, 0.014] },
-      { pos: [0.39, 0.06, 0.003], rot: 1.52, size: [0.34, 0.015] },
-      { pos: [-0.38, -0.05, 0.003], rot: 1.62, size: [0.36, 0.013] },
+      { pos: [0.12, 0.40, 0.004], rot: 0.08, size: [0.38, 0.018] },
+      { pos: [-0.08, -0.39, 0.004], rot: -0.12, size: [0.42, 0.016] },
+      { pos: [0.39, 0.06, 0.004], rot: 1.52, size: [0.34, 0.017] },
+      { pos: [-0.38, -0.05, 0.004], rot: 1.62, size: [0.36, 0.015] },
     ];
     if (flipCount >= 2) base.push(
-      { pos: [0.22, -0.18, 0.003], rot: 0.75, size: [0.22, 0.012] },
-      { pos: [-0.18, 0.24, 0.003], rot: -0.6, size: [0.26, 0.011] },
+      { pos: [0.22, -0.18, 0.004], rot: 0.75, size: [0.24, 0.014] },
+      { pos: [-0.18, 0.24, 0.004], rot: -0.6, size: [0.28, 0.013] },
     );
     if (flipCount >= 3) base.push(
-      { pos: [0.05, 0.12, 0.003], rot: 1.1, size: [0.18, 0.010] },
-      { pos: [-0.1, -0.15, 0.003], rot: -0.9, size: [0.20, 0.010] },
+      { pos: [0.05, 0.12, 0.004], rot: 1.1, size: [0.20, 0.012] },
+      { pos: [-0.1, -0.15, 0.004], rot: -0.9, size: [0.22, 0.012] },
     );
     return base;
   }, [flipCount]);
 
+  // Grid-edge glow bars at the sticker border — visible where stickers meet
+  const gridEdges = useMemo(() => [
+    { pos: [0, 0.44, -0.005], size: [0.98, 0.08] },   // top edge
+    { pos: [0, -0.44, -0.005], size: [0.98, 0.08] },  // bottom edge
+    { pos: [0.44, 0, -0.005], size: [0.08, 0.98] },   // right edge
+    { pos: [-0.44, 0, -0.005], size: [0.08, 0.98] },  // left edge
+  ], []);
+
   return (
     <group>
-      {/* Back halo — original color bleeding around tile edges */}
-      <mesh ref={backGlowRef} position={[0, 0, -0.015]}>
-        <circleGeometry args={[0.52, 24]} />
+      {/* Back glow — square fills the full cubie face so light bleeds through grid gaps */}
+      <mesh ref={backGlowRef} position={[0, 0, -0.018]}>
+        <planeGeometry args={[0.98, 0.98]} />
         <meshBasicMaterial
           color={origColor}
           transparent
-          opacity={0.15}
+          opacity={0.2}
           blending={THREE.AdditiveBlending}
           side={THREE.DoubleSide}
           depthWrite={false}
         />
       </mesh>
 
+      {/* Grid-edge glow bars — light pouring through the black grid lines */}
+      {gridEdges.map((edge, i) => (
+        <mesh
+          key={`edge-${i}`}
+          ref={el => edgesRef.current[i] = el}
+          position={edge.pos}
+        >
+          <planeGeometry args={edge.size} />
+          <meshBasicMaterial
+            color={origColor}
+            transparent
+            opacity={0.15}
+            blending={THREE.AdditiveBlending}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
+        </mesh>
+      ))}
+
       {/* Through-glow — original color bleeding through front during surges */}
       <mesh ref={throughGlowRef} position={[0, 0, 0.002]}>
-        <circleGeometry args={[0.35, 16]} />
+        <planeGeometry args={[0.82, 0.82]} />
         <meshBasicMaterial
           color={origColor}
           transparent
@@ -320,7 +355,7 @@ const ParityBreakthrough = ({ origColor, flipCount }) => {
         />
       </mesh>
 
-      {/* Edge cracks — light leaking through gaps */}
+      {/* Surface cracks — light leaking through fractures */}
       {cracks.map((crack, i) => (
         <mesh
           key={i}
@@ -332,7 +367,7 @@ const ParityBreakthrough = ({ origColor, flipCount }) => {
           <meshBasicMaterial
             color={origColor}
             transparent
-            opacity={0.05}
+            opacity={0.08}
             blending={THREE.AdditiveBlending}
             depthWrite={false}
           />
@@ -555,20 +590,22 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
     if (wormhole && groupRef.current && spinT.current <= 0 && shakeT.current <= 0) {
       const t = state.clock.elapsedTime;
       const flips = Math.min(meta?.flips ?? 1, 5);
-      const tremIntensity = 0.002 + flips * 0.0015;
+      const tremIntensity = 0.004 + flips * 0.003;
 
       // Multi-frequency vibration for organic feel
       const jX = Math.sin(t * 19 + pos[0] * 7) * tremIntensity
-               + Math.sin(t * 33 + pos[1] * 11) * tremIntensity * 0.4;
+               + Math.sin(t * 33 + pos[1] * 11) * tremIntensity * 0.5;
+      const jY = Math.cos(t * 17 + pos[2] * 8) * tremIntensity * 0.3;
       const jZ = Math.cos(t * 24 + pos[1] * 9) * tremIntensity * 0.8
-               + Math.cos(t * 41 + pos[0] * 13) * tremIntensity * 0.3;
+               + Math.cos(t * 41 + pos[0] * 13) * tremIntensity * 0.4;
 
       // Surge amplification — tremor intensifies during breakthrough moments
       const raw = Math.sin(t * 1.5) * 0.45 + Math.sin(t * 2.7) * 0.3 + Math.sin(t * 0.6) * 0.25;
       const surge = Math.pow(Math.max(0, raw), 2.0);
-      const mult = 1 + surge * 3;
+      const mult = 1 + surge * 4;
 
       groupRef.current.position.x = pos[0] + jX * mult;
+      groupRef.current.position.y = pos[1] + jY * mult;
       groupRef.current.position.z = pos[2] + jZ * mult;
     }
   });
