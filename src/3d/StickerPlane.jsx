@@ -7,6 +7,7 @@ import { play, vibrate } from '../utils/audio.js';
 import TallyMarks from '../manifold/TallyMarks.jsx';
 import { getTileStyleMaterial, getGlassMaterial } from './TileStyleMaterials.jsx';
 import GrassBlades from './GrassBlades.jsx';
+import WaterVolume from './WaterVolume.jsx';
 
 // Shared geometries for all particle/glow systems (created once, reused globally)
 const sharedParticleGeometry = new THREE.PlaneGeometry(1, 1);
@@ -718,6 +719,11 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
       {/* 3D grass blades overlay */}
       {tileStyle === 'grass' && !isGlass && !isSudokube && (
         <GrassBlades faceColor={baseColor} />
+      )}
+
+      {/* 3D water volume — transparent box + animated rippling surface */}
+      {tileStyle === 'water' && !isGlass && !isSudokube && (
+        <WaterVolume faceColor={baseColor} />
       )}
 
       {/* Tally Marks - skip if origColor is white on non-white tile */}

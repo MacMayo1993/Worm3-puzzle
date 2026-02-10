@@ -26,7 +26,7 @@ export const TILE_STYLES = {
   grass:       { label: 'Grass',        cost: 'med', type: '3d' },
   ice:         { label: 'Ice',          cost: 'med', type: 'animated' },
   sand:        { label: 'Sand',         cost: 'med', type: 'animated' },
-  water:       { label: 'Water',        cost: 'med', type: 'animated' },
+  water:       { label: 'Water',        cost: 'med', type: '3d' },
   wood:        { label: 'Wood',         cost: 'low', type: 'pattern'  },
   neural:      { label: 'Neural',       cost: 'med', type: 'animated' },
 };
