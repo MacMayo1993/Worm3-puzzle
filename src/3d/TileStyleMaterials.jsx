@@ -536,8 +536,7 @@ const fragmentShaders = {
     }
   `,
 
-  // Sand — wind-sculpted aeolian ripples shifting across a granular surface
-  // Connects to: geology (sedimentary bedding), physics (granular transport, erosion)
+  // Sand — animated hourglass with falling sand
   sand: `
     uniform vec3 baseColor;
     uniform float time;
@@ -546,24 +545,72 @@ const fragmentShaders = {
     ${shaderUtils}
 
     void main() {
-      vec2 uv = vUv * 6.0;
+      vec2 uv = vUv;
+      float cx = uv.x - 0.5;   // [-0.5, 0.5], 0 = center
+      float cy = uv.y - 0.5;   // [-0.5, 0.5], 0 = neck
 
-      // Two overlapping ripple systems at different angles mimic cross-bedding
-      float r1 = sin(uv.x * 9.0 + fbm(uv * 0.6) * 3.5 - time * 0.18) * 0.5 + 0.5;
-      float r2 = sin(uv.x * 4.5 + uv.y * 0.7 + fbm(uv + 12.0) * 2.0 - time * 0.09) * 0.5 + 0.5;
+      // 8-second fill cycle then instant "flip" (mod restart)
+      float t = mod(time * 0.125, 1.0);   // 0 → 1 over 8 s
 
-      // Warm sand palette: pale gold to deep tan
-      vec3 paleGold = mix(vec3(0.88, 0.76, 0.52), baseColor * 0.55 + vec3(0.4, 0.32, 0.18), 0.35);
-      vec3 deepTan  = paleGold * 0.62;
+      // ── Hourglass geometry ─────────────────────────────────────────
+      // Half-width tapers from 0.42 at top/bottom to 0.04 at neck (y=0.5)
+      float halfW   = 0.04 + abs(cy) * 0.76;
+      float inGlass = step(abs(cx), halfW)
+                    * step(0.03, uv.y)
+                    * step(0.03, 1.0 - uv.y);
 
-      vec3 color = mix(deepTan, paleGold, r1);
-      color = mix(color, paleGold * 1.18, r2 * 0.18);
+      // Glass border: side walls + top/bottom caps
+      float borderW  = 0.018;
+      float sideBdr  = (step(abs(cx), halfW) - step(abs(cx), halfW - borderW))
+                     * step(0.03, uv.y) * step(0.03, 1.0 - uv.y);
+      float topCap   = step(1.0 - 0.036, uv.y) * step(abs(cx), halfW);
+      float botCap   = step(uv.y, 0.036)        * step(abs(cx), halfW);
+      float onBorder = max(sideBdr, max(topCap, botCap));
 
-      // Shadow in troughs reinforces depth
-      color -= pow(1.0 - r1, 2.5) * 0.22;
+      // ── Upper sand (drops from top toward neck as t→1) ────────────
+      float upperFill    = 1.0 - t;
+      float sandSurface  = 0.5 + upperFill * 0.45;   // y of flat sand top
+      float inUpperSand  = inGlass
+                         * step(0.5, uv.y)
+                         * step(uv.y, sandSurface);
 
-      // Fine surface grain
-      color += (noise(vUv * 130.0) - 0.5) * 0.04;
+      // ── Lower sand pile (cone grows upward from bottom as t→1) ────
+      float pileH       = t * 0.45;                  // apex height above y=0.04
+      float apexY       = 0.04 + pileH;              // y of pile apex
+      float pileSlope   = 0.65;                      // horizontal spread per unit height
+      float pileSurface = apexY - abs(cx) * pileSlope;
+      float inLowerSand = inGlass
+                        * step(uv.y, 0.5)
+                        * step(uv.y, pileSurface)
+                        * step(0.005, pileH);         // hide before pile starts
+
+      // ── Falling sand stream at neck ────────────────────────────────
+      float streamW   = 0.030;
+      float inStream  = step(abs(cx), streamW) * inGlass * (1.0 - inUpperSand);
+      // Animated particle column using layered noise
+      float fallNoise = noise(vec2(cx * 25.0 + 1.3, uv.y * 7.0 - time * 4.5));
+      float stream    = smoothstep(0.5, 1.0, fallNoise) * inStream;
+      // Fade stream to zero as upper chamber empties
+      stream *= smoothstep(0.0, 0.06, t) * smoothstep(1.0, 0.93, t);
+
+      // ── Surface shimmer on sand tops ──────────────────────────────
+      float shimmer  = noise(uv * 55.0 + vec2(time * 0.08, 0.0)) * 0.07;
+
+      // ── Colors ────────────────────────────────────────────────────
+      vec3 sandTone = mix(vec3(0.80, 0.65, 0.38),
+                         baseColor * 0.65 + vec3(0.25, 0.18, 0.05), 0.45);
+      vec3 upperC   = sandTone + shimmer;
+      vec3 lowerC   = sandTone * 0.88 + shimmer * 0.5;   // slightly darker pile
+      vec3 streamC  = sandTone * 1.20;
+      vec3 glassC   = vec3(0.50, 0.78, 1.00);
+      vec3 bg       = baseColor * 0.06 + vec3(0.03, 0.04, 0.09);
+      vec3 inner    = bg * 1.5;
+
+      vec3 color = mix(vec3(0.0), inner, inGlass);
+      color = mix(color, lowerC,  inLowerSand);
+      color = mix(color, upperC,  inUpperSand);
+      color = mix(color, streamC, stream);
+      color = mix(color, glassC,  onBorder * 0.72);
 
       gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
     }
