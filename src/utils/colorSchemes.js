@@ -17,6 +17,10 @@ export const TILE_STYLES = {
   carbonFiber: { label: 'Carbon Fiber', cost: 'low', type: 'pattern' },
   hexGrid:     { label: 'Hex Grid',     cost: 'low', type: 'procedural' },
   comic:       { label: 'Comic Book',   cost: 'low', type: 'pattern' },
+  cafeWall:    { label: 'Café Wall',    cost: 'low', type: 'pattern' },
+  hermanGrid:  { label: 'Herman Grid',  cost: 'low', type: 'pattern' },
+  opticSpin:   { label: 'Optic Spin',   cost: 'low', type: 'pattern' },
+  ouchi:       { label: 'Ouchi',        cost: 'low', type: 'pattern' },
   // Living (3D / animated) — natural, elemental, or organic
   circuit:     { label: 'Circuit',      cost: 'med', type: '3d' },
   holographic: { label: 'Holographic',  cost: 'med', type: 'animated' },
