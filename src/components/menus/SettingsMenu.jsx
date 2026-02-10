@@ -322,7 +322,7 @@ const SettingsMenu = ({ onClose, settings, onSettingsChange, faceImages = {}, on
                     >
                       {Object.entries(TILE_STYLES).map(([key, style]) => (
                         <option key={key} value={key}>
-                          {style.label} {style.type === 'animated' ? '~' : ''}
+                          {style.label} {style.type === 'animated' ? '~' : style.type === '3d' ? '*' : ''}
                         </option>
                       ))}
                     </select>

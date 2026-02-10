@@ -438,6 +438,103 @@ const fragmentShaders = {
       gl_FragColor = vec4(color, 1.0);
     }
   `,
+
+  // Grass ground — earthy dirt/soil base visible between grass blades
+  grass: `
+    uniform vec3 baseColor;
+    uniform float time;
+    varying vec2 vUv;
+
+    ${shaderUtils}
+
+    void main() {
+      vec2 uv = vUv * 6.0;
+
+      // Earthy base: mix face color with brown soil tones
+      vec3 soil = vec3(0.28, 0.18, 0.08);
+      vec3 earth = mix(soil, baseColor * 0.4, 0.25);
+
+      // Noise for dirt texture variation
+      float n = fbm(uv + 0.5);
+      earth = mix(earth, earth * 1.4, n * 0.5);
+
+      // Small pebble/grain spots
+      float grain = noise(uv * 8.0);
+      earth = mix(earth, earth * 0.6, smoothstep(0.7, 0.75, grain) * 0.4);
+
+      // Subtle darker patches (moisture)
+      float moisture = fbm(uv * 0.8 + 10.0);
+      earth = mix(earth, earth * 0.7, smoothstep(0.5, 0.7, moisture) * 0.3);
+
+      gl_FragColor = vec4(earth, 1.0);
+    }
+  `,
+
+  // Ice — frozen crystalline surface with cracks and shimmer
+  ice: `
+    uniform vec3 baseColor;
+    uniform float time;
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vViewPosition;
+
+    ${shaderUtils}
+
+    // Voronoi for crack/cell pattern
+    vec2 voronoi(vec2 p) {
+      vec2 i = floor(p);
+      vec2 f = fract(p);
+      float d1 = 1.0;
+      float d2 = 1.0;
+      for (int x = -1; x <= 1; x++) {
+        for (int y = -1; y <= 1; y++) {
+          vec2 n = vec2(float(x), float(y));
+          vec2 pos = vec2(hash(i + n), hash(i + n + 50.0));
+          float d = length(f - n - pos);
+          if (d < d1) { d2 = d1; d1 = d; }
+          else if (d < d2) { d2 = d; }
+        }
+      }
+      return vec2(d1, d2);
+    }
+
+    void main() {
+      vec2 uv = vUv * 5.0;
+      vec3 normal = normalize(vNormal);
+      vec3 viewDir = normalize(vViewPosition);
+
+      // Ice base color — cool blue/white
+      vec3 iceBase = mix(baseColor, vec3(0.75, 0.88, 1.0), 0.5);
+
+      // Voronoi cracks
+      vec2 v = voronoi(uv);
+      float crack = smoothstep(0.02, 0.06, v.y - v.x);
+      // Deep cracks are darker
+      vec3 crackColor = iceBase * 0.3;
+
+      // Subsurface scattering simulation — light bleeding through
+      float sss = fbm(uv * 2.0 + time * 0.03) * 0.3;
+      vec3 subsurface = mix(iceBase, vec3(0.4, 0.7, 1.0), sss);
+
+      vec3 color = mix(crackColor, subsurface, crack);
+
+      // Frost crystals at edges
+      float edgeDist = min(min(vUv.x, 1.0 - vUv.x), min(vUv.y, 1.0 - vUv.y));
+      float frost = noise(uv * 12.0) * smoothstep(0.15, 0.0, edgeDist);
+      color = mix(color, vec3(0.9, 0.95, 1.0), frost * 0.6);
+
+      // Fresnel rim — brighter at glancing angles
+      float fresnel = pow(1.0 - abs(dot(viewDir, normal)), 3.0);
+      color += vec3(0.3, 0.5, 0.8) * fresnel * 0.4;
+
+      // Sparkle: tiny bright spots that shift with view/time
+      float sparkle = noise(uv * 30.0 + time * 0.5);
+      sparkle = pow(sparkle, 12.0) * 3.0;
+      color += vec3(sparkle);
+
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `,
 };
 
 // Cache for created materials (key: style_colorHex)
@@ -512,6 +609,6 @@ export function clearMaterialCache() {
  * Check if a style needs time updates (animated)
  */
 export function isAnimatedStyle(style) {
-  const animated = ['holographic', 'pulse', 'lava', 'galaxy', 'circuit'];
+  const animated = ['holographic', 'pulse', 'lava', 'galaxy', 'circuit', 'grass', 'ice'];
   return animated.includes(style);
 }
