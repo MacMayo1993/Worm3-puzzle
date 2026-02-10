@@ -569,44 +569,38 @@ const fragmentShaders = {
     }
   `,
 
-  // Water — ocean surface with two-frequency wave interference and caustic shimmer
-  // Connects to: physics (wave superposition, optics), fluid dynamics, oceanography
+  // Water — underwater floor visible through the WaterVolume component above it.
+  // Sandy/rocky seabed with caustic light patterns refracting down from the surface.
+  // Connects to: physics (wave optics, refraction), oceanography, fluid dynamics
   water: `
     uniform vec3 baseColor;
     uniform float time;
     varying vec2 vUv;
-    varying vec3 vNormal;
-    varying vec3 vViewPosition;
 
     ${shaderUtils}
 
     void main() {
-      vec2 uv = vUv;
+      vec2 uv = vUv * 4.5;
 
-      // Two wave trains at different frequencies and directions
-      float w1 = sin(uv.x * 18.0 + uv.y *  6.0 + time * 1.9) * 0.5 + 0.5;
-      float w2 = sin(uv.x *  8.0 - uv.y * 13.0 + time * 1.3) * 0.5 + 0.5;
-      float w3 = sin((uv.x + uv.y) * 14.0      + time * 0.8) * 0.5 + 0.5;
-      float waves = w1 * w2 * w3;
+      // Sandy/rocky ocean floor tinted by face colour
+      vec3 sand  = mix(vec3(0.58, 0.47, 0.30), baseColor * 0.42, 0.28);
+      float n    = fbm(uv * 1.3 + 0.35);
+      sand = mix(sand * 0.80, sand * 1.20, n * 0.55);
 
-      // Deep water darkens toward face color; surface brightens toward sky blue
-      vec3 deep    = mix(vec3(0.03, 0.11, 0.26), baseColor * 0.45, 0.3);
-      vec3 surface = mix(vec3(0.18, 0.48, 0.68), baseColor * 0.25 + vec3(0.08, 0.28, 0.5), 0.35);
-      vec3 color   = mix(deep, surface, waves * 0.65);
+      // Refraction-shadow ripples — darker stripes between caustic foci
+      float ripple = sin(uv.x * 7.0 + fbm(uv * 0.9) * 3.2 - time * 0.52) * 0.5 + 0.5;
+      sand = mix(sand * 0.88, sand, ripple);
 
-      // Caustic light — refraction foci dancing on the floor below
-      float caustic = noise(uv * 9.0 + time * 0.45) * noise(uv * 9.0 - time * 0.35 + 0.7);
-      caustic = pow(caustic, 3.0) * 5.0;
-      color += vec3(0.35, 0.55, 0.75) * caustic * 0.28;
+      // Bright caustic foci — light focused by surface waves
+      float c1     = noise(uv * 3.8 + time * 0.50);
+      float c2     = noise(uv * 3.8 - time * 0.40 + 0.85);
+      float caustic = pow(c1 * c2, 2.6) * 5.5;
 
-      // Fresnel crest highlight
-      vec3 viewDir = normalize(vViewPosition);
-      float fresnel = pow(1.0 - abs(dot(normalize(vNormal), viewDir)), 2.2);
-      color += vec3(0.75, 0.88, 1.0) * waves * fresnel * 0.22;
+      // Overall deep-water tint (blue-green veil over the floor)
+      vec3 waterTint = mix(vec3(0.03, 0.14, 0.40), baseColor * 0.28, 0.20);
 
-      // Foam at highest wave peaks
-      float foam = smoothstep(0.72, 0.92, w1 * w2) * 0.28;
-      color = mix(color, vec3(0.88, 0.94, 1.0), foam);
+      vec3 color = mix(waterTint * 0.60, sand, 0.52);
+      color += vec3(0.32, 0.58, 0.88) * caustic * 0.28;
 
       gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
     }
