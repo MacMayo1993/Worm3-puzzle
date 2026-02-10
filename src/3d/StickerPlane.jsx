@@ -724,47 +724,47 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
       </mesh>
 
       {/* 3D grass blades overlay */}
-      {tileStyle === 'grass' && !isGlass && !isSudokube && (
+      {tileStyle === 'grass' && !isGlass && !isSudokube && !currTexture && (
         <GrassBlades faceColor={baseColor} />
       )}
 
       {/* 3D water volume — transparent box + animated rippling surface */}
-      {tileStyle === 'water' && !isGlass && !isSudokube && (
+      {tileStyle === 'water' && !isGlass && !isSudokube && !currTexture && (
         <WaterVolume faceColor={baseColor} />
       )}
 
       {/* 3D lava volume — bubbling molten surface + floating embers */}
-      {tileStyle === 'lava' && !isGlass && !isSudokube && (
+      {tileStyle === 'lava' && !isGlass && !isSudokube && !currTexture && (
         <LavaVolume faceColor={baseColor} />
       )}
 
       {/* 3D ice volume — crystal depth + sparkle frost surface */}
-      {tileStyle === 'ice' && !isGlass && !isSudokube && (
+      {tileStyle === 'ice' && !isGlass && !isSudokube && !currTexture && (
         <IceVolume faceColor={baseColor} />
       )}
 
       {/* 3D galaxy volume — parallax star-field depth layers */}
-      {tileStyle === 'galaxy' && !isGlass && !isSudokube && (
+      {tileStyle === 'galaxy' && !isGlass && !isSudokube && !currTexture && (
         <GalaxyVolume faceColor={baseColor} />
       )}
 
       {/* 3D neural volume — floating soma nodes + traveling signal arcs */}
-      {tileStyle === 'neural' && !isGlass && !isSudokube && (
+      {tileStyle === 'neural' && !isGlass && !isSudokube && !currTexture && (
         <NeuralVolume faceColor={baseColor} />
       )}
 
       {/* 3D circuit volume — raised PCB board + glowing trace pulses */}
-      {tileStyle === 'circuit' && !isGlass && !isSudokube && (
+      {tileStyle === 'circuit' && !isGlass && !isSudokube && !currTexture && (
         <CircuitVolume faceColor={baseColor} />
       )}
 
       {/* 3D sand volume — displaced dune surface + blowing dust particles */}
-      {tileStyle === 'sand' && !isGlass && !isSudokube && (
+      {tileStyle === 'sand' && !isGlass && !isSudokube && !currTexture && (
         <SandVolume faceColor={baseColor} />
       )}
 
       {/* 3D wood volume — lacquered grain-ridge surface with deep specular sheen */}
-      {tileStyle === 'wood' && !isGlass && !isSudokube && (
+      {tileStyle === 'wood' && !isGlass && !isSudokube && !currTexture && (
         <WoodVolume faceColor={baseColor} />
       )}
 
