@@ -546,71 +546,76 @@ const fragmentShaders = {
 
     void main() {
       vec2 uv = vUv;
-      float cx = uv.x - 0.5;   // [-0.5, 0.5], 0 = center
-      float cy = uv.y - 0.5;   // [-0.5, 0.5], 0 = neck
+      // Flip y so fy=0 is the visual top and fy=1 is the visual bottom
+      float fy = 1.0 - uv.y;
+      float cx = uv.x - 0.5;   // [-0.5, 0.5], 0 = horizontal center
+      float cy = fy - 0.5;     // [-0.5, 0.5], 0 = neck
 
       // 8-second fill cycle then instant "flip" (mod restart)
       float t = mod(time * 0.125, 1.0);   // 0 → 1 over 8 s
 
       // ── Hourglass geometry ─────────────────────────────────────────
-      // Half-width tapers from 0.42 at top/bottom to 0.04 at neck (y=0.5)
+      // Half-width tapers from 0.42 at top/bottom (|cy|=0.5) to 0.04 at neck
       float halfW   = 0.04 + abs(cy) * 0.76;
       float inGlass = step(abs(cx), halfW)
-                    * step(0.03, uv.y)
-                    * step(0.03, 1.0 - uv.y);
+                    * step(0.03, fy)
+                    * step(0.03, 1.0 - fy);
 
       // Glass border: side walls + top/bottom caps
-      float borderW  = 0.018;
-      float sideBdr  = (step(abs(cx), halfW) - step(abs(cx), halfW - borderW))
-                     * step(0.03, uv.y) * step(0.03, 1.0 - uv.y);
-      float topCap   = step(1.0 - 0.036, uv.y) * step(abs(cx), halfW);
-      float botCap   = step(uv.y, 0.036)        * step(abs(cx), halfW);
+      float borderW = 0.018;
+      float sideBdr = (step(abs(cx), halfW) - step(abs(cx), halfW - borderW))
+                    * step(0.03, fy) * step(0.03, 1.0 - fy);
+      float topCap  = step(fy, 0.036)         * step(abs(cx), halfW);
+      float botCap  = step(1.0 - 0.036, fy)   * step(abs(cx), halfW);
       float onBorder = max(sideBdr, max(topCap, botCap));
 
-      // ── Upper sand (drops from top toward neck as t→1) ────────────
-      float upperFill    = 1.0 - t;
-      float sandSurface  = 0.5 + upperFill * 0.45;   // y of flat sand top
-      float inUpperSand  = inGlass
-                         * step(0.5, uv.y)
-                         * step(uv.y, sandSurface);
+      // ── Upper sand (top chamber, fy < 0.5): surface drops toward neck ─
+      float upperFill   = 1.0 - t;
+      float sandSurface = upperFill * 0.45;   // fy of sand's bottom edge
+      float inUpperSand = inGlass
+                        * step(fy, 0.5)
+                        * step(fy, sandSurface);
 
-      // ── Lower sand pile (cone grows upward from bottom as t→1) ────
-      float pileH       = t * 0.45;                  // apex height above y=0.04
-      float apexY       = 0.04 + pileH;              // y of pile apex
-      float pileSlope   = 0.65;                      // horizontal spread per unit height
-      float pileSurface = apexY - abs(cx) * pileSlope;
+      // ── Lower sand pile (fy > 0.5): cone grows upward from bottom ───
+      float pileH      = t * 0.45;
+      float apexFY     = 0.97 - pileH;          // fy of pile apex (rising)
+      float pileSlope  = 0.65;
+      float pileSurfFY = apexFY + abs(cx) * pileSlope;  // cone in fy space
       float inLowerSand = inGlass
-                        * step(uv.y, 0.5)
-                        * step(uv.y, pileSurface)
-                        * step(0.005, pileH);         // hide before pile starts
+                        * step(0.5, fy)
+                        * step(pileSurfFY, fy)   // below the cone surface
+                        * step(0.005, pileH);
 
-      // ── Falling sand stream at neck ────────────────────────────────
-      float streamW   = 0.030;
-      float inStream  = step(abs(cx), streamW) * inGlass * (1.0 - inUpperSand);
-      // Animated particle column using layered noise
-      float fallNoise = noise(vec2(cx * 25.0 + 1.3, uv.y * 7.0 - time * 4.5));
+      // ── Falling stream at neck (fy increasing = downward) ──────────
+      float streamW  = 0.030;
+      float inStream = step(abs(cx), streamW) * inGlass
+                     * (1.0 - inUpperSand) * (1.0 - inLowerSand);
+      // noise argument decreases over time → pattern moves toward larger fy (downward)
+      float fallNoise = noise(vec2(cx * 25.0 + 1.3, fy * 7.0 - time * 4.5));
       float stream    = smoothstep(0.5, 1.0, fallNoise) * inStream;
-      // Fade stream to zero as upper chamber empties
       stream *= smoothstep(0.0, 0.06, t) * smoothstep(1.0, 0.93, t);
 
-      // ── Surface shimmer on sand tops ──────────────────────────────
-      float shimmer  = noise(uv * 55.0 + vec2(time * 0.08, 0.0)) * 0.07;
+      // ── Surface grain texture ──────────────────────────────────────
+      float shimmer = noise(uv * 55.0 + vec2(time * 0.08, 0.0)) * 0.07;
 
-      // ── Colors ────────────────────────────────────────────────────
-      vec3 sandTone = mix(vec3(0.80, 0.65, 0.38),
-                         baseColor * 0.65 + vec3(0.25, 0.18, 0.05), 0.45);
-      vec3 upperC   = sandTone + shimmer;
-      vec3 lowerC   = sandTone * 0.88 + shimmer * 0.5;   // slightly darker pile
-      vec3 streamC  = sandTone * 1.20;
-      vec3 glassC   = vec3(0.50, 0.78, 1.00);
-      vec3 bg       = baseColor * 0.06 + vec3(0.03, 0.04, 0.09);
-      vec3 inner    = bg * 1.5;
+      // ── Colors — baseColor-driven so every face looks distinct ─────
+      // Sand: mostly baseColor, slight warm offset
+      vec3 sandTone = baseColor * 0.82 + vec3(0.12, 0.08, 0.01) + shimmer;
+      vec3 upperC   = sandTone;
+      vec3 lowerC   = sandTone * 0.84;        // pile slightly shadowed
+      vec3 streamC  = sandTone * 1.30;        // bright falling grains
+
+      // Glass edge: baseColor lightened + a cool translucent tint
+      vec3 glassC   = baseColor * 0.45 + vec3(0.38, 0.42, 0.48);
+
+      vec3 bg    = baseColor * 0.05 + vec3(0.02, 0.03, 0.06);
+      vec3 inner = bg * 1.6;   // slightly lighter interior void
 
       vec3 color = mix(vec3(0.0), inner, inGlass);
       color = mix(color, lowerC,  inLowerSand);
       color = mix(color, upperC,  inUpperSand);
       color = mix(color, streamC, stream);
-      color = mix(color, glassC,  onBorder * 0.72);
+      color = mix(color, glassC,  onBorder * 0.78);
 
       gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
     }

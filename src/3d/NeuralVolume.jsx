@@ -195,12 +195,22 @@ export default function NeuralVolume({ faceColor }) {
     transparent: true, side: THREE.DoubleSide, depthWrite: false,
   }), [neuCol]);
 
+  // somaMat is intentionally stable (no neuCol dep) so that the instancedMesh
+  // args never change — R3F destroys and recreates the underlying Three.js object
+  // when args change, which would discard the instance matrices set below.
+  // Color updates are pushed imperatively via the useEffect that follows.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const somaMat = useMemo(() => new THREE.ShaderMaterial({
-    uniforms: { neuColor: { value: neuCol }, time: sharedUniforms.time },
+    uniforms: { neuColor: { value: neuCol.clone() }, time: sharedUniforms.time },
     vertexShader: somaVertexShader, fragmentShader: somaFragmentShader,
     transparent: true, depthWrite: false,
     blending: THREE.AdditiveBlending,
-  }), [neuCol]);
+  }), []); // mount-only — color kept in sync below
+
+  // Sync colour uniform without recreating the material (and thus the mesh)
+  useEffect(() => {
+    somaMat.uniforms.neuColor.value.copy(neuCol);
+  }, [neuCol, somaMat]);
 
   const signalMat = useMemo(() => new THREE.ShaderMaterial({
     uniforms: { neuColor: { value: neuCol }, time: sharedUniforms.time },
