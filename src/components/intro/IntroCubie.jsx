@@ -8,8 +8,11 @@ import { FACE_COLORS } from '../../utils/constants.js';
  *   { PZ, NZ, PX, NX, PY, NY }
  * When provided, the outer sticker for that face renders the live shader
  * instead of a plain colour swatch.
+ *
+ * cubieFlips — optional object mapping face keys to flip rotations (radians):
+ *   { PZ, NZ, PX, NX, PY, NY }
  */
-const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, faceStyles = {} }, ref) => {
+const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, faceStyles = {}, cubieFlips = {} }, ref) => {
   const limit = (size - 1) / 2;
   const x = Math.round(position[0] / (1 + explosionFactor * 1.8) + limit);
   const y = Math.round(position[1] / (1 + explosionFactor * 1.8) + limit);
@@ -39,6 +42,7 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
           color={FACE_COLORS[1]}
           styleKey={isOuterPZ ? faceStyles.PZ : undefined}
           isBack={!isOuterPZ && showAllFaces}
+          flipRotation={cubieFlips.PZ || 0}
         />
       )}
 
@@ -50,6 +54,7 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
           color={FACE_COLORS[4]}
           styleKey={isOuterNZ ? faceStyles.NZ : undefined}
           isBack={!isOuterNZ && showAllFaces}
+          flipRotation={cubieFlips.NZ || 0}
         />
       )}
 
@@ -61,6 +66,7 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
           color={FACE_COLORS[5]}
           styleKey={isOuterPX ? faceStyles.PX : undefined}
           isBack={!isOuterPX && showAllFaces}
+          flipRotation={cubieFlips.PX || 0}
         />
       )}
 
@@ -72,6 +78,7 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
           color={FACE_COLORS[2]}
           styleKey={isOuterNX ? faceStyles.NX : undefined}
           isBack={!isOuterNX && showAllFaces}
+          flipRotation={cubieFlips.NX || 0}
         />
       )}
 
@@ -83,6 +90,7 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
           color={FACE_COLORS[3]}
           styleKey={isOuterPY ? faceStyles.PY : undefined}
           isBack={!isOuterPY && showAllFaces}
+          flipRotation={cubieFlips.PY || 0}
         />
       )}
 
@@ -94,6 +102,7 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
           color={FACE_COLORS[6]}
           styleKey={isOuterNY ? faceStyles.NY : undefined}
           isBack={!isOuterNY && showAllFaces}
+          flipRotation={cubieFlips.NY || 0}
         />
       )}
     </group>
