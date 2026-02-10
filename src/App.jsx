@@ -6,7 +6,7 @@
  * Original 2343 lines reduced to ~700 lines with modular architecture.
  */
 
-import React, { useRef, useEffect, useCallback, Suspense } from 'react';
+import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import './App.css';
@@ -86,6 +86,7 @@ import HandsOverlay from './components/overlays/HandsOverlay.jsx';
 import CubeNet from './components/CubeNet.jsx';
 import SolveMode from './components/SolveMode.jsx';
 import DevConsole from './components/menus/DevConsole.jsx';
+import PlatformerWormMode from './worm/PlatformerWormMode.jsx';
 
 // Mobile detection
 const isMobile = typeof window !== 'undefined' && (
@@ -189,6 +190,9 @@ export default function WORM3() {
 
   const { moveHistory, undo } = useUndo();
 
+  // Co-op Crawler mode
+  const [coopMode, setCoopMode] = useState(false);
+
   // ========================================================================
   // EXPLOSION ANIMATION
   // ========================================================================
@@ -252,6 +256,13 @@ export default function WORM3() {
   const handleMenuSettings = useCallback(() => {
     setShowSettings(true);
   }, [setShowSettings]);
+
+  const handleMenuCoop = useCallback(() => {
+    useGameStore.getState().setShowMainMenu(false);
+    useGameStore.getState().clearLevel();
+    shuffle();
+    setCoopMode(true);
+  }, [shuffle]);
 
   const handleMenuHelp = useCallback(() => {
     useGameStore.getState().setShowMainMenu(false);
@@ -638,6 +649,20 @@ export default function WORM3() {
     return <WelcomeScreen onEnter={handleWelcomeComplete} />;
   }
 
+  if (coopMode) {
+    return (
+      <PlatformerWormMode
+        cubies={cubies}
+        size={size}
+        faceColors={resolvedColors}
+        onQuit={() => {
+          setCoopMode(false);
+          useGameStore.getState().setShowMainMenu(true);
+        }}
+      />
+    );
+  }
+
   return (
     <div className={`full-screen${settings.backgroundTheme === 'dark' ? ' bg-dark' : settings.backgroundTheme === 'midnight' ? ' bg-midnight' : ''}`}>
       {showTutorial && <Tutorial onClose={closeTutorial} />}
@@ -849,6 +874,7 @@ export default function WORM3() {
           onPlay={handleMenuPlay}
           onLevels={handleMenuLevels}
           onFreeplay={handleMenuFreeplay}
+          onCoop={handleMenuCoop}
           onSettings={handleMenuSettings}
           onHelp={handleMenuHelp}
         />
