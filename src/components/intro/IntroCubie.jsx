@@ -55,21 +55,22 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
 
   return (
     <group position={position} ref={ref}>
-      {/* Cubie body — dark frame that lets tiles shine */}
-      <RoundedBox args={[0.98, 0.98, 0.98]} radius={0.05} smoothness={4}>
+      {/* Cubie body — subtle frame, nearly invisible when assembled, visible when exploded */}
+      <RoundedBox args={[0.94, 0.94, 0.94]} radius={0.05} smoothness={4}>
         <meshStandardMaterial
-          color="#0a0a0a"
-          roughness={0.8}
-          metalness={0.1}
-          transparent={explosionFactor > 0.05}
-          opacity={explosionFactor > 0.05 ? 0.3 : 1}
+          color="#2a2a2a"
+          roughness={0.6}
+          metalness={0.3}
+          transparent={true}
+          opacity={explosionFactor > 0.15 ? 0.25 : 0.05}
+          depthWrite={false}
         />
       </RoundedBox>
 
       {/* Front (PZ) */}
       {(showAllFaces || isOuterPZ) && (
         <IntroSticker
-          pos={[0, 0, 0.51]}
+          pos={[0, 0, 0.54]}
           rot={[0, 0, 0]}
           color={getDisplayColor('PZ')}
           styleKey={isOuterPZ ? getDisplayStyle('PZ') : undefined}
@@ -81,7 +82,7 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
       {/* Back (NZ) */}
       {(showAllFaces || isOuterNZ) && (
         <IntroSticker
-          pos={[0, 0, -0.51]}
+          pos={[0, 0, -0.54]}
           rot={[0, Math.PI, 0]}
           color={getDisplayColor('NZ')}
           styleKey={isOuterNZ ? getDisplayStyle('NZ') : undefined}
@@ -93,7 +94,7 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
       {/* Right (PX) */}
       {(showAllFaces || isOuterPX) && (
         <IntroSticker
-          pos={[0.51, 0, 0]}
+          pos={[0.54, 0, 0]}
           rot={[0, Math.PI / 2, 0]}
           color={getDisplayColor('PX')}
           styleKey={isOuterPX ? getDisplayStyle('PX') : undefined}
@@ -105,7 +106,7 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
       {/* Left (NX) */}
       {(showAllFaces || isOuterNX) && (
         <IntroSticker
-          pos={[-0.51, 0, 0]}
+          pos={[-0.54, 0, 0]}
           rot={[0, -Math.PI / 2, 0]}
           color={getDisplayColor('NX')}
           styleKey={isOuterNX ? getDisplayStyle('NX') : undefined}
@@ -117,7 +118,7 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
       {/* Top (PY) */}
       {(showAllFaces || isOuterPY) && (
         <IntroSticker
-          pos={[0, 0.51, 0]}
+          pos={[0, 0.54, 0]}
           rot={[-Math.PI / 2, 0, 0]}
           color={getDisplayColor('PY')}
           styleKey={isOuterPY ? getDisplayStyle('PY') : undefined}
@@ -129,7 +130,7 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
       {/* Bottom (NY) */}
       {(showAllFaces || isOuterNY) && (
         <IntroSticker
-          pos={[0, -0.51, 0]}
+          pos={[0, -0.54, 0]}
           rot={[Math.PI / 2, 0, 0]}
           color={getDisplayColor('NY')}
           styleKey={isOuterNY ? getDisplayStyle('NY') : undefined}
