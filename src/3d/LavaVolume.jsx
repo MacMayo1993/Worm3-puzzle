@@ -6,7 +6,7 @@
 //   3. Lava surface (displaced plane): FBM-bubbling vertex displacement, specular on hot spots
 //   4. Embers (instanced sprites): 36 tiny glowing particles floating upward
 
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { sharedUniforms } from './TileStyleMaterials.jsx';
 
