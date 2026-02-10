@@ -9,20 +9,26 @@ export const COLOR_SCHEMES = {
 
 // Available tile styles per manifold
 export const TILE_STYLES = {
-  solid:       { label: 'Solid', cost: 'low', type: 'static' },
-  glossy:      { label: 'Glossy', cost: 'low', type: 'static' },
-  matte:       { label: 'Matte', cost: 'low', type: 'static' },
-  metallic:    { label: 'Metallic', cost: 'low', type: 'static' },
+  // Classic (2D) — static, pattern, or procedural
+  solid:       { label: 'Solid',        cost: 'low', type: 'static' },
+  glossy:      { label: 'Glossy',       cost: 'low', type: 'static' },
+  matte:       { label: 'Matte',        cost: 'low', type: 'static' },
+  metallic:    { label: 'Metallic',     cost: 'low', type: 'static' },
   carbonFiber: { label: 'Carbon Fiber', cost: 'low', type: 'pattern' },
-  hexGrid:     { label: 'Hexagon Grid', cost: 'low', type: 'procedural' },
-  circuit:     { label: 'Circuit Board', cost: 'med', type: 'procedural' },
-  holographic: { label: 'Holographic', cost: 'med', type: 'animated' },
-  pulse:       { label: 'Pulse', cost: 'med', type: 'animated' },
-  lava:        { label: 'Lava', cost: 'med', type: 'animated' },
-  galaxy:      { label: 'Galaxy', cost: 'med', type: 'animated' },
-  comic:       { label: 'Comic Book', cost: 'low', type: 'pattern' },
-  grass:       { label: 'Grass', cost: 'med', type: '3d' },
-  ice:         { label: 'Ice', cost: 'med', type: 'animated' },
+  hexGrid:     { label: 'Hex Grid',     cost: 'low', type: 'procedural' },
+  comic:       { label: 'Comic Book',   cost: 'low', type: 'pattern' },
+  // Living (3D / animated) — natural, elemental, or organic
+  circuit:     { label: 'Circuit',      cost: 'med', type: 'animated' },
+  holographic: { label: 'Holographic',  cost: 'med', type: 'animated' },
+  pulse:       { label: 'Pulse',        cost: 'med', type: 'animated' },
+  lava:        { label: 'Lava',         cost: 'med', type: 'animated' },
+  galaxy:      { label: 'Galaxy',       cost: 'med', type: 'animated' },
+  grass:       { label: 'Grass',        cost: 'med', type: '3d' },
+  ice:         { label: 'Ice',          cost: 'med', type: 'animated' },
+  sand:        { label: 'Sand',         cost: 'med', type: 'animated' },
+  water:       { label: 'Water',        cost: 'med', type: 'animated' },
+  wood:        { label: 'Wood',         cost: 'low', type: 'pattern'  },
+  neural:      { label: 'Neural',       cost: 'med', type: 'animated' },
 };
 
 export const DEFAULT_SETTINGS = {

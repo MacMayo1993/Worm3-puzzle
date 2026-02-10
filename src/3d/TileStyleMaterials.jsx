@@ -535,6 +535,173 @@ const fragmentShaders = {
       gl_FragColor = vec4(color, 1.0);
     }
   `,
+
+  // Sand — wind-sculpted aeolian ripples shifting across a granular surface
+  // Connects to: geology (sedimentary bedding), physics (granular transport, erosion)
+  sand: `
+    uniform vec3 baseColor;
+    uniform float time;
+    varying vec2 vUv;
+
+    ${shaderUtils}
+
+    void main() {
+      vec2 uv = vUv * 6.0;
+
+      // Two overlapping ripple systems at different angles mimic cross-bedding
+      float r1 = sin(uv.x * 9.0 + fbm(uv * 0.6) * 3.5 - time * 0.18) * 0.5 + 0.5;
+      float r2 = sin(uv.x * 4.5 + uv.y * 0.7 + fbm(uv + 12.0) * 2.0 - time * 0.09) * 0.5 + 0.5;
+
+      // Warm sand palette: pale gold to deep tan
+      vec3 paleGold = mix(vec3(0.88, 0.76, 0.52), baseColor * 0.55 + vec3(0.4, 0.32, 0.18), 0.35);
+      vec3 deepTan  = paleGold * 0.62;
+
+      vec3 color = mix(deepTan, paleGold, r1);
+      color = mix(color, paleGold * 1.18, r2 * 0.18);
+
+      // Shadow in troughs reinforces depth
+      color -= pow(1.0 - r1, 2.5) * 0.22;
+
+      // Fine surface grain
+      color += (noise(vUv * 130.0) - 0.5) * 0.04;
+
+      gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+    }
+  `,
+
+  // Water — ocean surface with two-frequency wave interference and caustic shimmer
+  // Connects to: physics (wave superposition, optics), fluid dynamics, oceanography
+  water: `
+    uniform vec3 baseColor;
+    uniform float time;
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vViewPosition;
+
+    ${shaderUtils}
+
+    void main() {
+      vec2 uv = vUv;
+
+      // Two wave trains at different frequencies and directions
+      float w1 = sin(uv.x * 18.0 + uv.y *  6.0 + time * 1.9) * 0.5 + 0.5;
+      float w2 = sin(uv.x *  8.0 - uv.y * 13.0 + time * 1.3) * 0.5 + 0.5;
+      float w3 = sin((uv.x + uv.y) * 14.0      + time * 0.8) * 0.5 + 0.5;
+      float waves = w1 * w2 * w3;
+
+      // Deep water darkens toward face color; surface brightens toward sky blue
+      vec3 deep    = mix(vec3(0.03, 0.11, 0.26), baseColor * 0.45, 0.3);
+      vec3 surface = mix(vec3(0.18, 0.48, 0.68), baseColor * 0.25 + vec3(0.08, 0.28, 0.5), 0.35);
+      vec3 color   = mix(deep, surface, waves * 0.65);
+
+      // Caustic light — refraction foci dancing on the floor below
+      float caustic = noise(uv * 9.0 + time * 0.45) * noise(uv * 9.0 - time * 0.35 + 0.7);
+      caustic = pow(caustic, 3.0) * 5.0;
+      color += vec3(0.35, 0.55, 0.75) * caustic * 0.28;
+
+      // Fresnel crest highlight
+      vec3 viewDir = normalize(vViewPosition);
+      float fresnel = pow(1.0 - abs(dot(normalize(vNormal), viewDir)), 2.2);
+      color += vec3(0.75, 0.88, 1.0) * waves * fresnel * 0.22;
+
+      // Foam at highest wave peaks
+      float foam = smoothstep(0.72, 0.92, w1 * w2) * 0.28;
+      color = mix(color, vec3(0.88, 0.94, 1.0), foam);
+
+      gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+    }
+  `,
+
+  // Wood — tree cross-section with growth rings, medullary rays, heartwood gradient
+  // Connects to: biology (dendrochronology, plant anatomy), ecology, time/age
+  wood: `
+    uniform vec3 baseColor;
+    uniform float time;
+    varying vec2 vUv;
+
+    ${shaderUtils}
+
+    void main() {
+      vec2 uv = vUv - 0.5;
+
+      // Radial distance for annual growth rings
+      float r = length(uv) * 9.0;
+      // Organic warp makes rings non-circular
+      float warp = fbm(uv * 2.8 + 0.5) * 1.1;
+      float ring  = sin((r + warp) * 3.14159) * 0.5 + 0.5;
+
+      // Heartwood (dark, dense center) fades to lighter sapwood at rim
+      float heartwood = 1.0 - smoothstep(0.0, 0.38, length(uv));
+
+      // Wood palette: warm honey-brown, tinted by face color
+      vec3 light = mix(vec3(0.72, 0.52, 0.30), baseColor * 0.45, 0.22);
+      vec3 dark  = light * 0.52;
+      vec3 heart = mix(light * 0.58, vec3(0.30, 0.16, 0.08), 0.48);
+
+      vec3 color = mix(dark, light, ring);
+      color = mix(color, heart, heartwood * 0.62);
+
+      // Radial medullary rays — bright thin lines radiating from pith
+      float angle = atan(uv.y, uv.x);
+      float ray   = pow(smoothstep(0.88, 1.0, sin(angle * 22.0) * 0.5 + 0.5), 2.0);
+      color = mix(color, light * 1.25, ray * 0.14);
+
+      // Fine longitudinal grain
+      float grain = noise(vUv * vec2(3.5, 55.0));
+      color = mix(color, color * 1.14, grain * 0.18);
+
+      gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+    }
+  `,
+
+  // Neural — synaptic soma nodes with animated signal pulses along the dendrite web
+  // Connects to: neuroscience (action potentials), graph theory, machine learning
+  neural: `
+    uniform vec3 baseColor;
+    uniform float time;
+    varying vec2 vUv;
+
+    ${shaderUtils}
+
+    void main() {
+      vec2 uv = vUv * 6.0;
+      vec2 cell = floor(uv);
+      vec2 f    = fract(uv);
+
+      // Soma nodes: one per Voronoi cell, pulsing at individual rates
+      float glow = 0.0;
+      float minD = 10.0;
+      vec2 closestCell = cell;
+      for (int x = -1; x <= 1; x++) {
+        for (int y = -1; y <= 1; y++) {
+          vec2 n   = vec2(float(x), float(y));
+          vec2 pos = n + vec2(hash(cell + n), hash(cell + n + 50.0));
+          float d  = length(f - pos);
+          float hz = 1.4 + hash(cell + n + 20.0) * 2.2;
+          float ph = hash(cell + n) * 6.28;
+          float pulse = sin(time * hz + ph) * 0.5 + 0.5;
+          glow += smoothstep(0.14, 0.0, d) * (0.55 + pulse * 0.9);
+          if (d < minD) { minD = d; closestCell = cell + n; }
+        }
+      }
+
+      // Axon web: fbm-shaped filaments carry traveling signals
+      float webN = fbm(uv * 0.85 + time * 0.04);
+      float web  = abs(sin(uv.x * 4.2 + webN * 3.1) * sin(uv.y * 4.2 + webN * 2.3));
+      web = smoothstep(0.82, 0.93, web) * 0.45;
+
+      float signal = web * (sin(uv.x * 4.2 + uv.y * 3.3 - time * 2.8) * 0.5 + 0.5);
+
+      // Dark neural background
+      vec3 bg    = mix(vec3(0.02, 0.04, 0.13), baseColor * 0.12, 0.45);
+      vec3 color = bg;
+      color += baseColor * glow * 0.85;
+      color += baseColor * 0.45 * web;
+      color += vec3(0.55, 0.78, 1.0) * signal * 0.55;
+
+      gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+    }
+  `,
 };
 
 // Cache for created materials (key: style_colorHex)
@@ -609,6 +776,6 @@ export function clearMaterialCache() {
  * Check if a style needs time updates (animated)
  */
 export function isAnimatedStyle(style) {
-  const animated = ['holographic', 'pulse', 'lava', 'galaxy', 'circuit', 'grass', 'ice'];
+  const animated = ['holographic', 'pulse', 'lava', 'galaxy', 'circuit', 'grass', 'ice', 'sand', 'water', 'neural'];
   return animated.includes(style);
 }
