@@ -170,7 +170,7 @@ export function stepCrawler(state, input, dt, size) {
 /**
  * Get the ground-level world position (no jump offset) for a crawler state.
  */
-export function getGroundPosition(state, size) {
+export function getGroundPosition(state, _size) {
   const normal = FACE_NORMALS[state.face];
   return state.position.clone().sub(normal.clone().multiplyScalar(state.jumpHeight));
 }

@@ -23,7 +23,7 @@ export default function PlatformerHUD({
   selectedSlice,
   selectedAxis,
   // Callbacks
-  onPause,
+  onPause: _onPause,
   onResume,
   onRestart,
   onQuit,
