@@ -2,7 +2,7 @@ import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-const IntroTunnel = ({ start, end, color1, color2, opacity = 0.8, groupId: _groupId }) => {
+const IntroTunnel = ({ start, end, color1, color2, opacity = 0.8, groupId: _groupId, formation = 1 }) => {
   const linesRef = useRef([]);
   const pulseT = useRef(Math.random() * Math.PI * 2);
 
@@ -68,9 +68,23 @@ const IntroTunnel = ({ start, end, color1, color2, opacity = 0.8, groupId: _grou
 
       const positions = line.geometry.attributes.position.array;
       for (let j = 0; j < points.length; j++) {
-        positions[j * 3] = points[j].x;
-        positions[j * 3 + 1] = points[j].y;
-        positions[j * 3 + 2] = points[j].z;
+        // Apply formation animation - tunnel grows from both endpoints
+        const t = j / 29; // 0 to 1 along the tunnel
+        const distFromEnds = Math.min(t, 1 - t) * 2; // 0 at ends, 1 at middle
+
+        if (distFromEnds < formation) {
+          // This segment is formed
+          positions[j * 3] = points[j].x;
+          positions[j * 3 + 1] = points[j].y;
+          positions[j * 3 + 2] = points[j].z;
+        } else {
+          // This segment hasn't formed yet - collapse to nearest endpoint
+          const useStart = t < 0.5;
+          const endpoint = useStart ? vStart : vEnd;
+          positions[j * 3] = endpoint.x;
+          positions[j * 3 + 1] = endpoint.y;
+          positions[j * 3 + 2] = endpoint.z;
+        }
       }
       line.geometry.attributes.position.needsUpdate = true;
     });
