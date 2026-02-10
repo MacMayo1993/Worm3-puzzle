@@ -8,3 +8,6 @@ export { default as ParityOrbs, OrbCollectEffect } from './ParityOrb.jsx';
 export { default as WormCamera, WormOrientationIndicator } from './WormCamera.jsx';
 export { default as WormTouchControls } from './WormTouchControls.jsx';
 export * from './wormLogic.js';
+
+// Co-op Platformer mode
+export { default as PlatformerWormMode } from './PlatformerWormMode.jsx';
