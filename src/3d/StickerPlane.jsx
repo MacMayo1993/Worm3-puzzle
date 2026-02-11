@@ -21,6 +21,26 @@ const sharedOuterRingGeometry = new THREE.RingGeometry(0.4, 0.5, 16);
 const sharedMainRingGeometry = new THREE.RingGeometry(0.2, 0.45, 16);
 const sharedInnerCircleGeometry = new THREE.CircleGeometry(0.48, 16);
 
+// Frame-shaped sticker geometry for hollow cube mode (square with rectangular hole)
+const _stickerFrameGeo = (() => {
+  const outer = 0.425; // half of 0.85 sticker size
+  const inner = 0.26;  // inner hole half-size — thick frame border
+  const shape = new THREE.Shape();
+  shape.moveTo(-outer, -outer);
+  shape.lineTo(outer, -outer);
+  shape.lineTo(outer, outer);
+  shape.lineTo(-outer, outer);
+  shape.closePath();
+  const hole = new THREE.Path();
+  hole.moveTo(-inner, -inner);
+  hole.lineTo(-inner, inner);
+  hole.lineTo(inner, inner);
+  hole.lineTo(inner, -inner);
+  hole.closePath();
+  shape.holes.push(hole);
+  return new THREE.ShapeGeometry(shape);
+})();
+
 // Particle system for flip effect - uses persistent meshes, no recreation
 const FlipParticles = ({ active, color, onComplete }) => {
   const particlesRef = useRef([]);
@@ -412,7 +432,7 @@ const Worm = ({ position, rotation, scale = 1 }) => {
   );
 };
 
-const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mode, faceColors, faceTextures, faceRow, faceCol, faceSize, manifoldStyles }) {
+const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mode, faceColors, faceTextures, faceRow, faceCol, faceSize, manifoldStyles, hollow }) {
   const fc = faceColors || FACE_COLORS;
   const groupRef = useRef();
   const meshRef = useRef();
@@ -660,7 +680,9 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
   }, [useShaderStyle, tileStyle, baseColor]);
 
   // Set up UVs to show the correct portion of the face texture
+  // Skip for hollow frame geometry (different UV layout, textures not applicable)
   useLayoutEffect(() => {
+    if (hollow) return;
     if (!geoRef.current || faceRow == null || faceCol == null || !faceSize) return;
     const uvs = geoRef.current.attributes.uv;
     if (!currTexture) {
@@ -675,7 +697,7 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
       uvs.setXY(2, u0, v0); uvs.setXY(3, u1, v0);
     }
     uvs.needsUpdate = true;
-  }, [currTexture, faceRow, faceCol, faceSize]);
+  }, [hollow, currTexture, faceRow, faceCol, faceSize]);
 
   // Sync material color/texture when meta.curr changes (e.g., during cube rotation).
   // Uses useLayoutEffect so the color updates BEFORE the browser paints,
@@ -704,8 +726,8 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
 
   return (
     <group position={pos} rotation={rot} ref={groupRef}>
-      <mesh ref={meshRef}>
-        <planeGeometry ref={geoRef} args={[0.85,0.85]} />
+      <mesh ref={meshRef} geometry={hollow ? _stickerFrameGeo : undefined}>
+        {!hollow && <planeGeometry ref={geoRef} args={[0.85,0.85]} />}
         {useGlassStyle && glassMaterial ? (
           <primitive object={glassMaterial} attach="material" />
         ) : useShaderStyle && styleMaterial ? (
@@ -713,7 +735,7 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
         ) : (
           <meshStandardMaterial
             color={materialColor}
-            map={currTexture}
+            map={hollow ? null : currTexture}
             side={THREE.DoubleSide}
             roughness={0.3}
             metalness={0.05}
