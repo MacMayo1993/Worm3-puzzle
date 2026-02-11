@@ -41,11 +41,12 @@ export function useAnimation() {
 
   const pendingMoveRef = useRef(null);
   const echoTimeoutsRef = useRef([]);
+  const echoQueueRef = useRef([]);
 
   // Start a new animation
-  const startAnimation = useCallback((axis, dir, sliceIndex) => {
-    setAnimState({ axis, dir, sliceIndex, t: 0 });
-    const move = { axis, dir, sliceIndex };
+  const startAnimation = useCallback((axis, dir, sliceIndex, isEcho = false) => {
+    setAnimState({ axis, dir, sliceIndex, t: 0, isEcho });
+    const move = { axis, dir, sliceIndex, isEcho };
     setPendingMove(move);
     pendingMoveRef.current = move;
   }, [setAnimState, setPendingMove]);
@@ -54,14 +55,22 @@ export function useAnimation() {
   const handleAnimComplete = useCallback(() => {
     const pm = pendingMoveRef.current;
     if (pm) {
-      const { axis, dir, sliceIndex } = pm;
+      const { axis, dir, sliceIndex, isEcho } = pm;
       setCubies((prev) => rotateSliceCubies(prev, size, axis, sliceIndex, dir));
-      setMoves((m) => m + 1);
-      play('/sounds/rotate.mp3');
-      addToHistory({ type: 'rotation', axis, dir, sliceIndex, timestamp: Date.now() });
 
-      // Trigger antipodal echo rotation if mode is enabled
-      if (antipodalMode && shouldTriggerEcho(axis, sliceIndex, size)) {
+      // Only increment moves and play full sound for user-initiated rotations
+      if (!isEcho) {
+        setMoves((m) => m + 1);
+        play('/sounds/rotate.mp3');
+        addToHistory({ type: 'rotation', axis, dir, sliceIndex, timestamp: Date.now() });
+      } else {
+        // Echo rotation - quieter sound
+        play('/sounds/rotate.mp3', 0.7);
+        incrementReversalCount();
+      }
+
+      // Trigger antipodal echo rotation if mode is enabled and this is NOT already an echo
+      if (!isEcho && antipodalMode && shouldTriggerEcho(axis, sliceIndex, size)) {
         const antipodalSlice = getAntipodalSliceIndex(axis, sliceIndex, size);
         const reverseDir = getReverseDirection(dir);
         const echoId = generateEchoId();
@@ -78,19 +87,32 @@ export function useAnimation() {
           startTime: Date.now(),
         });
 
-        // Schedule echo rotation with delay
+        // Schedule echo rotation ANIMATION with delay
         const timeoutId = gsap.delayedCall(echoDelay, () => {
-          // Apply the antipodal rotation
-          setCubies((prev) => rotateSliceCubies(prev, size, axis, antipodalSlice, reverseDir));
-          play('/sounds/rotate.mp3', 0.7); // Slightly quieter for echo
-          incrementReversalCount();
-          removePendingEchoRotation(echoId);
+          // Check if there's an active animation - if so, queue this echo
+          if (animState) {
+            echoQueueRef.current.push({ axis, dir: reverseDir, sliceIndex: antipodalSlice, echoId });
+          } else {
+            // Start the echo animation
+            startAnimation(axis, reverseDir, antipodalSlice, true);
+            // Remove from pending after animation starts
+            setTimeout(() => removePendingEchoRotation(echoId), 100);
+          }
 
           // Remove from timeouts list
           echoTimeoutsRef.current = echoTimeoutsRef.current.filter(t => t !== timeoutId);
         });
 
         echoTimeoutsRef.current.push(timeoutId);
+      }
+
+      // Process queued echo if any
+      if (echoQueueRef.current.length > 0 && !isEcho) {
+        const nextEcho = echoQueueRef.current.shift();
+        setTimeout(() => {
+          startAnimation(nextEcho.axis, nextEcho.dir, nextEcho.sliceIndex, true);
+          removePendingEchoRotation(nextEcho.echoId);
+        }, 50);
       }
     }
     clearAnimation();
@@ -106,6 +128,8 @@ export function useAnimation() {
     incrementReversalCount,
     addPendingEchoRotation,
     removePendingEchoRotation,
+    startAnimation,
+    animState,
   ]);
 
   // Handle move initiation (from UI interactions)

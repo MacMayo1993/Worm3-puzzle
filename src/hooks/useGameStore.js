@@ -176,7 +176,7 @@ export const useGameStore = create(
     // ========================================================================
     // ANIMATION STATE
     // ========================================================================
-    animState: null, // { axis, dir, sliceIndex, t }
+    animState: null, // { axis, dir, sliceIndex, t, isEcho? }
     pendingMove: null,
 
     setAnimState: (animState) => set({ animState }),
