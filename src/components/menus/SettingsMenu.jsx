@@ -449,9 +449,37 @@ function ModesPanel() {
   const setEchoDelay = useGameStore((state) => state.setEchoDelay);
   const setAntipodalVizIntensity = useGameStore((state) => state.setAntipodalVizIntensity);
 
+  const mengerMode = useGameStore((state) => state.mengerMode);
+  const setMengerMode = useGameStore((state) => state.setMengerMode);
+
   return (
-    <section className="settings-section">
-      <h3 className="settings-section-title">Antipodal Mode - "Mirror Quotient"</h3>
+    <>
+      {/* Menger Void Cube Mode */}
+      <section className="settings-section">
+        <h3 className="settings-section-title">Menger Void Cube Mode</h3>
+        <p style={{
+          fontSize: '13px',
+          color: 'rgba(255, 255, 255, 0.6)',
+          marginBottom: '16px',
+          lineHeight: '1.5'
+        }}>
+          Fractal hollow cube with 20 mini-cubes and 7 void tunnels. Tunnel glow reacts to parity and chaos levels.
+        </p>
+
+        <div className="settings-toggles">
+          <label className="settings-toggle-row">
+            <span className="toggle-label">Enable Menger Mode</span>
+            <div className={`toggle-switch${mengerMode ? ' on' : ''}`}
+              onClick={() => setMengerMode(!mengerMode)}>
+              <div className="toggle-knob" />
+            </div>
+          </label>
+        </div>
+      </section>
+
+      {/* Antipodal Mode */}
+      <section className="settings-section">
+        <h3 className="settings-section-title">Antipodal Mode - "Mirror Quotient"</h3>
       <p style={{
         fontSize: '13px',
         color: 'rgba(255, 255, 255, 0.6)',
@@ -536,7 +564,8 @@ function ModesPanel() {
           </>
         )}
       </div>
-    </section>
+      </section>
+    </>
   );
 }
 
