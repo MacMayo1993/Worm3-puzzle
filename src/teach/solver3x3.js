@@ -23,23 +23,6 @@ function getSticker(cubies, x, y, z, dir) {
   return st ? st.curr : null;
 }
 
-// Helper: get all stickers for a face
-function getFaceColors(cubies, dir) {
-  const size = 3;
-  const colors = [];
-  for (let x = 0; x < size; x++) {
-    for (let y = 0; y < size; y++) {
-      for (let z = 0; z < size; z++) {
-        const st = cubies[x][y][z].stickers[dir];
-        if (st) {
-          colors.push({ x, y, z, color: st.curr });
-        }
-      }
-    }
-  }
-  return colors;
-}
-
 // Check how many white edges are correctly placed on the top (PY) face
 function countWhiteCrossEdges(cubies) {
   let count = 0;
