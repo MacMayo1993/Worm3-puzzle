@@ -7,24 +7,34 @@ import { useGameStore } from '../hooks/useGameStore.js';
 import StickerPlane from './StickerPlane.jsx';
 import WireframeEdge from './WireframeEdge.jsx';
 
-// Menger sponge Level 1 positions (20 sub-cubes: 8 corners + 12 edges)
-// Excludes center and 6 face-centers where Manhattan distance <= 1
-const MENGER_POSITIONS = [];
-for (let x = -1; x <= 1; x++) {
-  for (let y = -1; y <= 1; y++) {
-    for (let z = -1; z <= 1; z++) {
-      if (Math.abs(x) + Math.abs(y) + Math.abs(z) > 1) {
-        MENGER_POSITIONS.push([x, y, z]);
-      }
-    }
-  }
-}
+// Hollow cube edge beams — 12 beams forming a skeletal cube frame
+const EDGE_H = 0.49; // half of cube size
+const BEAM_T = 0.06;  // beam half-thickness
 
-// Shared geometries for Menger sub-cubes (allocated once, reused across all cubies)
-const MENGER_SPACING = 0.98 / 3; // ~0.327 spacing between sub-cube centers
-const MENGER_SUB_SIZE = MENGER_SPACING * 0.85; // sub-cube size with small gaps
-const _mengerSubGeo = new THREE.BoxGeometry(MENGER_SUB_SIZE, MENGER_SUB_SIZE, MENGER_SUB_SIZE);
-const _mengerEdgesGeo = new THREE.EdgesGeometry(_mengerSubGeo);
+// 3 shared geometries for beam orientations (allocated once, reused across all cubies)
+const _beamGeoX = new THREE.BoxGeometry(EDGE_H * 2, BEAM_T * 2, BEAM_T * 2);
+const _beamGeoY = new THREE.BoxGeometry(BEAM_T * 2, EDGE_H * 2, BEAM_T * 2);
+const _beamGeoZ = new THREE.BoxGeometry(BEAM_T * 2, BEAM_T * 2, EDGE_H * 2);
+const BEAM_GEOS = { x: _beamGeoX, y: _beamGeoY, z: _beamGeoZ };
+
+const HOLLOW_EDGES = [
+  // X-axis edges (4)
+  { pos: [0, -EDGE_H, -EDGE_H], geo: 'x' },
+  { pos: [0, -EDGE_H, EDGE_H], geo: 'x' },
+  { pos: [0, EDGE_H, -EDGE_H], geo: 'x' },
+  { pos: [0, EDGE_H, EDGE_H], geo: 'x' },
+  // Y-axis edges (4)
+  { pos: [-EDGE_H, 0, -EDGE_H], geo: 'y' },
+  { pos: [-EDGE_H, 0, EDGE_H], geo: 'y' },
+  { pos: [EDGE_H, 0, -EDGE_H], geo: 'y' },
+  { pos: [EDGE_H, 0, EDGE_H], geo: 'y' },
+  // Z-axis edges (4)
+  { pos: [-EDGE_H, -EDGE_H, 0], geo: 'z' },
+  { pos: [-EDGE_H, EDGE_H, 0], geo: 'z' },
+  { pos: [EDGE_H, -EDGE_H, 0], geo: 'z' },
+  { pos: [EDGE_H, EDGE_H, 0], geo: 'z' },
+];
+
 const _hitBoxGeo = new THREE.BoxGeometry(0.98, 0.98, 0.98);
 
 // Stable sticker position/rotation arrays (allocated once, never recreated).
@@ -218,8 +228,8 @@ const Cubie = React.forwardRef(function Cubie({
     return edgeList;
   }, [visualMode, cubie, isOnEdge, size]);
 
-  // Shared Menger sub-cube material (one per cubie, avoids per-sub-cube allocation)
-  const mengerBodyMat = useMemo(() => {
+  // Shared hollow cube body material (one per cubie)
+  const hollowBodyMat = useMemo(() => {
     if (!mengerMode) return null;
     return new THREE.MeshStandardMaterial({
       color: visualMode === 'wireframe' ? '#000000' : visualMode === 'glass' ? '#111111' : '#0a0a0a',
@@ -231,27 +241,17 @@ const Cubie = React.forwardRef(function Cubie({
     });
   }, [mengerMode, visualMode]);
 
-  const mengerEdgeMat = useMemo(() => {
-    if (!mengerMode) return null;
-    return new THREE.LineBasicMaterial({
-      color: visualMode === 'wireframe' ? '#444444' : '#333333',
-    });
-  }, [mengerMode, visualMode]);
-
   return (
     <group position={explodedPos} ref={ref}>
-      {/* Cubie body: Menger sponge sub-cubes OR standard RoundedBox */}
+      {/* Cubie body: hollow edge-beam frame OR standard RoundedBox */}
       {mengerMode ? (
         <>
           {/* Invisible hit box for pointer events */}
           <mesh geometry={_hitBoxGeo} onPointerDown={handleDown} visible={false} />
 
-          {/* 20 Menger sub-cubes */}
-          {MENGER_POSITIONS.map(([mx, my, mz], idx) => (
-            <group key={idx} position={[mx * MENGER_SPACING, my * MENGER_SPACING, mz * MENGER_SPACING]}>
-              <mesh geometry={_mengerSubGeo} material={mengerBodyMat} />
-              <lineSegments geometry={_mengerEdgesGeo} material={mengerEdgeMat} />
-            </group>
+          {/* 12 edge beams forming a hollow cube frame */}
+          {HOLLOW_EDGES.map((edge, idx) => (
+            <mesh key={idx} position={edge.pos} geometry={BEAM_GEOS[edge.geo]} material={hollowBodyMat} />
           ))}
         </>
       ) : (
@@ -267,8 +267,8 @@ const Cubie = React.forwardRef(function Cubie({
         </RoundedBox>
       )}
 
-      {/* LED Wireframe edges ONLY in wireframe mode */}
-      {visualMode === 'wireframe' && wireframeEdges.map((edge, idx) => (
+      {/* LED Wireframe edges ONLY in wireframe mode (skip in hollow mode — beams are the frame) */}
+      {visualMode === 'wireframe' && !mengerMode && wireframeEdges.map((edge, idx) => (
         <WireframeEdge
           key={idx}
           start={edge.start}
@@ -279,15 +279,15 @@ const Cubie = React.forwardRef(function Cubie({
         />
       ))}
 
-      {/* Regular stickers for ALL other modes (classic, grid, sudokube) */}
+      {/* Stickers — frame-shaped when hollow, solid plane otherwise */}
       {visualMode !== 'wireframe' && (
         <>
-          {isEdge(position[2], (size - 1) / 2) && meta('PZ') && <StickerPlane meta={meta('PZ')} pos={STICKER_POS.PZ} rot={STICKER_ROT.PZ} mode={visualMode} overlay={overlay('PZ')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PZ')} manifoldStyles={manifoldStyles} />}
-          {isEdge(position[2], -(size - 1) / 2) && meta('NZ') && <StickerPlane meta={meta('NZ')} pos={STICKER_POS.NZ} rot={STICKER_ROT.NZ} mode={visualMode} overlay={overlay('NZ')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NZ')} manifoldStyles={manifoldStyles} />}
-          {isEdge(position[0], (size - 1) / 2) && meta('PX') && <StickerPlane meta={meta('PX')} pos={STICKER_POS.PX} rot={STICKER_ROT.PX} mode={visualMode} overlay={overlay('PX')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PX')} manifoldStyles={manifoldStyles} />}
-          {isEdge(position[0], -(size - 1) / 2) && meta('NX') && <StickerPlane meta={meta('NX')} pos={STICKER_POS.NX} rot={STICKER_ROT.NX} mode={visualMode} overlay={overlay('NX')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NX')} manifoldStyles={manifoldStyles} />}
-          {isEdge(position[1], (size - 1) / 2) && meta('PY') && <StickerPlane meta={meta('PY')} pos={STICKER_POS.PY} rot={STICKER_ROT.PY} mode={visualMode} overlay={overlay('PY')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PY')} manifoldStyles={manifoldStyles} />}
-          {isEdge(position[1], -(size - 1) / 2) && meta('NY') && <StickerPlane meta={meta('NY')} pos={STICKER_POS.NY} rot={STICKER_ROT.NY} mode={visualMode} overlay={overlay('NY')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NY')} manifoldStyles={manifoldStyles} />}
+          {isEdge(position[2], (size - 1) / 2) && meta('PZ') && <StickerPlane meta={meta('PZ')} pos={STICKER_POS.PZ} rot={STICKER_ROT.PZ} mode={visualMode} overlay={overlay('PZ')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PZ')} manifoldStyles={manifoldStyles} hollow={mengerMode} />}
+          {isEdge(position[2], -(size - 1) / 2) && meta('NZ') && <StickerPlane meta={meta('NZ')} pos={STICKER_POS.NZ} rot={STICKER_ROT.NZ} mode={visualMode} overlay={overlay('NZ')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NZ')} manifoldStyles={manifoldStyles} hollow={mengerMode} />}
+          {isEdge(position[0], (size - 1) / 2) && meta('PX') && <StickerPlane meta={meta('PX')} pos={STICKER_POS.PX} rot={STICKER_ROT.PX} mode={visualMode} overlay={overlay('PX')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PX')} manifoldStyles={manifoldStyles} hollow={mengerMode} />}
+          {isEdge(position[0], -(size - 1) / 2) && meta('NX') && <StickerPlane meta={meta('NX')} pos={STICKER_POS.NX} rot={STICKER_ROT.NX} mode={visualMode} overlay={overlay('NX')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NX')} manifoldStyles={manifoldStyles} hollow={mengerMode} />}
+          {isEdge(position[1], (size - 1) / 2) && meta('PY') && <StickerPlane meta={meta('PY')} pos={STICKER_POS.PY} rot={STICKER_ROT.PY} mode={visualMode} overlay={overlay('PY')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('PY')} manifoldStyles={manifoldStyles} hollow={mengerMode} />}
+          {isEdge(position[1], -(size - 1) / 2) && meta('NY') && <StickerPlane meta={meta('NY')} pos={STICKER_POS.NY} rot={STICKER_ROT.NY} mode={visualMode} overlay={overlay('NY')} faceColors={faceColors} faceTextures={faceTextures} faceSize={size} {...gridPos('NY')} manifoldStyles={manifoldStyles} hollow={mengerMode} />}
         </>
       )}
     </group>
