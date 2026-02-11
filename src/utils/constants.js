@@ -52,3 +52,22 @@ export const VEC_TO_DIR = (x, y, z) => {
   if (x === 0 && y === 0 && z === 1) return 'PZ';
   return 'NZ';
 };
+
+// Antipodal face mapping (for Antipodal Mode)
+// Maps each face direction to its opposite
+export const ANTIPODAL_FACE = {
+  PZ: 'NZ',  // Front ↔ Back
+  NZ: 'PZ',
+  PX: 'NX',  // Right ↔ Left
+  NX: 'PX',
+  PY: 'NY',  // Top ↔ Bottom
+  NY: 'PY'
+};
+
+// Axis to antipodal face mapping (for slice rotations)
+// Maps rotation axis to the faces that are antipodal
+export const AXIS_TO_ANTIPODAL_FACES = {
+  row: ['PY', 'NY'],    // Y-axis: Top ↔ Bottom
+  col: ['PX', 'NX'],    // X-axis: Right ↔ Left
+  depth: ['PZ', 'NZ']   // Z-axis: Front ↔ Back
+};
