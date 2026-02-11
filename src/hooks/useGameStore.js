@@ -289,6 +289,13 @@ export const useGameStore = create(
     setSolveHighlights: (solveHighlights) => set({ solveHighlights }),
 
     // ========================================================================
+    // TEACH MODE STATE
+    // ========================================================================
+    teachModeActive: false,
+
+    setTeachModeActive: (teachModeActive) => set({ teachModeActive }),
+
+    // ========================================================================
     // FACE ROTATION MODE (MOBILE)
     // ========================================================================
     faceRotationTarget: null,

@@ -21,7 +21,10 @@ const MobileControls = ({
   onRotateCCW,
   onUndo,
   canUndo,
-  undoCount
+  undoCount,
+  teachModeActive,
+  onToggleTeachMode,
+  cubeSize
 }) => {
   const [expanded, setExpanded] = useState(false);
 
@@ -215,6 +218,22 @@ const MobileControls = ({
             >
               <span style={{ fontSize: '10px', fontWeight: 600 }}>NET</span>
             </button>
+
+            {/* Teach mode toggle */}
+            {cubeSize === 3 && (
+              <button
+                onClick={() => { onToggleTeachMode(); setExpanded(false); }}
+                style={teachModeActive ? {
+                  ...smallButtonStyle,
+                  background: 'rgba(251, 191, 36, 0.8)',
+                  borderColor: 'rgba(251, 191, 36, 0.5)',
+                  color: '#000'
+                } : smallButtonStyle}
+                aria-label="Toggle teach mode"
+              >
+                <span style={{ fontSize: '9px', fontWeight: 700 }}>TEACH</span>
+              </button>
+            )}
 
             {/* Shuffle */}
             <button
