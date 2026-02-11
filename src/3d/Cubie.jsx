@@ -3,8 +3,29 @@ import { RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
 import { COLORS, FACE_COLORS } from '../utils/constants.js';
 import { getEdgeFlags } from '../game/cubeUtils.js';
+import { useGameStore } from '../hooks/useGameStore.js';
 import StickerPlane from './StickerPlane.jsx';
 import WireframeEdge from './WireframeEdge.jsx';
+
+// Menger sponge Level 1 positions (20 sub-cubes: 8 corners + 12 edges)
+// Excludes center and 6 face-centers where Manhattan distance <= 1
+const MENGER_POSITIONS = [];
+for (let x = -1; x <= 1; x++) {
+  for (let y = -1; y <= 1; y++) {
+    for (let z = -1; z <= 1; z++) {
+      if (Math.abs(x) + Math.abs(y) + Math.abs(z) > 1) {
+        MENGER_POSITIONS.push([x, y, z]);
+      }
+    }
+  }
+}
+
+// Shared geometries for Menger sub-cubes (allocated once, reused across all cubies)
+const MENGER_SPACING = 0.98 / 3; // ~0.327 spacing between sub-cube centers
+const MENGER_SUB_SIZE = MENGER_SPACING * 0.85; // sub-cube size with small gaps
+const _mengerSubGeo = new THREE.BoxGeometry(MENGER_SUB_SIZE, MENGER_SUB_SIZE, MENGER_SUB_SIZE);
+const _mengerEdgesGeo = new THREE.EdgesGeometry(_mengerSubGeo);
+const _hitBoxGeo = new THREE.BoxGeometry(0.98, 0.98, 0.98);
 
 // Stable sticker position/rotation arrays (allocated once, never recreated).
 // Prevents StickerPlane from re-rendering due to new array references.
@@ -55,6 +76,7 @@ const faceValue = (dirKey, x, y, z, size) => {
 const Cubie = React.forwardRef(function Cubie({
   position, cubie, size, onPointerDown, visualMode, explosionFactor = 0, faceColors, faceTextures, manifoldStyles
 }, ref) {
+  const mengerMode = useGameStore((state) => state.mengerMode);
   const limit = (size - 1) / 2;
   const isEdge = (p, v) => Math.abs(p - v) < 0.01;
 
@@ -196,18 +218,54 @@ const Cubie = React.forwardRef(function Cubie({
     return edgeList;
   }, [visualMode, cubie, isOnEdge, size]);
 
+  // Shared Menger sub-cube material (one per cubie, avoids per-sub-cube allocation)
+  const mengerBodyMat = useMemo(() => {
+    if (!mengerMode) return null;
+    return new THREE.MeshStandardMaterial({
+      color: visualMode === 'wireframe' ? '#000000' : visualMode === 'glass' ? '#111111' : '#0a0a0a',
+      roughness: visualMode === 'wireframe' ? 0.9 : visualMode === 'glass' ? 0.05 : 0.25,
+      metalness: visualMode === 'wireframe' ? 0 : visualMode === 'glass' ? 0.3 : 0.15,
+      envMapIntensity: visualMode === 'glass' ? 0.8 : 0.4,
+      transparent: visualMode === 'glass',
+      opacity: visualMode === 'glass' ? 0.12 : 1.0,
+    });
+  }, [mengerMode, visualMode]);
+
+  const mengerEdgeMat = useMemo(() => {
+    if (!mengerMode) return null;
+    return new THREE.LineBasicMaterial({
+      color: visualMode === 'wireframe' ? '#444444' : '#333333',
+    });
+  }, [mengerMode, visualMode]);
+
   return (
     <group position={explodedPos} ref={ref}>
-      <RoundedBox args={[0.98, 0.98, 0.98]} radius={0.08} smoothness={4} onPointerDown={handleDown}>
-        <meshStandardMaterial
-          color={visualMode === 'wireframe' ? "#000000" : visualMode === 'glass' ? "#111111" : "#0a0a0a"}
-          roughness={visualMode === 'wireframe' ? 0.9 : visualMode === 'glass' ? 0.05 : 0.25}
-          metalness={visualMode === 'wireframe' ? 0 : visualMode === 'glass' ? 0.3 : 0.15}
-          envMapIntensity={visualMode === 'glass' ? 0.8 : 0.4}
-          transparent={visualMode === 'glass'}
-          opacity={visualMode === 'glass' ? 0.12 : 1.0}
-        />
-      </RoundedBox>
+      {/* Cubie body: Menger sponge sub-cubes OR standard RoundedBox */}
+      {mengerMode ? (
+        <>
+          {/* Invisible hit box for pointer events */}
+          <mesh geometry={_hitBoxGeo} onPointerDown={handleDown} visible={false} />
+
+          {/* 20 Menger sub-cubes */}
+          {MENGER_POSITIONS.map(([mx, my, mz], idx) => (
+            <group key={idx} position={[mx * MENGER_SPACING, my * MENGER_SPACING, mz * MENGER_SPACING]}>
+              <mesh geometry={_mengerSubGeo} material={mengerBodyMat} />
+              <lineSegments geometry={_mengerEdgesGeo} material={mengerEdgeMat} />
+            </group>
+          ))}
+        </>
+      ) : (
+        <RoundedBox args={[0.98, 0.98, 0.98]} radius={0.08} smoothness={4} onPointerDown={handleDown}>
+          <meshStandardMaterial
+            color={visualMode === 'wireframe' ? "#000000" : visualMode === 'glass' ? "#111111" : "#0a0a0a"}
+            roughness={visualMode === 'wireframe' ? 0.9 : visualMode === 'glass' ? 0.05 : 0.25}
+            metalness={visualMode === 'wireframe' ? 0 : visualMode === 'glass' ? 0.3 : 0.15}
+            envMapIntensity={visualMode === 'glass' ? 0.8 : 0.4}
+            transparent={visualMode === 'glass'}
+            opacity={visualMode === 'glass' ? 0.12 : 1.0}
+          />
+        </RoundedBox>
+      )}
 
       {/* LED Wireframe edges ONLY in wireframe mode */}
       {visualMode === 'wireframe' && wireframeEdges.map((edge, idx) => (

@@ -212,6 +212,7 @@ export default function WORM3() {
   const setAntipodalIntegrityMode = useGameStore((state) => state.setAntipodalIntegrityMode);
   const antipodalData = useAntipodalIntegrity();
   const mengerMode = useGameStore((state) => state.mengerMode);
+  const toggleMengerMode = useGameStore((state) => state.toggleMengerMode);
 
   // Co-op Crawler mode
   const [coopMode, setCoopMode] = useState(false);
@@ -646,6 +647,7 @@ export default function WORM3() {
         }); break;
         case 'c': if (!currentLevelData || currentLevelData.features.chaos) setChaosLevel(l => l > 0 ? 0 : 1); break;
         case 'i': setAntipodalIntegrityMode(!antipodalIntegrityMode); break;
+        case 'm': toggleMengerMode(); break;
         case 'p':
           setHandsMode(!handsMode);
           if (!handsMode) {
@@ -673,7 +675,7 @@ export default function WORM3() {
     reset, shuffle, showDevConsole, setShowDevConsole, setShowHelp, setFlipMode,
     setShowTunnels, setExploded, setShowNetPanel, setVisualMode, setChaosLevel,
     setHandsMode, setHandsMoveHistory, setHandsMoveQueue, setHandsTps, setShowCursor, setShowSettings,
-    antipodalIntegrityMode, setAntipodalIntegrityMode
+    antipodalIntegrityMode, setAntipodalIntegrityMode, toggleMengerMode
   ]);
 
   // ========================================================================
@@ -741,41 +743,35 @@ export default function WORM3() {
               <Environment preset="city" />
             )}
 
-            {/* Render Menger Void Cube or standard CubeAssembly based on mode */}
-            {mengerMode ? (
-              <React.Suspense fallback={null}>
-                <MengerVoidCube />
-              </React.Suspense>
-            ) : (
-              <CubeAssembly
-                size={size}
-                cubies={cubies}
-                onMove={onMove}
-                onTapFlip={onTapFlip}
-                visualMode={visualMode}
-                animState={animState}
-                onAnimComplete={handleAnimComplete}
-                showTunnels={showTunnels}
-                explosionFactor={explosionT}
-                cascades={cascades}
-                onCascadeComplete={onCascadeComplete}
-                manifoldMap={manifoldMap}
-                showInvitation={!useGameStore.getState().hasFlippedOnce}
-                cursor={cursor}
-                showCursor={showCursor}
-                flipMode={flipMode}
-                onSelectTile={handleSelectTile}
-                onClearTileSelection={() => setSelectedTileForRotation(null)}
-                flipWaveOrigins={flipWaveOrigins}
-                onFlipWaveComplete={onFlipWaveComplete}
-                faceColors={resolvedColors}
-                faceTextures={faceTextures}
-                manifoldStyles={settings.manifoldStyles}
-                solveHighlights={solveModeActive ? solveHighlights : teachMode.active ? solveHighlights : []}
-                onFaceRotationMode={handleFaceRotationMode}
-                handsMode={handsMode}
-              />
-            )}
+            {/* CubeAssembly — mengerMode is handled per-cubie inside Cubie.jsx */}
+            <CubeAssembly
+              size={size}
+              cubies={cubies}
+              onMove={onMove}
+              onTapFlip={onTapFlip}
+              visualMode={visualMode}
+              animState={animState}
+              onAnimComplete={handleAnimComplete}
+              showTunnels={showTunnels}
+              explosionFactor={explosionT}
+              cascades={cascades}
+              onCascadeComplete={onCascadeComplete}
+              manifoldMap={manifoldMap}
+              showInvitation={!useGameStore.getState().hasFlippedOnce}
+              cursor={cursor}
+              showCursor={showCursor}
+              flipMode={flipMode}
+              onSelectTile={handleSelectTile}
+              onClearTileSelection={() => setSelectedTileForRotation(null)}
+              flipWaveOrigins={flipWaveOrigins}
+              onFlipWaveComplete={onFlipWaveComplete}
+              faceColors={resolvedColors}
+              faceTextures={faceTextures}
+              manifoldStyles={settings.manifoldStyles}
+              solveHighlights={solveModeActive ? solveHighlights : teachMode.active ? solveHighlights : []}
+              onFaceRotationMode={handleFaceRotationMode}
+              handsMode={handsMode}
+            />
             {teachMode.active && teachMode.layerHighlight && (
               <LayerHighlight
                 axis={teachMode.layerHighlight.axis}
@@ -920,6 +916,12 @@ export default function WORM3() {
                 style={{ color: antipodalIntegrityMode ? '#a78bfa' : undefined, borderColor: antipodalIntegrityMode ? '#a78bfa' : undefined }}
                 title="Toggle antipodal integrity visualization (I)">
                 I(T)
+              </button>
+              <button className={`btn-compact text ${mengerMode ? 'active' : ''}`}
+                onClick={toggleMengerMode}
+                style={{ color: mengerMode ? '#ff9500' : undefined, borderColor: mengerMode ? '#ff9500' : undefined }}
+                title="Toggle Menger cube mode (M)">
+                MENGER
               </button>
               {currentLevelData && (
                 <>
