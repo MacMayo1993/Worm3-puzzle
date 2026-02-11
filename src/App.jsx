@@ -90,6 +90,9 @@ import DevConsole from './components/menus/DevConsole.jsx';
 import TeachMode from './teach/TeachMode.jsx';
 import { useTeachMode } from './teach/useTeachMode.js';
 import LayerHighlight from './teach/LayerHighlight.jsx';
+import AntipodalVisualization from './3d/AntipodalVisualization.jsx';
+import AntipodalHUD from './components/overlays/AntipodalHUD.jsx';
+import { useAntipodalIntegrity } from './hooks/useAntipodalIntegrity.js';
 const PlatformerWormMode = React.lazy(() => import('./worm/PlatformerWormMode.jsx'));
 
 // Mobile detection
@@ -199,6 +202,11 @@ export default function WORM3() {
 
   // Parity instability — flipped tiles spontaneously re-flip and propagate
   useParityDecay();
+
+  // Antipodal integrity — real-time I(T) metric from the paper
+  const antipodalIntegrityMode = useGameStore((state) => state.antipodalIntegrityMode);
+  const setAntipodalIntegrityMode = useGameStore((state) => state.setAntipodalIntegrityMode);
+  const antipodalData = useAntipodalIntegrity();
 
   // Co-op Crawler mode
   const [coopMode, setCoopMode] = useState(false);
@@ -632,6 +640,7 @@ export default function WORM3() {
           return modes[(modes.indexOf(v) + 1) % modes.length];
         }); break;
         case 'c': if (!currentLevelData || currentLevelData.features.chaos) setChaosLevel(l => l > 0 ? 0 : 1); break;
+        case 'i': setAntipodalIntegrityMode(!antipodalIntegrityMode); break;
         case 'p':
           setHandsMode(!handsMode);
           if (!handsMode) {
@@ -658,7 +667,8 @@ export default function WORM3() {
     handleSaveState, handleLoadState, handleLevelSelect, handleTutorialClose,
     reset, shuffle, showDevConsole, setShowDevConsole, setShowHelp, setFlipMode,
     setShowTunnels, setExploded, setShowNetPanel, setVisualMode, setChaosLevel,
-    setHandsMode, setHandsMoveHistory, setHandsMoveQueue, setHandsTps, setShowCursor, setShowSettings
+    setHandsMode, setHandsMoveHistory, setHandsMoveQueue, setHandsTps, setShowCursor, setShowSettings,
+    antipodalIntegrityMode, setAntipodalIntegrityMode
   ]);
 
   // ========================================================================
@@ -760,6 +770,13 @@ export default function WORM3() {
                 sliceIndex={teachMode.layerHighlight.sliceIndex}
                 dir={teachMode.layerHighlight.dir}
                 size={size}
+              />
+            )}
+            {antipodalIntegrityMode && (
+              <AntipodalVisualization
+                antipodalData={antipodalData}
+                size={size}
+                explosionFactor={explosionT}
               />
             )}
           </Suspense>
@@ -885,6 +902,12 @@ export default function WORM3() {
                 style={{ color: handsMode ? '#ff6b35' : undefined, borderColor: handsMode ? '#ff6b35' : undefined }}>
                 HANDS
               </button>
+              <button className={`btn-compact text ${antipodalIntegrityMode ? 'active' : ''}`}
+                onClick={() => setAntipodalIntegrityMode(!antipodalIntegrityMode)}
+                style={{ color: antipodalIntegrityMode ? '#a78bfa' : undefined, borderColor: antipodalIntegrityMode ? '#a78bfa' : undefined }}
+                title="Toggle antipodal integrity visualization (I)">
+                I(T)
+              </button>
               {currentLevelData && (
                 <>
                   <button className="btn-compact text" onClick={() => setShowLevelSelect(true)}
@@ -992,6 +1015,16 @@ export default function WORM3() {
       {faceRotationTarget && <FaceRotationButtons onRotateCW={() => handleFaceRotate('cw')} onRotateCCW={() => handleFaceRotate('ccw')} onCancel={() => setFaceRotationTarget(null)} />}
       {selectedTileForRotation && !flipMode && <TileRotationSelector onRotate={handleTileRotation} onRotateFaceCW={() => handleTileFaceRotation('cw')} onRotateFaceCCW={() => handleTileFaceRotation('ccw')} onCancel={() => setSelectedTileForRotation(null)} />}
       {handsMode && <HandsOverlay recentMoves={handsMoveHistory} lastMove={handsMoveHistory.length > 0 ? handsMoveHistory[handsMoveHistory.length - 1] : null} tps={handsTps} />}
+      {antipodalIntegrityMode && (
+        <AntipodalHUD
+          integrity={antipodalData.integrity}
+          preserved={antipodalData.preserved}
+          total={antipodalData.total}
+          regime={antipodalData.regime}
+          kStar={antipodalData.kStar}
+          onClose={() => setAntipodalIntegrityMode(false)}
+        />
+      )}
       {showDevConsole && <DevConsole onClose={() => setShowDevConsole(false)} onPreset={handlePreset} onSaveState={handleSaveState} onLoadState={handleLoadState} hasSavedState={!!savedCubeState} size={size} onJumpToLevel={handleLevelSelect} onInstantChaos={handleInstantChaos} moveHistory={moveHistory} />}
     </div>
   );
