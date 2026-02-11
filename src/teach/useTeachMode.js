@@ -1,11 +1,58 @@
 // src/teach/useTeachMode.js
 // Hook to manage Teach Mode state and step-by-step algorithm execution
+//
+// Sub-modes:
+//   'demo'   — auto-solves fully; pauses after each move for observation
+//   'guided' — suggests the next algorithm; player executes each step
+//   'quiz'   — presents the current stage's algorithms as choices; wrong → hint
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useGameStore } from '../hooks/useGameStore.js';
 import { BEGINNER_METHOD_3x3, parseAlgorithm } from './algorithms.js';
 import { analyzeState } from './solver3x3.js';
 
+// ---------------------------------------------------------------------------
+// Build quiz options for the current stage
+// ---------------------------------------------------------------------------
+function buildQuizOptions(stageIndex, stages) {
+  const currentStage = stages[stageIndex];
+  if (!currentStage || currentStage.algorithms.length === 0) return [];
+
+  const correct = currentStage.algorithms[0];
+
+  // Pull distractors from adjacent stages
+  const distractors = [];
+  const otherIndices = [
+    stageIndex > 0 ? stageIndex - 1 : stageIndex + 2,
+    stageIndex < stages.length - 1 ? stageIndex + 1 : stageIndex - 2,
+  ].filter((i, pos, arr) => i !== stageIndex && i >= 0 && i < stages.length && arr.indexOf(i) === pos);
+
+  for (const idx of otherIndices) {
+    const s = stages[idx];
+    if (s && s.algorithms.length > 0) {
+      distractors.push(s.algorithms[0]);
+    }
+    if (distractors.length >= 2) break;
+  }
+
+  const options = [correct, ...distractors].slice(0, 3).map((algo, i) => ({
+    notation: algo.notation,
+    name: algo.name,
+    isCorrect: i === 0,
+  }));
+
+  // Fisher-Yates shuffle
+  for (let i = options.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [options[i], options[j]] = [options[j], options[i]];
+  }
+
+  return options;
+}
+
+// ---------------------------------------------------------------------------
+// Hook
+// ---------------------------------------------------------------------------
 export function useTeachMode() {
   const cubies = useGameStore((s) => s.cubies);
   const size = useGameStore((s) => s.size);
@@ -14,14 +61,25 @@ export function useTeachMode() {
   const setPendingMove = useGameStore((s) => s.setPendingMove);
   const setSolveHighlights = useGameStore((s) => s.setSolveHighlights);
 
-  // Teach mode state
+  // Core state
   const [active, setActive] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [selectedAlgo, setSelectedAlgo] = useState(null); // { stageIndex, algoIndex }
-  const [algoMoves, setAlgoMoves] = useState([]); // parsed moves for current algorithm
-  const [currentStep, setCurrentStep] = useState(0); // which move we're on
-  const [isPlaying, setIsPlaying] = useState(false); // auto-play mode
-  const [layerHighlight, setLayerHighlight] = useState(null); // { axis, sliceIndex, dir }
+  const [algoMoves, setAlgoMoves] = useState([]);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [layerHighlight, setLayerHighlight] = useState(null);
+
+  // Sub-mode: 'guided' | 'demo' | 'quiz'
+  const [subMode, setSubMode] = useState('guided');
+
+  // Quiz state
+  const [quizOptions, setQuizOptions] = useState([]);
+  const [quizAnswered, setQuizAnswered] = useState(null); // null | 'correct' | 'wrong'
+  const [quizHintShown, setQuizHintShown] = useState(false);
+
+  // Why card open state (per-algo)
+  const [whyOpen, setWhyOpen] = useState(false);
 
   const isPlayingRef = useRef(false);
   const pendingNextRef = useRef(false);
@@ -32,14 +90,19 @@ export function useTeachMode() {
     const result = analyzeState(cubies);
     setAnalysis(result);
     setSolveHighlights(result.highlights || []);
-  }, [active, cubies, size, setSolveHighlights]);
 
-  // When animation finishes and we're auto-playing, advance to next step
+    if (subMode === 'quiz') {
+      setQuizOptions(buildQuizOptions(result.stageIndex, BEGINNER_METHOD_3x3.stages));
+      setQuizAnswered(null);
+      setQuizHintShown(false);
+    }
+  }, [active, cubies, size, setSolveHighlights, subMode]);
+
+  // When animation finishes and we're auto-playing (demo mode), advance to next step
   useEffect(() => {
     if (pendingNextRef.current && !animState) {
       pendingNextRef.current = false;
       if (isPlayingRef.current) {
-        // Small delay for user to see the result
         const timer = setTimeout(() => {
           if (isPlayingRef.current) {
             advanceStep();
@@ -48,9 +111,11 @@ export function useTeachMode() {
         return () => clearTimeout(timer);
       }
     }
-  }, [animState]);
+  }, [animState]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Enter teach mode
+  // ---------------------------------------------------------------------------
+  // Enter / exit
+  // ---------------------------------------------------------------------------
   const enterTeachMode = useCallback(() => {
     if (size !== 3) return;
     setActive(true);
@@ -63,9 +128,12 @@ export function useTeachMode() {
     setIsPlaying(false);
     isPlayingRef.current = false;
     setLayerHighlight(null);
+    setWhyOpen(false);
+    setQuizAnswered(null);
+    setQuizHintShown(false);
+    setQuizOptions(buildQuizOptions(result.stageIndex, BEGINNER_METHOD_3x3.stages));
   }, [cubies, size, setSolveHighlights]);
 
-  // Exit teach mode
   const exitTeachMode = useCallback(() => {
     setActive(false);
     setAnalysis(null);
@@ -76,9 +144,43 @@ export function useTeachMode() {
     isPlayingRef.current = false;
     setLayerHighlight(null);
     setSolveHighlights([]);
+    setWhyOpen(false);
+    setQuizAnswered(null);
+    setQuizHintShown(false);
   }, [setSolveHighlights]);
 
+  // ---------------------------------------------------------------------------
+  // Sub-mode switching
+  // ---------------------------------------------------------------------------
+  const switchSubMode = useCallback((mode) => {
+    setSubMode(mode);
+    setIsPlaying(false);
+    isPlayingRef.current = false;
+    setQuizAnswered(null);
+    setQuizHintShown(false);
+    setWhyOpen(false);
+
+    if (mode === 'quiz' && analysis) {
+      setQuizOptions(buildQuizOptions(analysis.stageIndex, BEGINNER_METHOD_3x3.stages));
+    }
+
+    if (mode === 'demo' && analysis && analysis.stageId !== 'solved') {
+      const stage = BEGINNER_METHOD_3x3.stages[analysis.stageIndex];
+      if (stage && stage.algorithms.length > 0) {
+        const moves = parseAlgorithm(stage.algorithms[0].notation, 3);
+        setSelectedAlgo({ stageIndex: analysis.stageIndex, algoIndex: 0 });
+        setAlgoMoves(moves);
+        setCurrentStep(0);
+        if (moves.length > 0) {
+          setLayerHighlight({ axis: moves[0].axis, sliceIndex: moves[0].sliceIndex, dir: moves[0].dir });
+        }
+      }
+    }
+  }, [analysis]);
+
+  // ---------------------------------------------------------------------------
   // Select an algorithm to practice
+  // ---------------------------------------------------------------------------
   const selectAlgorithm = useCallback((stageIndex, algoIndex) => {
     const stage = BEGINNER_METHOD_3x3.stages[stageIndex];
     if (!stage) return;
@@ -91,49 +193,40 @@ export function useTeachMode() {
     setCurrentStep(0);
     setIsPlaying(false);
     isPlayingRef.current = false;
+    setWhyOpen(false);
 
-    // Highlight the first move's layer
     if (moves.length > 0) {
-      setLayerHighlight({
-        axis: moves[0].axis,
-        sliceIndex: moves[0].sliceIndex,
-        dir: moves[0].dir,
-      });
+      setLayerHighlight({ axis: moves[0].axis, sliceIndex: moves[0].sliceIndex, dir: moves[0].dir });
     }
   }, []);
 
+  // ---------------------------------------------------------------------------
   // Execute the current step (one move)
+  // ---------------------------------------------------------------------------
   const executeStep = useCallback(() => {
     if (!algoMoves.length || currentStep >= algoMoves.length) return;
-    if (animState) return; // wait for current animation
+    if (animState) return;
 
     const move = algoMoves[currentStep];
     setAnimState({ axis: move.axis, dir: move.dir, sliceIndex: move.sliceIndex, t: 0 });
     setPendingMove({ axis: move.axis, dir: move.dir, sliceIndex: move.sliceIndex });
     pendingNextRef.current = true;
 
-    // Advance step counter
     const nextStep = currentStep + 1;
     setCurrentStep(nextStep);
 
-    // Update layer highlight for next move
     if (nextStep < algoMoves.length) {
-      setLayerHighlight({
-        axis: algoMoves[nextStep].axis,
-        sliceIndex: algoMoves[nextStep].sliceIndex,
-        dir: algoMoves[nextStep].dir,
-      });
+      setLayerHighlight({ axis: algoMoves[nextStep].axis, sliceIndex: algoMoves[nextStep].sliceIndex, dir: algoMoves[nextStep].dir });
     } else {
       setLayerHighlight(null);
     }
   }, [algoMoves, currentStep, animState, setAnimState, setPendingMove]);
 
-  // Advance step (for auto-play)
+  // Advance step (for auto-play / demo mode)
   const advanceStep = useCallback(() => {
     if (currentStep < algoMoves.length && !animState) {
       executeStep();
     } else {
-      // Algorithm complete
       setIsPlaying(false);
       isPlayingRef.current = false;
     }
@@ -147,7 +240,6 @@ export function useTeachMode() {
     } else {
       setIsPlaying(true);
       isPlayingRef.current = true;
-      // Start immediately if not animating
       if (!animState && currentStep < algoMoves.length) {
         executeStep();
       }
@@ -160,21 +252,40 @@ export function useTeachMode() {
     setIsPlaying(false);
     isPlayingRef.current = false;
     if (algoMoves.length > 0) {
-      setLayerHighlight({
-        axis: algoMoves[0].axis,
-        sliceIndex: algoMoves[0].sliceIndex,
-        dir: algoMoves[0].dir,
-      });
+      setLayerHighlight({ axis: algoMoves[0].axis, sliceIndex: algoMoves[0].sliceIndex, dir: algoMoves[0].dir });
     }
   }, [algoMoves]);
 
-  // Get current stage data from the method
+  // ---------------------------------------------------------------------------
+  // Quiz actions
+  // ---------------------------------------------------------------------------
+  const answerQuiz = useCallback((optionIndex) => {
+    const opt = quizOptions[optionIndex];
+    if (!opt) return;
+    if (opt.isCorrect) {
+      setQuizAnswered('correct');
+    } else {
+      setQuizAnswered('wrong');
+      setQuizHintShown(true);
+    }
+  }, [quizOptions]);
+
+  const retryQuiz = useCallback(() => {
+    setQuizAnswered(null);
+    setQuizHintShown(false);
+    if (analysis) {
+      setQuizOptions(buildQuizOptions(analysis.stageIndex, BEGINNER_METHOD_3x3.stages));
+    }
+  }, [analysis]);
+
+  // ---------------------------------------------------------------------------
+  // Derived helpers
+  // ---------------------------------------------------------------------------
   const getCurrentStageData = useCallback(() => {
     if (!analysis) return null;
     return BEGINNER_METHOD_3x3.stages[analysis.stageIndex] || null;
   }, [analysis]);
 
-  // Get the currently selected algorithm info
   const getSelectedAlgoInfo = useCallback(() => {
     if (!selectedAlgo) return null;
     const stage = BEGINNER_METHOD_3x3.stages[selectedAlgo.stageIndex];
@@ -183,7 +294,7 @@ export function useTeachMode() {
   }, [selectedAlgo]);
 
   return {
-    // State
+    // Core state
     active,
     analysis,
     selectedAlgo,
@@ -193,6 +304,21 @@ export function useTeachMode() {
     layerHighlight,
     stages: BEGINNER_METHOD_3x3.stages,
     methodName: BEGINNER_METHOD_3x3.name,
+
+    // Sub-mode
+    subMode,
+    switchSubMode,
+
+    // Why card
+    whyOpen,
+    setWhyOpen,
+
+    // Quiz
+    quizOptions,
+    quizAnswered,
+    quizHintShown,
+    answerQuiz,
+    retryQuiz,
 
     // Actions
     enterTeachMode,
