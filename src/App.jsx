@@ -274,6 +274,15 @@ export default function WORM3() {
     setCoopMode(true);
   }, [shuffle]);
 
+  const handleMenuTeach = useCallback(() => {
+    useGameStore.getState().setShowMainMenu(false);
+    useGameStore.getState().clearLevel();
+    if (size !== 3) changeSize(3);
+    shuffle();
+    // Enter teach mode on next tick so cubies are ready
+    setTimeout(() => teachMode.enterTeachMode(), 0);
+  }, [size, changeSize, shuffle, teachMode]);
+
   const handleMenuHelp = useCallback(() => {
     useGameStore.getState().setShowMainMenu(false);
     setShowTutorial(true);
@@ -909,6 +918,7 @@ export default function WORM3() {
           onLevels={handleMenuLevels}
           onFreeplay={handleMenuFreeplay}
           onCoop={handleMenuCoop}
+          onTeach={handleMenuTeach}
           onSettings={handleMenuSettings}
           onHelp={handleMenuHelp}
         />
