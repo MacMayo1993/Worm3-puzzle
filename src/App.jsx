@@ -87,6 +87,9 @@ import HandsOverlay from './components/overlays/HandsOverlay.jsx';
 import CubeNet from './components/CubeNet.jsx';
 import SolveMode from './components/SolveMode.jsx';
 import DevConsole from './components/menus/DevConsole.jsx';
+import TeachMode from './teach/TeachMode.jsx';
+import { useTeachMode } from './teach/useTeachMode.js';
+import LayerHighlight from './teach/LayerHighlight.jsx';
 const PlatformerWormMode = React.lazy(() => import('./worm/PlatformerWormMode.jsx'));
 
 // Mobile detection
@@ -189,7 +192,10 @@ export default function WORM3() {
   } = useHandsMode();
   const handsMoveTimestamps = useRef([]);
 
-  const { moveHistory, undo } = useUndo();
+  const { moveHistory, undo, canUndo } = useUndo();
+
+  // Teach Mode — step-by-step algorithm teaching
+  const teachMode = useTeachMode();
 
   // Parity instability — flipped tiles spontaneously re-flip and propagate
   useParityDecay();
@@ -735,10 +741,18 @@ export default function WORM3() {
               faceColors={resolvedColors}
               faceTextures={faceTextures}
               manifoldStyles={settings.manifoldStyles}
-              solveHighlights={solveModeActive ? solveHighlights : []}
+              solveHighlights={solveModeActive ? solveHighlights : teachMode.active ? solveHighlights : []}
               onFaceRotationMode={handleFaceRotationMode}
               handsMode={handsMode}
             />
+            {teachMode.active && teachMode.layerHighlight && (
+              <LayerHighlight
+                axis={teachMode.layerHighlight.axis}
+                sliceIndex={teachMode.layerHighlight.sliceIndex}
+                dir={teachMode.layerHighlight.dir}
+                size={size}
+              />
+            )}
           </Suspense>
         </Canvas>
       </div>
@@ -762,8 +776,8 @@ export default function WORM3() {
           showFaceProgress={settings.showFaceProgress}
         />
 
-        {/* Undo Indicator */}
-        {moveHistory.length > 0 && (
+        {/* Undo Indicator - desktop only (mobile uses MobileControls) */}
+        {moveHistory.length > 0 && !isMobile && (
           <div
             style={{
               position: 'fixed', bottom: '20px', left: '20px',
@@ -850,6 +864,13 @@ export default function WORM3() {
                 style={{ color: solveModeActive ? '#00ff88' : undefined, borderColor: solveModeActive ? '#00ff88' : undefined }}>
                 SOLVE
               </button>
+              <button className={`btn-compact text ${teachMode.active ? 'active' : ''}`}
+                onClick={() => { if (teachMode.active) teachMode.exitTeachMode(); else teachMode.enterTeachMode(); }}
+                style={{ color: teachMode.active ? '#fbbf24' : undefined, borderColor: teachMode.active ? '#fbbf24' : undefined }}
+                disabled={size !== 3}
+                title={size !== 3 ? 'Teach mode available for 3×3 only' : 'Learn solving algorithms'}>
+                TEACH
+              </button>
               <button className={`btn-compact text ${handsMode ? 'active' : ''}`}
                 onClick={() => { setHandsMode(!handsMode); if (!handsMode) { setHandsMoveHistory([]); setHandsMoveQueue([]); setHandsTps(0); handsMoveTimestamps.current = []; } }}
                 style={{ color: handsMode ? '#ff6b35' : undefined, borderColor: handsMode ? '#ff6b35' : undefined }}>
@@ -902,6 +923,25 @@ export default function WORM3() {
           onHighlightChange={setSolveHighlights} focusedStep={solveFocusedStep} onFocusStep={setSolveFocusedStep} />
       )}
 
+      {teachMode.active && (
+        <TeachMode
+          analysis={teachMode.analysis}
+          stages={teachMode.stages}
+          methodName={teachMode.methodName}
+          selectedAlgo={teachMode.selectedAlgo}
+          algoMoves={teachMode.algoMoves}
+          currentStep={teachMode.currentStep}
+          isPlaying={teachMode.isPlaying}
+          canExecute={teachMode.canExecute}
+          isAlgoComplete={teachMode.isAlgoComplete}
+          onSelectAlgorithm={teachMode.selectAlgorithm}
+          onExecuteStep={teachMode.executeStep}
+          onToggleAutoPlay={teachMode.toggleAutoPlay}
+          onResetAlgorithm={teachMode.resetAlgorithm}
+          onClose={teachMode.exitTeachMode}
+        />
+      )}
+
       {victory && (
         <VictoryScreen winType={victory} moves={moves} time={gameTime}
           onContinue={handleVictoryContinue} onNewGame={handleVictoryNewGame}
@@ -919,7 +959,11 @@ export default function WORM3() {
           onToggleExplode={() => setExploded(!exploded)} showTunnels={showTunnels}
           onToggleTunnels={() => setShowTunnels(!showTunnels)} onShuffle={shuffle} onReset={reset}
           showNetPanel={showNetPanel} onToggleNet={() => setShowNetPanel(!showNetPanel)}
-          onRotateCW={() => performCursorRotation('cw')} onRotateCCW={() => performCursorRotation('ccw')} />
+          onRotateCW={() => performCursorRotation('cw')} onRotateCCW={() => performCursorRotation('ccw')}
+          onUndo={undo} canUndo={canUndo} undoCount={moveHistory.length}
+          teachModeActive={teachMode.active}
+          onToggleTeachMode={() => { if (teachMode.active) teachMode.exitTeachMode(); else teachMode.enterTeachMode(); }}
+          cubeSize={size} />
       )}
 
       {showMobileTouchHint && !showWelcome && !showTutorial && !showMainMenu && (

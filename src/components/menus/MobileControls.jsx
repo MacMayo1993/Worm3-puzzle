@@ -18,7 +18,13 @@ const MobileControls = ({
   showNetPanel,
   onToggleNet,
   onRotateCW,
-  onRotateCCW
+  onRotateCCW,
+  onUndo,
+  canUndo,
+  undoCount,
+  teachModeActive,
+  onToggleTeachMode,
+  cubeSize
 }) => {
   const [expanded, setExpanded] = useState(false);
 
@@ -62,6 +68,56 @@ const MobileControls = ({
 
   return (
     <>
+      {/* Left side - Undo button (always visible when available) */}
+      {canUndo && (
+        <div style={{
+          position: 'fixed',
+          bottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
+          left: '16px',
+          zIndex: 500,
+          pointerEvents: 'auto'
+        }}>
+          <button
+            onClick={onUndo}
+            style={{
+              ...buttonStyle,
+              width: '54px',
+              height: '54px',
+              fontSize: '22px',
+              background: 'rgba(0, 217, 255, 0.2)',
+              borderColor: 'rgba(0, 217, 255, 0.5)',
+              boxShadow: '0 4px 20px rgba(0, 217, 255, 0.3)',
+              position: 'relative'
+            }}
+            aria-label={`Undo last move (${undoCount} available)`}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00d9ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 10h10a5 5 0 0 1 0 10H9"/>
+              <polyline points="7 14 3 10 7 6"/>
+            </svg>
+            {undoCount > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-4px',
+                background: 'rgba(0, 217, 255, 0.9)',
+                color: '#000',
+                borderRadius: '50%',
+                width: '20px',
+                height: '20px',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                {undoCount}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* Right side - Settings FAB */}
       <div style={{
         position: 'fixed',
@@ -162,6 +218,22 @@ const MobileControls = ({
             >
               <span style={{ fontSize: '10px', fontWeight: 600 }}>NET</span>
             </button>
+
+            {/* Teach mode toggle */}
+            {cubeSize === 3 && (
+              <button
+                onClick={() => { onToggleTeachMode(); setExpanded(false); }}
+                style={teachModeActive ? {
+                  ...smallButtonStyle,
+                  background: 'rgba(251, 191, 36, 0.8)',
+                  borderColor: 'rgba(251, 191, 36, 0.5)',
+                  color: '#000'
+                } : smallButtonStyle}
+                aria-label="Toggle teach mode"
+              >
+                <span style={{ fontSize: '9px', fontWeight: 700 }}>TEACH</span>
+              </button>
+            )}
 
             {/* Shuffle */}
             <button
