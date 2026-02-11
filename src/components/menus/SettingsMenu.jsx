@@ -5,6 +5,7 @@ import {
   updateTilePreview,
   unregisterTilePreview,
 } from '../../3d/TilePreviewRenderer.js';
+import { useGameStore } from '../../hooks/useGameStore.js';
 
 const FACE_LABELS = { 1: 'Front', 2: 'Left', 3: 'Top', 4: 'Back', 5: 'Right', 6: 'Bottom' };
 
@@ -439,6 +440,106 @@ function DisplayPanel({ settings, onSettingsChange }) {
   );
 }
 
+function ModesPanel() {
+  // Access game store directly for mode settings
+  const antipodalMode = useGameStore((state) => state.antipodalMode);
+  const echoDelay = useGameStore((state) => state.echoDelay);
+  const antipodalVizIntensity = useGameStore((state) => state.antipodalVizIntensity);
+  const setAntipodalMode = useGameStore((state) => state.setAntipodalMode);
+  const setEchoDelay = useGameStore((state) => state.setEchoDelay);
+  const setAntipodalVizIntensity = useGameStore((state) => state.setAntipodalVizIntensity);
+
+  return (
+    <section className="settings-section">
+      <h3 className="settings-section-title">Antipodal Mode - "Mirror Quotient"</h3>
+      <p style={{
+        fontSize: '13px',
+        color: 'rgba(255, 255, 255, 0.6)',
+        marginBottom: '16px',
+        lineHeight: '1.5'
+      }}>
+        Enhanced RP² dynamics: rotating one face triggers its antipodal face to rotate in the OPPOSITE direction after a brief echo delay.
+      </p>
+
+      <div className="settings-toggles">
+        {/* Enable/Disable Toggle */}
+        <label className="settings-toggle-row">
+          <span className="toggle-label">Enable Antipodal Mode</span>
+          <div className={`toggle-switch${antipodalMode ? ' on' : ''}`}
+            onClick={() => setAntipodalMode(!antipodalMode)}>
+            <div className="toggle-knob" />
+          </div>
+        </label>
+
+        {/* Echo Delay Slider */}
+        {antipodalMode && (
+          <>
+            <div style={{ marginTop: '16px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '13px',
+                color: 'rgba(255, 255, 255, 0.8)',
+                marginBottom: '8px'
+              }}>
+                Echo Delay: {echoDelay.toFixed(2)}s
+              </label>
+              <input
+                type="range"
+                min="0.05"
+                max="0.8"
+                step="0.05"
+                value={echoDelay}
+                onChange={(e) => setEchoDelay(parseFloat(e.target.value))}
+                style={{
+                  width: '100%',
+                  accentColor: '#3b82f6'
+                }}
+              />
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: '11px',
+                color: 'rgba(255, 255, 255, 0.5)',
+                marginTop: '4px'
+              }}>
+                <span>Fast (0.05s)</span>
+                <span>Slow (0.8s)</span>
+              </div>
+            </div>
+
+            {/* Visualization Intensity */}
+            <div style={{ marginTop: '16px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '13px',
+                color: 'rgba(255, 255, 255, 0.8)',
+                marginBottom: '8px'
+              }}>
+                Visual Effects Intensity
+              </label>
+              <div className="settings-radio-group">
+                {[
+                  { value: 'low', label: 'Low' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'high', label: 'High' }
+                ].map(opt => (
+                  <label key={opt.value}
+                    className={`settings-radio${antipodalVizIntensity === opt.value ? ' active' : ''}`}>
+                    <input type="radio" name="antipodalVizIntensity" value={opt.value}
+                      checked={antipodalVizIntensity === opt.value}
+                      onChange={() => setAntipodalVizIntensity(opt.value)} />
+                    <span className="settings-radio-label">{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 const TABS = [
@@ -446,6 +547,7 @@ const TABS = [
   { id: 'tiles',   label: 'Tiles'   },
   { id: 'scene',   label: 'Scene'   },
   { id: 'display', label: 'Display' },
+  { id: 'modes',   label: 'Modes'   },
 ];
 
 const SettingsMenu = ({ onClose, settings, onSettingsChange, faceImages = {}, onFaceImage }) => {
@@ -492,6 +594,9 @@ const SettingsMenu = ({ onClose, settings, onSettingsChange, faceImages = {}, on
           )}
           {activeTab === 'display' && (
             <DisplayPanel settings={settings} onSettingsChange={onSettingsChange} />
+          )}
+          {activeTab === 'modes' && (
+            <ModesPanel />
           )}
         </div>
       </div>
