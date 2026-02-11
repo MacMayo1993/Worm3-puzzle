@@ -94,6 +94,7 @@ import AntipodalVisualization from './3d/AntipodalVisualization.jsx';
 import AntipodalModeEffects from './3d/AntipodalModeEffects.jsx';
 import AntipodalHUD from './components/overlays/AntipodalHUD.jsx';
 import AntipodalModeHUD from './components/overlays/AntipodalModeHUD.jsx';
+import EchoRotationIndicator from './components/overlays/EchoRotationIndicator.jsx';
 import { useAntipodalIntegrity } from './hooks/useAntipodalIntegrity.js';
 const PlatformerWormMode = React.lazy(() => import('./worm/PlatformerWormMode.jsx'));
 
@@ -1029,6 +1030,7 @@ export default function WORM3() {
         />
       )}
       <AntipodalModeHUD />
+      <EchoRotationIndicator />
       {showDevConsole && <DevConsole onClose={() => setShowDevConsole(false)} onPreset={handlePreset} onSaveState={handleSaveState} onLoadState={handleLoadState} hasSavedState={!!savedCubeState} size={size} onJumpToLevel={handleLevelSelect} onInstantChaos={handleInstantChaos} moveHistory={moveHistory} />}
     </div>
   );
