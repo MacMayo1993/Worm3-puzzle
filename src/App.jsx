@@ -938,16 +938,25 @@ export default function WORM3() {
           analysis={teachMode.analysis}
           stages={teachMode.stages}
           methodName={teachMode.methodName}
+          subMode={teachMode.subMode}
+          onSwitchSubMode={teachMode.switchSubMode}
           selectedAlgo={teachMode.selectedAlgo}
           algoMoves={teachMode.algoMoves}
           currentStep={teachMode.currentStep}
           isPlaying={teachMode.isPlaying}
           canExecute={teachMode.canExecute}
           isAlgoComplete={teachMode.isAlgoComplete}
+          whyOpen={teachMode.whyOpen}
+          onToggleWhy={() => teachMode.setWhyOpen((v) => !v)}
+          quizOptions={teachMode.quizOptions}
+          quizAnswered={teachMode.quizAnswered}
+          quizHintShown={teachMode.quizHintShown}
           onSelectAlgorithm={teachMode.selectAlgorithm}
           onExecuteStep={teachMode.executeStep}
           onToggleAutoPlay={teachMode.toggleAutoPlay}
           onResetAlgorithm={teachMode.resetAlgorithm}
+          onAnswerQuiz={teachMode.answerQuiz}
+          onRetryQuiz={teachMode.retryQuiz}
           onClose={teachMode.exitTeachMode}
         />
       )}
