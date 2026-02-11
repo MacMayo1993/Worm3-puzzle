@@ -762,8 +762,8 @@ export default function WORM3() {
           showFaceProgress={settings.showFaceProgress}
         />
 
-        {/* Undo Indicator */}
-        {moveHistory.length > 0 && (
+        {/* Undo Indicator - desktop only (mobile uses MobileControls) */}
+        {moveHistory.length > 0 && !isMobile && (
           <div
             style={{
               position: 'fixed', bottom: '20px', left: '20px',
@@ -919,7 +919,8 @@ export default function WORM3() {
           onToggleExplode={() => setExploded(!exploded)} showTunnels={showTunnels}
           onToggleTunnels={() => setShowTunnels(!showTunnels)} onShuffle={shuffle} onReset={reset}
           showNetPanel={showNetPanel} onToggleNet={() => setShowNetPanel(!showNetPanel)}
-          onRotateCW={() => performCursorRotation('cw')} onRotateCCW={() => performCursorRotation('ccw')} />
+          onRotateCW={() => performCursorRotation('cw')} onRotateCCW={() => performCursorRotation('ccw')}
+          onUndo={undo} canUndo={canUndo} undoCount={moveHistory.length} />
       )}
 
       {showMobileTouchHint && !showWelcome && !showTutorial && !showMainMenu && (
