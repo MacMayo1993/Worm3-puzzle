@@ -346,6 +346,31 @@ export const useGameStore = create(
     }),
 
     // ========================================================================
+    // MENGER VOID CUBE MODE
+    // ========================================================================
+    mengerMode: false,
+    parityCurrent: 0,      // 0-1, smoothly lerped
+    parityTarget: 0,       // 0 or 1
+    chaosCurrent: 0,       // 0-1, smoothly lerped
+    chaosTarget: 0,        // 0-1 based on chaosLevel
+
+    setMengerMode: (mengerMode) => set({ mengerMode }),
+    toggleMengerMode: () => set((state) => ({ mengerMode: !state.mengerMode })),
+
+    setParityTarget: (parityTarget) => set({ parityTarget }),
+    setChaosTarget: (chaosTarget) => set({ chaosTarget }),
+    setParityCurrent: (parityCurrent) => set({ parityCurrent }),
+    setChaosCurrent: (chaosCurrent) => set({ chaosCurrent }),
+
+    // Smooth lerp for shader uniforms (called from effects)
+    lerpShaderValues: () => {
+      const state = get();
+      const pLerp = state.parityCurrent + (state.parityTarget - state.parityCurrent) * 0.1;
+      const cLerp = state.chaosCurrent + (state.chaosTarget - state.chaosCurrent) * 0.1;
+      set({ parityCurrent: pLerp, chaosCurrent: cLerp });
+    },
+
+    // ========================================================================
     // FACE ROTATION MODE (MOBILE)
     // ========================================================================
     faceRotationTarget: null,

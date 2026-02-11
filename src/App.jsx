@@ -97,6 +97,7 @@ import AntipodalModeHUD from './components/overlays/AntipodalModeHUD.jsx';
 import EchoRotationIndicator from './components/overlays/EchoRotationIndicator.jsx';
 import { useAntipodalIntegrity } from './hooks/useAntipodalIntegrity.js';
 const PlatformerWormMode = React.lazy(() => import('./worm/PlatformerWormMode.jsx'));
+const MengerVoidCube = React.lazy(() => import('./3d/MengerVoidCube.jsx'));
 
 // Mobile detection
 const isMobile = typeof window !== 'undefined' && (
@@ -210,6 +211,7 @@ export default function WORM3() {
   const antipodalIntegrityMode = useGameStore((state) => state.antipodalIntegrityMode);
   const setAntipodalIntegrityMode = useGameStore((state) => state.setAntipodalIntegrityMode);
   const antipodalData = useAntipodalIntegrity();
+  const mengerMode = useGameStore((state) => state.mengerMode);
 
   // Co-op Crawler mode
   const [coopMode, setCoopMode] = useState(false);
@@ -739,34 +741,41 @@ export default function WORM3() {
               <Environment preset="city" />
             )}
 
-            <CubeAssembly
-              size={size}
-              cubies={cubies}
-              onMove={onMove}
-              onTapFlip={onTapFlip}
-              visualMode={visualMode}
-              animState={animState}
-              onAnimComplete={handleAnimComplete}
-              showTunnels={showTunnels}
-              explosionFactor={explosionT}
-              cascades={cascades}
-              onCascadeComplete={onCascadeComplete}
-              manifoldMap={manifoldMap}
-              showInvitation={!useGameStore.getState().hasFlippedOnce}
-              cursor={cursor}
-              showCursor={showCursor}
-              flipMode={flipMode}
-              onSelectTile={handleSelectTile}
-              onClearTileSelection={() => setSelectedTileForRotation(null)}
-              flipWaveOrigins={flipWaveOrigins}
-              onFlipWaveComplete={onFlipWaveComplete}
-              faceColors={resolvedColors}
-              faceTextures={faceTextures}
-              manifoldStyles={settings.manifoldStyles}
-              solveHighlights={solveModeActive ? solveHighlights : teachMode.active ? solveHighlights : []}
-              onFaceRotationMode={handleFaceRotationMode}
-              handsMode={handsMode}
-            />
+            {/* Render Menger Void Cube or standard CubeAssembly based on mode */}
+            {mengerMode ? (
+              <React.Suspense fallback={null}>
+                <MengerVoidCube />
+              </React.Suspense>
+            ) : (
+              <CubeAssembly
+                size={size}
+                cubies={cubies}
+                onMove={onMove}
+                onTapFlip={onTapFlip}
+                visualMode={visualMode}
+                animState={animState}
+                onAnimComplete={handleAnimComplete}
+                showTunnels={showTunnels}
+                explosionFactor={explosionT}
+                cascades={cascades}
+                onCascadeComplete={onCascadeComplete}
+                manifoldMap={manifoldMap}
+                showInvitation={!useGameStore.getState().hasFlippedOnce}
+                cursor={cursor}
+                showCursor={showCursor}
+                flipMode={flipMode}
+                onSelectTile={handleSelectTile}
+                onClearTileSelection={() => setSelectedTileForRotation(null)}
+                flipWaveOrigins={flipWaveOrigins}
+                onFlipWaveComplete={onFlipWaveComplete}
+                faceColors={resolvedColors}
+                faceTextures={faceTextures}
+                manifoldStyles={settings.manifoldStyles}
+                solveHighlights={solveModeActive ? solveHighlights : teachMode.active ? solveHighlights : []}
+                onFaceRotationMode={handleFaceRotationMode}
+                handsMode={handsMode}
+              />
+            )}
             {teachMode.active && teachMode.layerHighlight && (
               <LayerHighlight
                 axis={teachMode.layerHighlight.axis}
