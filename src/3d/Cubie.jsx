@@ -11,11 +11,12 @@ import WireframeEdge from './WireframeEdge.jsx';
 const EDGE_H = 0.49; // half of cube size
 const BEAM_T = 0.06;  // beam half-thickness
 
-// 3 shared geometries for beam orientations (allocated once, reused across all cubies)
-const _beamGeoX = new THREE.BoxGeometry(EDGE_H * 2, BEAM_T * 2, BEAM_T * 2);
-const _beamGeoY = new THREE.BoxGeometry(BEAM_T * 2, EDGE_H * 2, BEAM_T * 2);
-const _beamGeoZ = new THREE.BoxGeometry(BEAM_T * 2, BEAM_T * 2, EDGE_H * 2);
-const BEAM_GEOS = { x: _beamGeoX, y: _beamGeoY, z: _beamGeoZ };
+// Dimension arrays for each beam orientation (used by declarative <boxGeometry>)
+const BEAM_DIMS = {
+  x: [EDGE_H * 2, BEAM_T * 2, BEAM_T * 2],
+  y: [BEAM_T * 2, EDGE_H * 2, BEAM_T * 2],
+  z: [BEAM_T * 2, BEAM_T * 2, EDGE_H * 2],
+};
 
 const HOLLOW_EDGES = [
   // X-axis edges (4)
@@ -34,8 +35,6 @@ const HOLLOW_EDGES = [
   { pos: [EDGE_H, -EDGE_H, 0], geo: 'z' },
   { pos: [EDGE_H, EDGE_H, 0], geo: 'z' },
 ];
-
-const _hitBoxGeo = new THREE.BoxGeometry(0.98, 0.98, 0.98);
 
 // Stable sticker position/rotation arrays (allocated once, never recreated).
 // Prevents StickerPlane from re-rendering due to new array references.
@@ -228,30 +227,29 @@ const Cubie = React.forwardRef(function Cubie({
     return edgeList;
   }, [visualMode, cubie, isOnEdge, size]);
 
-  // Shared hollow cube body material (one per cubie)
-  const hollowBodyMat = useMemo(() => {
-    if (!mengerMode) return null;
-    return new THREE.MeshStandardMaterial({
-      color: visualMode === 'wireframe' ? '#000000' : visualMode === 'glass' ? '#111111' : '#0a0a0a',
-      roughness: visualMode === 'wireframe' ? 0.9 : visualMode === 'glass' ? 0.05 : 0.25,
-      metalness: visualMode === 'wireframe' ? 0 : visualMode === 'glass' ? 0.3 : 0.15,
-      envMapIntensity: visualMode === 'glass' ? 0.8 : 0.4,
-      transparent: visualMode === 'glass',
-      opacity: visualMode === 'glass' ? 0.12 : 1.0,
-    });
-  }, [mengerMode, visualMode]);
-
   return (
     <group position={explodedPos} ref={ref}>
       {/* Cubie body: hollow edge-beam frame OR standard RoundedBox */}
       {mengerMode ? (
         <>
           {/* Invisible hit box for pointer events */}
-          <mesh geometry={_hitBoxGeo} onPointerDown={handleDown} visible={false} />
+          <mesh onPointerDown={handleDown} visible={false}>
+            <boxGeometry args={[0.98, 0.98, 0.98]} />
+          </mesh>
 
           {/* 12 edge beams forming a hollow cube frame */}
           {HOLLOW_EDGES.map((edge, idx) => (
-            <mesh key={idx} position={edge.pos} geometry={BEAM_GEOS[edge.geo]} material={hollowBodyMat} />
+            <mesh key={idx} position={edge.pos}>
+              <boxGeometry args={BEAM_DIMS[edge.geo]} />
+              <meshStandardMaterial
+                color={visualMode === 'wireframe' ? '#000000' : visualMode === 'glass' ? '#111111' : '#0a0a0a'}
+                roughness={visualMode === 'wireframe' ? 0.9 : visualMode === 'glass' ? 0.05 : 0.25}
+                metalness={visualMode === 'wireframe' ? 0 : visualMode === 'glass' ? 0.3 : 0.15}
+                envMapIntensity={visualMode === 'glass' ? 0.8 : 0.4}
+                transparent={visualMode === 'glass'}
+                opacity={visualMode === 'glass' ? 0.12 : 1.0}
+              />
+            </mesh>
           ))}
         </>
       ) : (
