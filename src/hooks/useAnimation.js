@@ -89,8 +89,11 @@ export function useAnimation() {
 
         // Schedule echo rotation ANIMATION with delay
         const timeoutId = gsap.delayedCall(echoDelay, () => {
-          // Check if there's an active animation - if so, queue this echo
-          if (animState) {
+          // Check CURRENT animation state (not closure-captured state)
+          const currentAnimState = useGameStore.getState().animState;
+
+          // If there's an active animation, queue this echo
+          if (currentAnimState) {
             echoQueueRef.current.push({ axis, dir: reverseDir, sliceIndex: antipodalSlice, echoId });
           } else {
             // Start the echo animation
