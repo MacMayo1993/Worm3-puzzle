@@ -68,7 +68,7 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
       {/* Front (PZ) */}
       {(showAllFaces || isOuterPZ) && (
         <IntroSticker
-          pos={[0, 0, 0.51]}
+          pos={[0, 0, 0.53]}
           rot={[0, 0, 0]}
           color={getDisplayColor('PZ')}
           styleKey={isOuterPZ ? getDisplayStyle('PZ') : undefined}
@@ -80,7 +80,7 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
       {/* Back (NZ) */}
       {(showAllFaces || isOuterNZ) && (
         <IntroSticker
-          pos={[0, 0, -0.51]}
+          pos={[0, 0, -0.53]}
           rot={[0, Math.PI, 0]}
           color={getDisplayColor('NZ')}
           styleKey={isOuterNZ ? getDisplayStyle('NZ') : undefined}
@@ -92,7 +92,7 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
       {/* Right (PX) */}
       {(showAllFaces || isOuterPX) && (
         <IntroSticker
-          pos={[0.51, 0, 0]}
+          pos={[0.53, 0, 0]}
           rot={[0, Math.PI / 2, 0]}
           color={getDisplayColor('PX')}
           styleKey={isOuterPX ? getDisplayStyle('PX') : undefined}
@@ -104,7 +104,7 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
       {/* Left (NX) */}
       {(showAllFaces || isOuterNX) && (
         <IntroSticker
-          pos={[-0.51, 0, 0]}
+          pos={[-0.53, 0, 0]}
           rot={[0, -Math.PI / 2, 0]}
           color={getDisplayColor('NX')}
           styleKey={isOuterNX ? getDisplayStyle('NX') : undefined}
@@ -116,7 +116,7 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
       {/* Top (PY) */}
       {(showAllFaces || isOuterPY) && (
         <IntroSticker
-          pos={[0, 0.51, 0]}
+          pos={[0, 0.53, 0]}
           rot={[-Math.PI / 2, 0, 0]}
           color={getDisplayColor('PY')}
           styleKey={isOuterPY ? getDisplayStyle('PY') : undefined}
@@ -128,7 +128,7 @@ const IntroCubie = React.forwardRef(({ position, size, explosionFactor = 0, face
       {/* Bottom (NY) */}
       {(showAllFaces || isOuterNY) && (
         <IntroSticker
-          pos={[0, -0.51, 0]}
+          pos={[0, -0.53, 0]}
           rot={[Math.PI / 2, 0, 0]}
           color={getDisplayColor('NY')}
           styleKey={isOuterNY ? getDisplayStyle('NY') : undefined}
