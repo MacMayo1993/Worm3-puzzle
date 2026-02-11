@@ -296,6 +296,16 @@ export const useGameStore = create(
     setTeachModeActive: (teachModeActive) => set({ teachModeActive }),
 
     // ========================================================================
+    // ANTIPODAL INTEGRITY MODE
+    // ========================================================================
+    antipodalIntegrityMode: false,
+
+    setAntipodalIntegrityMode: (antipodalIntegrityMode) => set({ antipodalIntegrityMode }),
+    toggleAntipodalIntegrityMode: () => set((state) => ({
+      antipodalIntegrityMode: !state.antipodalIntegrityMode
+    })),
+
+    // ========================================================================
     // FACE ROTATION MODE (MOBILE)
     // ========================================================================
     faceRotationTarget: null,
