@@ -21,8 +21,10 @@ const sharedOuterRingGeometry = new THREE.RingGeometry(0.4, 0.5, 16);
 const sharedMainRingGeometry = new THREE.RingGeometry(0.2, 0.45, 16);
 const sharedInnerCircleGeometry = new THREE.CircleGeometry(0.48, 16);
 
-// Frame-shaped sticker geometry for hollow cube mode (square with rectangular hole)
-const _stickerFrameGeo = (() => {
+// Frame-shaped sticker Shape for hollow cube mode (square with rectangular hole).
+// Store the Shape, not the Geometry — each sticker creates its own ShapeGeometry
+// instance via declarative <shapeGeometry>, so R3F can safely dispose per-instance.
+const _stickerFrameShape = (() => {
   const outer = 0.425; // half of 0.85 sticker size
   const inner = 0.26;  // inner hole half-size — thick frame border
   const shape = new THREE.Shape();
@@ -38,7 +40,7 @@ const _stickerFrameGeo = (() => {
   hole.lineTo(inner, -inner);
   hole.closePath();
   shape.holes.push(hole);
-  return new THREE.ShapeGeometry(shape);
+  return shape;
 })();
 
 // Particle system for flip effect - uses persistent meshes, no recreation
@@ -726,8 +728,12 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
 
   return (
     <group position={pos} rotation={rot} ref={groupRef}>
-      <mesh ref={meshRef} geometry={hollow ? _stickerFrameGeo : undefined}>
-        {!hollow && <planeGeometry ref={geoRef} args={[0.85,0.85]} />}
+      <mesh ref={meshRef}>
+        {hollow ? (
+          <shapeGeometry args={[_stickerFrameShape]} />
+        ) : (
+          <planeGeometry ref={geoRef} args={[0.85,0.85]} />
+        )}
         {useGlassStyle && glassMaterial ? (
           <primitive object={glassMaterial} attach="material" />
         ) : useShaderStyle && styleMaterial ? (
