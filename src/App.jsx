@@ -8,7 +8,7 @@
 
 import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Environment } from '@react-three/drei';
+import { Environment, Html } from '@react-three/drei';
 import './App.css';
 
 // Utils
@@ -49,7 +49,7 @@ const PHOTO_PRESETS = new Set([
  * Orbit the camera (drag empty space) to look around the environment.
  * A gentle auto-rotation keeps the scene alive even when idle.
  */
-function InteractivePhotoBackground({ preset }) {
+function InteractivePhotoBackground({ preset, files }) {
   useFrame((state, delta) => {
     // Slow drift: ~6° per second so the panorama feels alive
     if (state.scene.backgroundRotation) {
@@ -59,7 +59,8 @@ function InteractivePhotoBackground({ preset }) {
 
   return (
     <Environment
-      preset={preset}
+      preset={files ? undefined : preset}
+      files={files}
       background
       backgroundBlurriness={0}
       backgroundIntensity={1.2}
@@ -108,6 +109,41 @@ const isMobile = typeof window !== 'undefined' && (
   'ontouchstart' in window ||
   navigator.maxTouchPoints > 0
 );
+
+// Simple Error Boundary for 3D components
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("3D Component Error:", error);
+    console.error("Component Stack:", errorInfo.componentStack);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <group>
+          <mesh>
+            <boxGeometry args={[10, 10, 10]} />
+            <meshBasicMaterial color="red" wireframe />
+          </mesh>
+          <Html position={[0, 0, -2]}>
+            <div style={{ color: 'red', background: 'rgba(0,0,0,0.8)', padding: '10px' }}>
+              Error Loading Background
+              <br />
+              {this.state.error?.message}
+            </div>
+          </Html>
+        </group>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 export default function WORM3() {
   // ========================================================================
@@ -740,14 +776,24 @@ export default function WORM3() {
             {/* Free play: Black Hole (animated favorite) */}
             {!currentLevelData && settings.backgroundTheme === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
             {/* Free play: interactive photo panoramas - orbit to look around, auto-drifts when idle */}
-            {!currentLevelData && PHOTO_PRESETS.has(settings.backgroundTheme) && (
-              <InteractivePhotoBackground preset={settings.backgroundTheme} />
+            {!currentLevelData && (PHOTO_PRESETS.has(settings.backgroundTheme) || ['cave', 'beach'].includes(settings.backgroundTheme)) && (
+              <ErrorBoundary>
+                <InteractivePhotoBackground
+                  preset={PHOTO_PRESETS.has(settings.backgroundTheme) ? settings.backgroundTheme : undefined}
+                  files={
+                    settings.backgroundTheme === 'cave' ? '/WORM-3/environments/cave.exr' :
+                      settings.backgroundTheme === 'beach' ? '/WORM-3/environments/beach.hdr' :
+                        undefined
+                  }
+                />
+              </ErrorBoundary>
             )}
             {/* Free play: fallback for unknown/legacy themes (e.g. old sunrise/sunset in localStorage) */}
             {!currentLevelData && !PHOTO_PRESETS.has(settings.backgroundTheme) &&
-              settings.backgroundTheme !== 'blackhole' && (
-              <BlackHoleEnvironment flipTrigger={blackHolePulse} />
-            )}
+              settings.backgroundTheme !== 'blackhole' &&
+              !['cave', 'beach'].includes(settings.backgroundTheme) && (
+                <BlackHoleEnvironment flipTrigger={blackHolePulse} />
+              )}
             {/* Default environment for lighting/reflections when in a level with no custom background */}
             {currentLevelData && !currentLevelData.background && (
               <Environment preset="city" />
