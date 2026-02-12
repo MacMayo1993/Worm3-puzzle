@@ -410,6 +410,38 @@ const CubeAssembly = React.memo(({
   const explosionFactorRef = useRef(explosionFactor);
   explosionFactorRef.current = explosionFactor;
 
+  // Camera auto-zoom: keep the entire cube in view during explosion
+  const preExplodeDist = useRef(0);
+  const wasExploding = useRef(false);
+
+  useFrame(() => {
+    const ef = explosionFactorRef.current;
+    const isExploding = ef > 0;
+
+    // Capture camera distance the frame explosion starts
+    if (isExploding && !wasExploding.current) {
+      preExplodeDist.current = camera.position.length();
+    }
+    wasExploding.current = isExploding;
+
+    if (preExplodeDist.current > 0) {
+      const explosionMultiplier = size >= 4 ? 1.53 : 1.8;
+      const zoomFactor = 1 + ef * explosionMultiplier * 0.55;
+      const targetDist = preExplodeDist.current * zoomFactor;
+      const currentDist = camera.position.length();
+
+      if (Math.abs(currentDist - targetDist) > 0.05) {
+        camera.position.setLength(currentDist + (targetDist - currentDist) * 0.1);
+      }
+
+      // Done zooming back — clear saved distance
+      if (ef === 0 && Math.abs(currentDist - preExplodeDist.current) < 0.1) {
+        camera.position.setLength(preExplodeDist.current);
+        preExplodeDist.current = 0;
+      }
+    }
+  }, 1); // Priority 1: run AFTER TrackballControls.update() to avoid fighting
+
   // Track the previous animation progress for incremental rotation
   const prevProgressRef = useRef(0);
 
@@ -593,6 +625,7 @@ const CubeAssembly = React.memo(({
         manifoldMap={manifoldMap}
         cubieRefs={cubieRefs.current}
         faceColors={faceColors}
+        explosionFactor={explosionFactor}
       />
       {cascades.map(c => (
         <ChaosWave
