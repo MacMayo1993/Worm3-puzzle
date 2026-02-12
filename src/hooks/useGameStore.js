@@ -346,16 +346,16 @@ export const useGameStore = create(
     }),
 
     // ========================================================================
-    // MENGER VOID CUBE MODE
+    // HOLLOW VOID CUBE MODE
     // ========================================================================
-    mengerMode: false,
+    hollowMode: false,
     parityCurrent: 0,      // 0-1, smoothly lerped
     parityTarget: 0,       // 0 or 1
     chaosCurrent: 0,       // 0-1, smoothly lerped
     chaosTarget: 0,        // 0-1 based on chaosLevel
 
-    setMengerMode: (mengerMode) => set({ mengerMode }),
-    toggleMengerMode: () => set((state) => ({ mengerMode: !state.mengerMode })),
+    setHollowMode: (hollowMode) => set({ hollowMode }),
+    toggleHollowMode: () => set((state) => ({ hollowMode: !state.hollowMode })),
 
     setParityTarget: (parityTarget) => set({ parityTarget }),
     setChaosTarget: (chaosTarget) => set({ chaosTarget }),
