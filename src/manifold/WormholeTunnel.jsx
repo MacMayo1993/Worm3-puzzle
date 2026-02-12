@@ -210,14 +210,12 @@ const WormholeTunnel = ({ meshIdx1, meshIdx2, dirKey1, dirKey2, cubieRefs, inten
               count={30}
               array={new Float32Array(30 * 3)}
               itemSize={3}
-              usage={THREE.DynamicDrawUsage}
             />
             <bufferAttribute
               attach="attributes-color"
               count={30}
               array={strand.colors}
               itemSize={3}
-              usage={THREE.DynamicDrawUsage}
             />
           </bufferGeometry>
           <lineBasicMaterial
