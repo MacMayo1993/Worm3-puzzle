@@ -97,7 +97,7 @@ import AntipodalModeHUD from './components/overlays/AntipodalModeHUD.jsx';
 import EchoRotationIndicator from './components/overlays/EchoRotationIndicator.jsx';
 import { useAntipodalIntegrity } from './hooks/useAntipodalIntegrity.js';
 const PlatformerWormMode = React.lazy(() => import('./worm/PlatformerWormMode.jsx'));
-const MengerVoidCube = React.lazy(() => import('./3d/MengerVoidCube.jsx'));
+const HollowVoidCube = React.lazy(() => import('./3d/HollowVoidCube.jsx'));
 
 // Mobile detection
 const isMobile = typeof window !== 'undefined' && (
@@ -211,8 +211,8 @@ export default function WORM3() {
   const antipodalIntegrityMode = useGameStore((state) => state.antipodalIntegrityMode);
   const setAntipodalIntegrityMode = useGameStore((state) => state.setAntipodalIntegrityMode);
   const antipodalData = useAntipodalIntegrity();
-  const mengerMode = useGameStore((state) => state.mengerMode);
-  const toggleMengerMode = useGameStore((state) => state.toggleMengerMode);
+  const hollowMode = useGameStore((state) => state.hollowMode);
+  const toggleHollowMode = useGameStore((state) => state.toggleHollowMode);
 
   // Co-op Crawler mode
   const [coopMode, setCoopMode] = useState(false);
@@ -647,7 +647,7 @@ export default function WORM3() {
         }); break;
         case 'c': if (!currentLevelData || currentLevelData.features.chaos) setChaosLevel(l => l > 0 ? 0 : 1); break;
         case 'i': setAntipodalIntegrityMode(!antipodalIntegrityMode); break;
-        case 'm': toggleMengerMode(); break;
+        case 'm': toggleHollowMode(); break;
         case 'p':
           setHandsMode(!handsMode);
           if (!handsMode) {
@@ -675,7 +675,7 @@ export default function WORM3() {
     reset, shuffle, showDevConsole, setShowDevConsole, setShowHelp, setFlipMode,
     setShowTunnels, setExploded, setShowNetPanel, setVisualMode, setChaosLevel,
     setHandsMode, setHandsMoveHistory, setHandsMoveQueue, setHandsTps, setShowCursor, setShowSettings,
-    antipodalIntegrityMode, setAntipodalIntegrityMode, toggleMengerMode
+    antipodalIntegrityMode, setAntipodalIntegrityMode, toggleHollowMode
   ]);
 
   // ========================================================================
@@ -743,7 +743,7 @@ export default function WORM3() {
               <Environment preset="city" />
             )}
 
-            {/* CubeAssembly — mengerMode is handled per-cubie inside Cubie.jsx */}
+            {/* CubeAssembly — hollowMode is handled per-cubie inside Cubie.jsx */}
             <CubeAssembly
               size={size}
               cubies={cubies}
@@ -917,11 +917,11 @@ export default function WORM3() {
                 title="Toggle antipodal integrity visualization (I)">
                 I(T)
               </button>
-              <button className={`btn-compact text ${mengerMode ? 'active' : ''}`}
-                onClick={toggleMengerMode}
-                style={{ color: mengerMode ? '#ff9500' : undefined, borderColor: mengerMode ? '#ff9500' : undefined }}
-                title="Toggle Menger cube mode (M)">
-                MENGER
+              <button className={`btn-compact text ${hollowMode ? 'active' : ''}`}
+                onClick={toggleHollowMode}
+                style={{ color: hollowMode ? '#ff9500' : undefined, borderColor: hollowMode ? '#ff9500' : undefined }}
+                title="Toggle hollow cube mode (M)">
+                HOLLOW
               </button>
               {currentLevelData && (
                 <>

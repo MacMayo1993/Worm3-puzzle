@@ -1,7 +1,7 @@
 /**
- * MengerVoidCube.jsx
+ * HollowVoidCube.jsx
  *
- * Level 1 Menger Sponge - Simplified working version
+ * Hollow void cube - Simplified working version
  * - 20 visible mini-cubes (corners + edges)
  * - 7 void tunnels through center
  * - Basic colored faces
@@ -16,9 +16,9 @@ import { useGameStore } from '../hooks/useGameStore.js';
 import { FACE_COLORS } from '../utils/constants.js';
 
 /**
- * Calculate Menger positions (Level 1)
+ * Calculate hollow cube positions
  */
-function calculateMengerPositions() {
+function calculateHollowPositions() {
   const positions = [];
   const scale = 0.7; // Larger scale for visibility
 
@@ -44,9 +44,9 @@ function calculateMengerPositions() {
 }
 
 /**
- * MengerCubelet - Single colored mini-cube
+ * HollowCubelet - Single colored mini-cube
  */
-function MengerCubelet({ position, size = 0.65 }) {
+function HollowCubelet({ position, size = 0.65 }) {
   const meshRef = useRef();
 
   // Create materials for each face
@@ -147,11 +147,11 @@ function VoidSpaceGlow() {
 }
 
 /**
- * MengerVoidCube - Main component
+ * HollowVoidCube - Main component
  */
-export default function MengerVoidCube() {
-  const mengerMode = useGameStore((state) => state.mengerMode);
-  const positions = useMemo(() => calculateMengerPositions(), []);
+export default function HollowVoidCube() {
+  const hollowMode = useGameStore((state) => state.hollowMode);
+  const positions = useMemo(() => calculateHollowPositions(), []);
 
   // Shader value lerping
   useFrame(() => {
@@ -159,7 +159,7 @@ export default function MengerVoidCube() {
     lerpShaderValues();
   });
 
-  if (!mengerMode) {
+  if (!hollowMode) {
     return null;
   }
 
@@ -172,7 +172,7 @@ export default function MengerVoidCube() {
         zoomSpeed={0.8}
         panSpeed={0.5}
         staticMoving
-        enabled={mengerMode}
+        enabled={hollowMode}
       />
 
       {/* Lighting */}
@@ -181,12 +181,12 @@ export default function MengerVoidCube() {
       <directionalLight position={[-5, -5, -5]} intensity={0.4} />
       <pointLight position={[0, 0, 0]} intensity={0.5} color="#ffffff" />
 
-      {/* Menger cube group */}
-      <group name="menger-void-cube">
+      {/* Hollow cube group */}
+      <group name="hollow-void-cube">
         {/* 20 mini-cubes */}
         {positions.map((pos, idx) => (
-          <MengerCubelet
-            key={`menger-${idx}`}
+          <HollowCubelet
+            key={`hollow-${idx}`}
             position={pos}
           />
         ))}

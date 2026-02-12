@@ -449,28 +449,28 @@ function ModesPanel() {
   const setEchoDelay = useGameStore((state) => state.setEchoDelay);
   const setAntipodalVizIntensity = useGameStore((state) => state.setAntipodalVizIntensity);
 
-  const mengerMode = useGameStore((state) => state.mengerMode);
-  const setMengerMode = useGameStore((state) => state.setMengerMode);
+  const hollowMode = useGameStore((state) => state.hollowMode);
+  const setHollowMode = useGameStore((state) => state.setHollowMode);
 
   return (
     <>
-      {/* Menger Void Cube Mode */}
+      {/* Hollow Void Cube Mode */}
       <section className="settings-section">
-        <h3 className="settings-section-title">Menger Void Cube Mode</h3>
+        <h3 className="settings-section-title">Hollow Void Cube Mode</h3>
         <p style={{
           fontSize: '13px',
           color: 'rgba(255, 255, 255, 0.6)',
           marginBottom: '16px',
           lineHeight: '1.5'
         }}>
-          Fractal hollow cube with 20 mini-cubes and 7 void tunnels. Tunnel glow reacts to parity and chaos levels.
+          Hollow cube with 20 mini-cubes and 7 void tunnels. Tunnel glow reacts to parity and chaos levels.
         </p>
 
         <div className="settings-toggles">
           <label className="settings-toggle-row">
-            <span className="toggle-label">Enable Menger Mode</span>
-            <div className={`toggle-switch${mengerMode ? ' on' : ''}`}
-              onClick={() => setMengerMode(!mengerMode)}>
+            <span className="toggle-label">Enable Hollow Mode</span>
+            <div className={`toggle-switch${hollowMode ? ' on' : ''}`}
+              onClick={() => setHollowMode(!hollowMode)}>
               <div className="toggle-knob" />
             </div>
           </label>
