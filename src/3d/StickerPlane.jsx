@@ -26,7 +26,7 @@ const sharedInnerCircleGeometry = new THREE.CircleGeometry(0.48, 16);
 // instance via declarative <shapeGeometry>, so R3F can safely dispose per-instance.
 const _stickerFrameShape = (() => {
   const outer = 0.425; // half of 0.85 sticker size
-  const inner = 0.26;  // inner hole half-size — thick frame border
+  const inner = 0.34;  // inner hole half-size — wider opening, thinner colour border
   const shape = new THREE.Shape();
   shape.moveTo(-outer, -outer);
   shape.lineTo(outer, -outer);

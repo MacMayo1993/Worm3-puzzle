@@ -9,7 +9,7 @@ import WireframeEdge from './WireframeEdge.jsx';
 
 // Hollow cube edge beams — 12 beams forming a skeletal cube frame
 const EDGE_H = 0.49; // half of cube size
-const BEAM_T = 0.06;  // beam half-thickness
+const BEAM_T = 0.04;  // beam half-thickness — slimmer for a more open cage
 
 // Dimension arrays for each beam orientation (used by declarative <boxGeometry>)
 const BEAM_DIMS = {

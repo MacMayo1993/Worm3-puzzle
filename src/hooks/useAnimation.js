@@ -135,11 +135,26 @@ export function useAnimation() {
     animState,
   ]);
 
-  // Handle move initiation (from UI interactions)
-  const onMove = useCallback((axis, dir, sel) => {
+  // Handle move initiation (from UI interactions).
+  // numTurns > 1 is used by live-drag commits so multiple quarter-turns are
+  // applied atomically without triggering N separate animState animations
+  // (Zustand batches synchronous sets, so only the last would survive).
+  const onMove = useCallback((axis, dir, sel, numTurns = 1) => {
     const sliceIndex = axis === 'col' ? sel.x : axis === 'row' ? sel.y : sel.z;
-    startAnimation(axis, dir, sliceIndex);
-  }, [startAnimation]);
+    if (numTurns <= 1) {
+      startAnimation(axis, dir, sliceIndex);
+    } else {
+      // Apply all quarter-turns directly to cubies without an animation pass.
+      setCubies((prev) => {
+        let c = prev;
+        for (let i = 0; i < numTurns; i++) c = rotateSliceCubies(c, size, axis, sliceIndex, dir);
+        return c;
+      });
+      setMoves((m) => m + numTurns);
+      play('/sounds/rotate.mp3');
+      addToHistory({ type: 'rotation', axis, dir, sliceIndex, timestamp: Date.now() });
+    }
+  }, [startAnimation, setCubies, setMoves, addToHistory, size]);
 
   return {
     // State
