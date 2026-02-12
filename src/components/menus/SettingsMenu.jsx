@@ -18,19 +18,24 @@ const SCHEME_LABELS = {
 };
 
 const BG_OPTIONS = [
-  { value: 'blackhole', label: 'Black Hole' },
-  { value: 'sunset',    label: 'Sunset' },
-  { value: 'forest',    label: 'Forest' },
-  { value: 'dawn',      label: 'Sunrise' },
-  { value: 'park',      label: 'Park' },
-  { value: 'night',     label: 'Night Sky' },
-  { value: 'city',      label: 'City Skyline' },
-  { value: 'apartment', label: 'Apartment' },
-  { value: 'lobby',     label: 'Modern Lobby' },
-  { value: 'warehouse', label: 'Warehouse' },
-  { value: 'studio',    label: 'Photo Studio' },
-  { value: 'dark',      label: 'Dark' },
-  { value: 'midnight',  label: 'Midnight Blue' },
+  { value: 'blackhole',    label: 'Black Hole' },
+  { value: 'greatwall',    label: 'Great Wall' },
+  { value: 'petra',        label: 'Petra' },
+  { value: 'redeemer',     label: 'Christ the Redeemer' },
+  { value: 'machupicchu',  label: 'Machu Picchu' },
+  { value: 'chichenitza',  label: 'Chichen Itza' },
+  { value: 'colosseum',    label: 'Colosseum' },
+  { value: 'tajmahal',     label: 'Taj Mahal' },
+  { value: 'forest',       label: 'Forest' },
+  { value: 'park',         label: 'Park' },
+  { value: 'night',        label: 'Night Sky' },
+  { value: 'city',         label: 'City Skyline' },
+  { value: 'apartment',    label: 'Apartment' },
+  { value: 'lobby',        label: 'Modern Lobby' },
+  { value: 'warehouse',    label: 'Warehouse' },
+  { value: 'studio',       label: 'Photo Studio' },
+  { value: 'dark',         label: 'Dark' },
+  { value: 'midnight',     label: 'Midnight Blue' },
 ];
 
 // Styles shown in the Classic (2D) section
