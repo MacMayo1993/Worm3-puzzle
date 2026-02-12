@@ -11,39 +11,35 @@ const FACE_LABELS = { 1: 'Front', 2: 'Left', 3: 'Top', 4: 'Back', 5: 'Right', 6:
 
 const SCHEME_LABELS = {
   standard: 'Standard',
-  neon:     'Neon',
-  pastel:   'Pastel',
-  mono:     'Mono',
-  custom:   'Custom',
+  neon: 'Neon',
+  pastel: 'Pastel',
+  mono: 'Mono',
+  custom: 'Custom',
 };
 
 const BG_OPTIONS = [
-  { value: 'blackhole',    label: 'Black Hole' },
-  { value: 'greatwall',    label: 'Great Wall' },
-  { value: 'petra',        label: 'Petra' },
-  { value: 'redeemer',     label: 'Christ the Redeemer' },
-  { value: 'machupicchu',  label: 'Machu Picchu' },
-  { value: 'chichenitza',  label: 'Chichen Itza' },
-  { value: 'colosseum',    label: 'Colosseum' },
-  { value: 'tajmahal',     label: 'Taj Mahal' },
-  { value: 'forest',       label: 'Forest' },
-  { value: 'park',         label: 'Park' },
-  { value: 'night',        label: 'Night Sky' },
-  { value: 'city',         label: 'City Skyline' },
-  { value: 'apartment',    label: 'Apartment' },
-  { value: 'lobby',        label: 'Modern Lobby' },
-  { value: 'warehouse',    label: 'Warehouse' },
-  { value: 'studio',       label: 'Photo Studio' },
-  { value: 'dark',         label: 'Dark' },
-  { value: 'midnight',     label: 'Midnight Blue' },
+  { value: 'blackhole', label: 'Black Hole' },
+  { value: 'cave', label: 'Cave' },
+  { value: 'beach', label: 'Beach' },
+  // 7 Wonders removed as per user request
+  { value: 'forest', label: 'Forest' },
+  { value: 'park', label: 'Park' },
+  { value: 'night', label: 'Night Sky' },
+  { value: 'city', label: 'City Skyline' },
+  { value: 'apartment', label: 'Apartment' },
+  { value: 'lobby', label: 'Modern Lobby' },
+  { value: 'warehouse', label: 'Warehouse' },
+  { value: 'studio', label: 'Photo Studio' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'midnight', label: 'Midnight Blue' },
 ];
 
 // Styles shown in the Classic (2D) section
 const CLASSIC_STYLE_KEYS = ['solid', 'glossy', 'matte', 'metallic', 'carbonFiber', 'hexGrid', 'comic', 'cafeWall', 'hermanGrid', 'opticSpin', 'ouchi'];
 // Styles shown in the Living (3D / animated) section
-const LIVING_STYLE_KEYS  = ['grass', 'ice', 'sand', 'water', 'wood', 'circuit', 'holographic', 'pulse', 'lava', 'galaxy', 'neural'];
+const LIVING_STYLE_KEYS = ['grass', 'ice', 'sand', 'water', 'wood', 'circuit', 'holographic', 'pulse', 'lava', 'galaxy', 'neural'];
 
-// Extract N dominant colors from an image using pixel sampling + k-means
+// Extract N dominant colors from an ima ge using pixel sampling + k-means
 function extractColorsFromImage(img, count = 6) {
   const canvas = document.createElement('canvas');
   const size = 64;
@@ -81,36 +77,36 @@ function extractColorsFromImage(img, count = 6) {
         const dr = px[0] - centroids[c][0];
         const dg = px[1] - centroids[c][1];
         const db = px[2] - centroids[c][2];
-        if (dr*dr + dg*dg + db*db < minDist) { minDist = dr*dr+dg*dg+db*db; best = c; }
+        if (dr * dr + dg * dg + db * db < minDist) { minDist = dr * dr + dg * dg + db * db; best = c; }
       }
       clusters[best].push(px);
     }
     for (let c = 0; c < count; c++) {
       if (!clusters[c].length) continue;
-      const sum = [0,0,0];
-      for (const px of clusters[c]) { sum[0]+=px[0]; sum[1]+=px[1]; sum[2]+=px[2]; }
+      const sum = [0, 0, 0];
+      for (const px of clusters[c]) { sum[0] += px[0]; sum[1] += px[1]; sum[2] += px[2]; }
       centroids[c] = [
-        Math.round(sum[0]/clusters[c].length),
-        Math.round(sum[1]/clusters[c].length),
-        Math.round(sum[2]/clusters[c].length),
+        Math.round(sum[0] / clusters[c].length),
+        Math.round(sum[1] / clusters[c].length),
+        Math.round(sum[2] / clusters[c].length),
       ];
     }
   }
   centroids.sort((a, b) => {
-    const hA = Math.atan2(Math.sqrt(3)*(a[1]-a[2]), 2*a[0]-a[1]-a[2]);
-    const hB = Math.atan2(Math.sqrt(3)*(b[1]-b[2]), 2*b[0]-b[1]-b[2]);
+    const hA = Math.atan2(Math.sqrt(3) * (a[1] - a[2]), 2 * a[0] - a[1] - a[2]);
+    const hB = Math.atan2(Math.sqrt(3) * (b[1] - b[2]), 2 * b[0] - b[1] - b[2]);
     return hA - hB;
   });
-  return centroids.map(([r,g,b]) =>
-    '#' + [r,g,b].map(v => Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')).join('')
+  return centroids.map(([r, g, b]) =>
+    '#' + [r, g, b].map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('')
   );
 }
 
 // ─── Sub-panels ──────────────────────────────────────────────────────────────
 
 function ColorsPanel({ settings, onSettingsChange, faceImages, onFaceImage }) {
-  const fileInputRef     = useRef(null);
-  const faceFileRefs     = useRef({});
+  const fileInputRef = useRef(null);
+  const faceFileRefs = useRef({});
   const [preview, setPreview] = useState(null);
 
   const update = (key, val) => onSettingsChange({ ...settings, [key]: val });
@@ -187,7 +183,7 @@ function ColorsPanel({ settings, onSettingsChange, faceImages, onFaceImage }) {
               <div className="image-preview-row">
                 <img src={preview} alt="Source" className="image-preview-thumb" />
                 <span className="scheme-preview">
-                  {[1,2,3,4,5,6].map(i => (
+                  {[1, 2, 3, 4, 5, 6].map(i => (
                     <span key={i} className="scheme-dot" style={{ background: resolvedColors[i] }} />
                   ))}
                 </span>
@@ -195,7 +191,7 @@ function ColorsPanel({ settings, onSettingsChange, faceImages, onFaceImage }) {
             )}
           </div>
           <div className="color-picker-grid">
-            {[1,2,3,4,5,6].map(faceId => (
+            {[1, 2, 3, 4, 5, 6].map(faceId => (
               <div key={faceId} className="color-picker-item">
                 <input type="color" value={resolvedColors[faceId]}
                   onChange={e => updateCustomColor(faceId, e.target.value)}
@@ -212,7 +208,7 @@ function ColorsPanel({ settings, onSettingsChange, faceImages, onFaceImage }) {
         <h3 className="settings-section-title">Face Textures</h3>
         <p className="settings-hint">Upload an image to map onto a cube face</p>
         <div className="face-texture-grid">
-          {[1,2,3,4,5,6].map(faceId => (
+          {[1, 2, 3, 4, 5, 6].map(faceId => (
             <div key={faceId} className="face-texture-item">
               <input
                 ref={el => faceFileRefs.current[faceId] = el}
@@ -265,7 +261,7 @@ function TilePreviewCanvas({ styleKey, colorHex = '#4a7fa5', size = 48, classNam
     return () => {
       if (idRef.current !== null) unregisterTilePreview(idRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // intentionally mount-only
 
   useEffect(() => {
@@ -315,13 +311,13 @@ function TilesPanel({ settings, onSettingsChange }) {
   const currentStyles = settings.manifoldStyles || {};
 
   // If all 6 faces share the same style, highlight it in the grid
-  const faceValues = [1,2,3,4,5,6].map(id => currentStyles[id] || 'solid');
+  const faceValues = [1, 2, 3, 4, 5, 6].map(id => currentStyles[id] || 'solid');
   const allSame = faceValues.every(v => v === faceValues[0]);
   const globalStyle = allSame ? faceValues[0] : null;
 
   const applyToAll = (styleKey) => {
     const newStyles = {};
-    [1,2,3,4,5,6].forEach(id => { newStyles[id] = styleKey; });
+    [1, 2, 3, 4, 5, 6].forEach(id => { newStyles[id] = styleKey; });
     onSettingsChange({ ...settings, manifoldStyles: newStyles });
   };
 
@@ -341,14 +337,14 @@ function TilesPanel({ settings, onSettingsChange }) {
       [pool[i], pool[j]] = [pool[j], pool[i]];
     }
     const newStyles = {};
-    [1,2,3,4,5,6].forEach((id, i) => { newStyles[id] = pool[i]; });
+    [1, 2, 3, 4, 5, 6].forEach((id, i) => { newStyles[id] = pool[i]; });
     onSettingsChange({ ...settings, manifoldStyles: newStyles });
   };
 
   return (
     <>
       <StyleGrid keys={CLASSIC_STYLE_KEYS} label="Classic" globalStyle={globalStyle} onApply={applyToAll} />
-      <StyleGrid keys={LIVING_STYLE_KEYS}  label="Living"  globalStyle={globalStyle} onApply={applyToAll} />
+      <StyleGrid keys={LIVING_STYLE_KEYS} label="Living" globalStyle={globalStyle} onApply={applyToAll} />
 
       {/* Randomize — assigns a unique style to each of the 6 faces */}
       <section className="settings-section">
@@ -362,7 +358,7 @@ function TilesPanel({ settings, onSettingsChange }) {
       <section className="settings-section">
         <h3 className="settings-section-title">Per Face</h3>
         <div className="per-face-grid">
-          {[1,2,3,4,5,6].map(faceId => {
+          {[1, 2, 3, 4, 5, 6].map(faceId => {
             const faceStyle = currentStyles[faceId] || 'solid';
             const faceColor = resolvedColors[faceId];
             return (
@@ -428,9 +424,9 @@ function DisplayPanel({ settings, onSettingsChange }) {
       <h3 className="settings-section-title">UI Layout</h3>
       <div className="settings-toggles">
         {[
-          { key: 'showStats',           label: 'Stats Bar' },
-          { key: 'showManifoldFooter',  label: 'Manifold Footer' },
-          { key: 'showFaceProgress',    label: 'Face Progress Bars' },
+          { key: 'showStats', label: 'Stats Bar' },
+          { key: 'showManifoldFooter', label: 'Manifold Footer' },
+          { key: 'showFaceProgress', label: 'Face Progress Bars' },
         ].map(item => (
           <label key={item.key} className="settings-toggle-row">
             <span className="toggle-label">{item.label}</span>
@@ -485,90 +481,90 @@ function ModesPanel() {
       {/* Antipodal Mode */}
       <section className="settings-section">
         <h3 className="settings-section-title">Antipodal Mode - "Mirror Quotient"</h3>
-      <p style={{
-        fontSize: '13px',
-        color: 'rgba(255, 255, 255, 0.6)',
-        marginBottom: '16px',
-        lineHeight: '1.5'
-      }}>
-        Enhanced RP² dynamics: rotating one face triggers its antipodal face to rotate in the OPPOSITE direction after a brief echo delay.
-      </p>
+        <p style={{
+          fontSize: '13px',
+          color: 'rgba(255, 255, 255, 0.6)',
+          marginBottom: '16px',
+          lineHeight: '1.5'
+        }}>
+          Enhanced RP² dynamics: rotating one face triggers its antipodal face to rotate in the OPPOSITE direction after a brief echo delay.
+        </p>
 
-      <div className="settings-toggles">
-        {/* Enable/Disable Toggle */}
-        <label className="settings-toggle-row">
-          <span className="toggle-label">Enable Antipodal Mode</span>
-          <div className={`toggle-switch${antipodalMode ? ' on' : ''}`}
-            onClick={() => setAntipodalMode(!antipodalMode)}>
-            <div className="toggle-knob" />
-          </div>
-        </label>
-
-        {/* Echo Delay Slider */}
-        {antipodalMode && (
-          <>
-            <div style={{ marginTop: '16px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '13px',
-                color: 'rgba(255, 255, 255, 0.8)',
-                marginBottom: '8px'
-              }}>
-                Echo Delay: {echoDelay.toFixed(2)}s
-              </label>
-              <input
-                type="range"
-                min="0.05"
-                max="0.8"
-                step="0.05"
-                value={echoDelay}
-                onChange={(e) => setEchoDelay(parseFloat(e.target.value))}
-                style={{
-                  width: '100%',
-                  accentColor: '#3b82f6'
-                }}
-              />
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: '11px',
-                color: 'rgba(255, 255, 255, 0.5)',
-                marginTop: '4px'
-              }}>
-                <span>Fast (0.05s)</span>
-                <span>Slow (0.8s)</span>
-              </div>
+        <div className="settings-toggles">
+          {/* Enable/Disable Toggle */}
+          <label className="settings-toggle-row">
+            <span className="toggle-label">Enable Antipodal Mode</span>
+            <div className={`toggle-switch${antipodalMode ? ' on' : ''}`}
+              onClick={() => setAntipodalMode(!antipodalMode)}>
+              <div className="toggle-knob" />
             </div>
+          </label>
 
-            {/* Visualization Intensity */}
-            <div style={{ marginTop: '16px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '13px',
-                color: 'rgba(255, 255, 255, 0.8)',
-                marginBottom: '8px'
-              }}>
-                Visual Effects Intensity
-              </label>
-              <div className="settings-radio-group">
-                {[
-                  { value: 'low', label: 'Low' },
-                  { value: 'medium', label: 'Medium' },
-                  { value: 'high', label: 'High' }
-                ].map(opt => (
-                  <label key={opt.value}
-                    className={`settings-radio${antipodalVizIntensity === opt.value ? ' active' : ''}`}>
-                    <input type="radio" name="antipodalVizIntensity" value={opt.value}
-                      checked={antipodalVizIntensity === opt.value}
-                      onChange={() => setAntipodalVizIntensity(opt.value)} />
-                    <span className="settings-radio-label">{opt.label}</span>
-                  </label>
-                ))}
+          {/* Echo Delay Slider */}
+          {antipodalMode && (
+            <>
+              <div style={{ marginTop: '16px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '13px',
+                  color: 'rgba(255, 255, 255, 0.8)',
+                  marginBottom: '8px'
+                }}>
+                  Echo Delay: {echoDelay.toFixed(2)}s
+                </label>
+                <input
+                  type="range"
+                  min="0.05"
+                  max="0.8"
+                  step="0.05"
+                  value={echoDelay}
+                  onChange={(e) => setEchoDelay(parseFloat(e.target.value))}
+                  style={{
+                    width: '100%',
+                    accentColor: '#3b82f6'
+                  }}
+                />
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontSize: '11px',
+                  color: 'rgba(255, 255, 255, 0.5)',
+                  marginTop: '4px'
+                }}>
+                  <span>Fast (0.05s)</span>
+                  <span>Slow (0.8s)</span>
+                </div>
               </div>
-            </div>
-          </>
-        )}
-      </div>
+
+              {/* Visualization Intensity */}
+              <div style={{ marginTop: '16px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '13px',
+                  color: 'rgba(255, 255, 255, 0.8)',
+                  marginBottom: '8px'
+                }}>
+                  Visual Effects Intensity
+                </label>
+                <div className="settings-radio-group">
+                  {[
+                    { value: 'low', label: 'Low' },
+                    { value: 'medium', label: 'Medium' },
+                    { value: 'high', label: 'High' }
+                  ].map(opt => (
+                    <label key={opt.value}
+                      className={`settings-radio${antipodalVizIntensity === opt.value ? ' active' : ''}`}>
+                      <input type="radio" name="antipodalVizIntensity" value={opt.value}
+                        checked={antipodalVizIntensity === opt.value}
+                        onChange={() => setAntipodalVizIntensity(opt.value)} />
+                      <span className="settings-radio-label">{opt.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </section>
     </>
   );
@@ -577,11 +573,11 @@ function ModesPanel() {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: 'colors',  label: 'Colors'  },
-  { id: 'tiles',   label: 'Tiles'   },
-  { id: 'scene',   label: 'Scene'   },
+  { id: 'colors', label: 'Colors' },
+  { id: 'tiles', label: 'Tiles' },
+  { id: 'scene', label: 'Scene' },
   { id: 'display', label: 'Display' },
-  { id: 'modes',   label: 'Modes'   },
+  { id: 'modes', label: 'Modes' },
 ];
 
 const SettingsMenu = ({ onClose, settings, onSettingsChange, faceImages = {}, onFaceImage }) => {
