@@ -232,9 +232,15 @@ const CubeAssembly = React.memo(({
               baseRotations.set(idx, g.quaternion.clone());
             }
           });
+          // mappingDir encodes camera/face correction only (not drag direction).
+          // dir from mapSwipe flips sign with the drag direction, so multiplying
+          // it by the drag displacement would make both directions snap the same way.
+          // Normalise it out: mappingDir = dir * sign(initial_drag_in_dominant_axis).
+          const isDomHoriz = Math.abs(dx) >= Math.abs(dy);
+          const mappingDir = isDomHoriz ? m.dir * Math.sign(dx) : m.dir * Math.sign(-dy);
           liveDragRef.current = {
             axis: m.axis, sliceIndex, sliceIndices, basePositions, baseRotations,
-            startDx: dx, startDy: dy, dir: m.dir // Use mapped direction directly
+            startDx: dx, startDy: dy, dir: m.dir, mappingDir
           };
           sliceIndicesRef.current = sliceIndices;
         }
@@ -243,10 +249,11 @@ const CubeAssembly = React.memo(({
       // Update angle during live drag
       if (liveDragRef.current) {
         const ld = liveDragRef.current;
-        // Dragging right (positive dx) or up (negative dy) should rotate positive
+        // Use mappingDir (camera/face correction only) so that opposite drag
+        // directions produce opposite angles rather than the same sign.
         const dragDist = Math.abs(dx) > Math.abs(dy)
-          ? (dx - ld.startDx) * ld.dir
-          : (ld.startDy - dy) * ld.dir;  // Flip Y since screen Y is inverted
+          ? (dx - ld.startDx) * ld.mappingDir
+          : (ld.startDy - dy) * ld.mappingDir;  // Flip Y since screen Y is inverted
         ld.angle = (dragDist / PIXELS_PER_90DEG) * (Math.PI / 2);
         setLiveDragAngle(ld.angle);
       }
