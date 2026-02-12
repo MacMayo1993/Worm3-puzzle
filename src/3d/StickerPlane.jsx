@@ -728,7 +728,7 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
 
   return (
     <group position={pos} rotation={rot} ref={groupRef}>
-      <mesh ref={meshRef}>
+      <mesh ref={meshRef} key={hollow ? 'frame' : 'plane'}>
         {hollow ? (
           <shapeGeometry args={[_stickerFrameShape]} />
         ) : (
