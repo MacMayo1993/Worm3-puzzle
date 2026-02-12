@@ -37,33 +37,12 @@ import {
 import CubeAssembly from './3d/CubeAssembly.jsx';
 import BlackHoleEnvironment from './3d/BlackHoleEnvironment.jsx';
 import { getLevelBackground } from './3d/LifeJourneyBackgrounds.jsx';
-import {
-  GreatWallEnvironment,
-  PetraEnvironment,
-  RedeemerEnvironment,
-  MachuPicchuEnvironment,
-  ChichenItzaEnvironment,
-  ColosseumEnvironment,
-  TajMahalEnvironment,
-} from './3d/WonderEnvironments.jsx';
 
 // Photo environment presets available from @react-three/drei (real HDR panoramas)
 const PHOTO_PRESETS = new Set([
-  'forest', 'city', 'night',
+  'sunset', 'forest', 'city', 'dawn', 'night',
   'apartment', 'studio', 'park', 'warehouse', 'lobby',
 ]);
-
-// Seven Wonders of the World — procedural shader environments
-const WONDER_COMPONENTS = {
-  greatwall: GreatWallEnvironment,
-  petra: PetraEnvironment,
-  redeemer: RedeemerEnvironment,
-  machupicchu: MachuPicchuEnvironment,
-  chichenitza: ChichenItzaEnvironment,
-  colosseum: ColosseumEnvironment,
-  tajmahal: TajMahalEnvironment,
-};
-const WONDER_KEYS = new Set(Object.keys(WONDER_COMPONENTS));
 
 /**
  * InteractivePhotoBackground - Real HDR panorama that slowly drifts around you.
@@ -760,18 +739,13 @@ export default function WORM3() {
             {currentLevelData?.background && currentLevelData.background !== 'blackhole' && getLevelBackground(currentLevelData.background, blackHolePulse)}
             {/* Free play: Black Hole (animated favorite) */}
             {!currentLevelData && settings.backgroundTheme === 'blackhole' && <BlackHoleEnvironment flipTrigger={blackHolePulse} />}
-            {/* Free play: Seven Wonders shader environments */}
-            {!currentLevelData && WONDER_KEYS.has(settings.backgroundTheme) && (() => {
-              const WonderComp = WONDER_COMPONENTS[settings.backgroundTheme];
-              return <WonderComp flipTrigger={blackHolePulse} />;
-            })()}
             {/* Free play: interactive photo panoramas - orbit to look around, auto-drifts when idle */}
             {!currentLevelData && PHOTO_PRESETS.has(settings.backgroundTheme) && (
               <InteractivePhotoBackground preset={settings.backgroundTheme} />
             )}
             {/* Default environment for lighting/reflections when no custom background */}
             {!currentLevelData?.background && !(
-              !currentLevelData && (PHOTO_PRESETS.has(settings.backgroundTheme) || settings.backgroundTheme === 'blackhole' || WONDER_KEYS.has(settings.backgroundTheme))
+              !currentLevelData && (PHOTO_PRESETS.has(settings.backgroundTheme) || settings.backgroundTheme === 'blackhole')
             ) && (
               <Environment preset="city" />
             )}
