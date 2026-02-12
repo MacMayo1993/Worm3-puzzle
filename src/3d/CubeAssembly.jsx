@@ -288,78 +288,42 @@ const CubeAssembly = React.memo(({
         if (shouldComplete) {
           const savedPos = ds.pos;
           const savedAxis = ld.axis;
+          const numTurns = Math.abs(quarterTurns);
+          const gameDir = quarterTurns > 0 ? 1 : -1;
+          const targetAngle = quarterTurns * quarterTurn;
 
-          // Skip the next animState-triggered animation since we're handling the visual here
-          // We'll call onMove multiple times for multi-turn rotations
-          skipNextAnimRef.current = true;
-          const savedSliceIndices = ld.sliceIndices;
-          const savedBasePositions = ld.basePositions;
-          const savedBaseRotations = ld.baseRotations;
+          // Single-turn: signal the animState useEffect to skip its own GSAP anim,
+          // since we are handling the visual here and will call onMove on complete.
+          if (numTurns === 1) skipNextAnimRef.current = true;
 
-          animProgressRef.current.value = currentAngle / quarterTurn;
-          gsapAnimRef.current = gsap.to(animProgressRef.current, {
-            value: quarterTurns,
-            duration: 0.15 * Math.abs(quarterTurns),  // Scale duration by number of turns
-            ease: "back.out(1.4)",
-            onUpdate: () => {
-              const progress = animProgressRef.current.value;
-              const angle = progress * quarterTurn;
-              const worldAxis = savedAxis === 'col' ? _axisCol :
-                               savedAxis === 'row' ? _axisRow : _axisDepth;
-              savedSliceIndices.forEach(idx => {
-                const g = cubieRefs.current[idx];
-                if (g && savedBasePositions.has(idx)) {
-                  g.position.copy(savedBasePositions.get(idx)).applyAxisAngle(worldAxis, angle);
-                  g.quaternion.copy(savedBaseRotations.get(idx));
-                  _rotQuat.setFromAxisAngle(worldAxis, angle);
-                  g.quaternion.premultiply(_rotQuat);
-                }
-              });
-            },
+          // GSAP animates ld.angle only — useFrame remains the single cubie writer,
+          // so there is no conflict between two systems touching g.position/quaternion.
+          // Duration is proportional to the remaining angle, not the total turn count.
+          const remaining = Math.abs(targetAngle - currentAngle);
+          const snapDuration = Math.max(0.06, (remaining / quarterTurn) * 0.15);
+          gsapAnimRef.current = gsap.to(ld, {
+            angle: targetAngle,
+            duration: snapDuration,
+            ease: 'power3.out',
+            onUpdate: () => setLiveDragAngle(ld.angle),
             onComplete: () => {
               gsapAnimRef.current = null;
               liveDragRef.current = null;
               sliceIndicesRef.current = null;
               setLiveDragAngle(0);
               vibrate(14);
-              // Call onMove for each quarter turn
-              const dir = quarterTurns > 0 ? 1 : -1;
-              for (let i = 0; i < Math.abs(quarterTurns); i++) {
-                onMoveRef.current(savedAxis, dir, savedPos);
-              }
+              onMoveRef.current(savedAxis, gameDir, savedPos, numTurns);
             }
           });
         } else {
-          // Snap back
-          const snapBackData = { ...ld };
-          animProgressRef.current.value = currentAngle / quarterTurn;
-          gsapAnimRef.current = gsap.to(animProgressRef.current, {
-            value: 0,
-            duration: 0.15,
-            ease: "back.out(1.4)",
-            onUpdate: () => {
-              const progress = animProgressRef.current.value;
-              const angle = progress * quarterTurn;
-              const worldAxis = snapBackData.axis === 'col' ? _axisCol :
-                               snapBackData.axis === 'row' ? _axisRow : _axisDepth;
-              snapBackData.sliceIndices.forEach(idx => {
-                const g = cubieRefs.current[idx];
-                if (g && snapBackData.basePositions.has(idx)) {
-                  g.position.copy(snapBackData.basePositions.get(idx)).applyAxisAngle(worldAxis, angle);
-                  g.quaternion.copy(snapBackData.baseRotations.get(idx));
-                  _rotQuat.setFromAxisAngle(worldAxis, angle);
-                  g.quaternion.premultiply(_rotQuat);
-                }
-              });
-            },
+          // Snap back to zero — proportional duration so a tiny overswing snaps back fast.
+          const snapBackDuration = Math.max(0.06, (Math.abs(currentAngle) / quarterTurn) * 0.15);
+          gsapAnimRef.current = gsap.to(ld, {
+            angle: 0,
+            duration: snapBackDuration,
+            ease: 'power3.out',
+            onUpdate: () => setLiveDragAngle(ld.angle),
             onComplete: () => {
-              snapBackData.sliceIndices.forEach(idx => {
-                const g = cubieRefs.current[idx];
-                if (g && snapBackData.basePositions.has(idx)) {
-                  g.position.copy(snapBackData.basePositions.get(idx));
-                  g.quaternion.copy(snapBackData.baseRotations.get(idx));
-                }
-              });
               gsapAnimRef.current = null;
               liveDragRef.current = null;
               sliceIndicesRef.current = null;
