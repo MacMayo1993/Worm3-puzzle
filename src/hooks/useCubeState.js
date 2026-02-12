@@ -13,6 +13,7 @@ import { getStickerWorldPos } from '../game/coordinates.js';
 import { play } from '../utils/audio.js';
 import { ANTIPODAL_COLOR } from '../utils/constants.js';
 import { resolveColors } from '../utils/colorSchemes.js';
+import { isInRefractory, markFlipped, clearRefractory } from '../game/refractoryMap.js';
 
 /**
  * Hook for cube state management
@@ -96,6 +97,9 @@ export function useCubeState() {
 
   // Flip sticker pair
   const flipSticker = useCallback((pos, dirKey) => {
+    // Refractory period — tile can't flip again within 7 seconds
+    if (isInRefractory(pos.x, pos.y, pos.z, dirKey)) return;
+
     const currentCubies = cubiesRef.current;
     const currentSize = currentCubies.length;
     const currentExplosionT = explosionTRef.current;
@@ -123,6 +127,12 @@ export function useCubeState() {
           color: pairAntipodalColor,
           id: Date.now() + 1
         });
+      }
+
+      // Mark both tiles in the pair as in refractory period
+      markFlipped(pos.x, pos.y, pos.z, dirKey);
+      if (antipodalLoc) {
+        markFlipped(antipodalLoc.x, antipodalLoc.y, antipodalLoc.z, antipodalLoc.dirKey);
       }
 
       setFlipWaveOrigins(origins);
@@ -155,6 +165,7 @@ export function useCubeState() {
     setCubies(state);
     resetGame();
     clearHistory();
+    clearRefractory();
     setHasShuffled(true);
   }, [size, setCubies, resetGame, clearHistory, setHasShuffled]);
 
@@ -163,6 +174,7 @@ export function useCubeState() {
     setCubies(makeCubies(size));
     resetGame();
     clearHistory();
+    clearRefractory();
     play('/sounds/rotate.mp3');
   }, [size, setCubies, resetGame, clearHistory]);
 
@@ -171,6 +183,7 @@ export function useCubeState() {
     setSize(newSize);
     resetGame();
     clearHistory();
+    clearRefractory();
   }, [setSize, resetGame, clearHistory]);
 
   return {
