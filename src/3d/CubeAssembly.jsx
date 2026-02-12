@@ -440,7 +440,7 @@ const CubeAssembly = React.memo(({
         preExplodeDist.current = 0;
       }
     }
-  }, 1); // Priority 1: run AFTER TrackballControls.update() to avoid fighting
+  }); // Default priority 0: drei's TrackballControls runs at -1, so we naturally run after it
 
   // Track the previous animation progress for incremental rotation
   const prevProgressRef = useRef(0);
