@@ -14,6 +14,10 @@ const _right = new THREE.Vector3();
 const _trueUp = new THREE.Vector3();
 const _offsetVec = new THREE.Vector3();
 const _controlPoint = new THREE.Vector3();
+// Cached colors for per-frame transference animation
+const _c1 = new THREE.Color();
+const _c2 = new THREE.Color();
+const _cTemp = new THREE.Color();
 
 const WormholeTunnel = ({ meshIdx1, meshIdx2, dirKey1, dirKey2, cubieRefs, intensity, flips, color1, color2, size }) => {
   const linesRef = useRef([]);
@@ -79,30 +83,53 @@ const WormholeTunnel = ({ meshIdx1, meshIdx2, dirKey1, dirKey2, cubieRefs, inten
     const pos2 = getStickerWorldPosFromMesh(mesh2, dirKey2);
     if (!pos1 || !pos2) return;
 
-    // Reuse cached vectors instead of creating new ones
     _vStart.set(pos1[0], pos1[1], pos1[2]);
     _vEnd.set(pos2[0], pos2[1], pos2[2]);
 
+    const t = state.clock.elapsedTime;
+
+    // Surge signal — synced with tile persistent tremor (StickerPlane.jsx:632-634)
+    const raw = Math.sin(t * 1.5) * 0.45 + Math.sin(t * 2.7) * 0.3 + Math.sin(t * 0.6) * 0.25;
+    const surge = Math.pow(Math.max(0, raw), 2.0);
+
+    // Tug-of-war bias: oscillates at the dominant tremor frequency, amplified during surge
+    const tugRaw = Math.sin(t * 1.5);
+    const tugBias = tugRaw * (0.15 + surge * 0.35);
+
     pulseT.current += delta * (2 + intensity * 0.5);
     const pulse = Math.sin(pulseT.current) * 0.1 + 0.9;
+
+    // Set up colors for transference animation
+    _c1.set(color1);
+    _c2.set(color2);
 
     linesRef.current.forEach((line, i) => {
       if (!line) return;
       const config = strandConfig[i];
 
+      // Opacity with surge glow boost
       if (line.material) {
         const sparkPulse = Math.sin(pulseT.current * 3 + config.sparkOffset);
         const spark = sparkPulse > 0.9 ? (sparkPulse - 0.9) * 10 : 0;
-        line.material.opacity = config.baseOpacity * pulse * (1 + spark * 0.5);
+        const surgeGlow = surge * 0.3;
+        line.material.opacity = Math.min(1, config.baseOpacity * pulse * (1 + spark * 0.5) + surgeGlow);
       }
 
-      // Get base control point (smartRouting now uses cached vectors too)
+      // Smart control point with tug-of-war shift
       const baseControlPoint = calculateSmartControlPoint(pos1, pos2, size, config.side);
+      _controlPoint.copy(baseControlPoint);
 
+      // Tug of war: lerp control point toward the "winning" endpoint
+      // During surge the curve lunges dramatically; at rest it's a subtle lean
+      if (Math.abs(tugBias) > 0.01) {
+        const tugTarget = tugBias > 0 ? _vEnd : _vStart;
+        _controlPoint.lerp(tugTarget, Math.abs(tugBias));
+      }
+
+      // Apply strand spiral offset
       const offsetX = Math.cos(config.angle) * config.radius;
       const offsetY = Math.sin(config.angle) * config.radius;
 
-      // Reuse cached vectors for direction calculations
       _dir.subVectors(_vEnd, _vStart).normalize();
       _up.set(0, 1, 0);
       _right.crossVectors(_dir, _up).normalize();
@@ -112,9 +139,8 @@ const WormholeTunnel = ({ meshIdx1, meshIdx2, dirKey1, dirKey2, cubieRefs, inten
         .addScaledVector(_right, offsetX)
         .addScaledVector(_trueUp, offsetY);
 
-      _controlPoint.copy(baseControlPoint).add(_offsetVec);
+      _controlPoint.add(_offsetVec);
 
-      // Reuse curve object by updating its control points
       curveRef.current.v0.copy(_vStart);
       curveRef.current.v1.copy(_controlPoint);
       curveRef.current.v2.copy(_vEnd);
@@ -128,6 +154,49 @@ const WormholeTunnel = ({ meshIdx1, meshIdx2, dirKey1, dirKey2, cubieRefs, inten
         positions[j * 3 + 2] = points[j].z;
       }
       line.geometry.attributes.position.needsUpdate = true;
+
+      // --- Color transference: traveling energy pulses with tug-of-war gradient shift ---
+      const colors = line.geometry.attributes.color.array;
+
+      // Pulse speed and tightness scale with surge — faster, sharper bolts during breakthrough
+      const pulseSpeed = 0.6 + surge * 2.0;
+      const pulseWidth = 0.08 + (1 - surge) * 0.04;
+      const pulseIntensity = 0.3 + surge * 0.7;
+
+      // Two traveling pulses per strand, staggered in phase and speed
+      const rawP1 = (((t * pulseSpeed + config.sparkOffset) % 1.0) + 1.0) % 1.0;
+      const rawP2 = (((t * pulseSpeed * 0.7 + config.sparkOffset + 0.5) % 1.0) + 1.0) % 1.0;
+
+      // Pulse direction follows the tug — energy flows toward the side being pulled
+      const p1 = tugRaw > 0 ? rawP1 : 1.0 - rawP1;
+      const p2 = tugRaw > 0 ? rawP2 : 1.0 - rawP2;
+
+      for (let j = 0; j < 30; j++) {
+        const u = j / 29;
+
+        // Tug-of-war gradient shift: dominant side's color bleeds further along the tunnel
+        const shiftedU = Math.max(0, Math.min(1, u + tugBias * 0.5));
+        _cTemp.lerpColors(_c1, _c2, shiftedU);
+
+        // Gaussian energy pulse brightness
+        const d1 = Math.abs(u - p1);
+        const d2 = Math.abs(u - p2);
+        const b1 = Math.exp(-(d1 * d1) / (2 * pulseWidth * pulseWidth));
+        const b2 = Math.exp(-(d2 * d2) / (2 * pulseWidth * pulseWidth)) * 0.6;
+        const brightness = Math.min(1, (b1 + b2) * pulseIntensity);
+
+        // Brighten toward white for energy flash effect
+        if (brightness > 0.01) {
+          _cTemp.r += (1 - _cTemp.r) * brightness;
+          _cTemp.g += (1 - _cTemp.g) * brightness;
+          _cTemp.b += (1 - _cTemp.b) * brightness;
+        }
+
+        colors[j * 3] = _cTemp.r;
+        colors[j * 3 + 1] = _cTemp.g;
+        colors[j * 3 + 2] = _cTemp.b;
+      }
+      line.geometry.attributes.color.needsUpdate = true;
     });
   });
 
