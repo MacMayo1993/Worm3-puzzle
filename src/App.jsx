@@ -743,10 +743,13 @@ export default function WORM3() {
             {!currentLevelData && PHOTO_PRESETS.has(settings.backgroundTheme) && (
               <InteractivePhotoBackground preset={settings.backgroundTheme} />
             )}
-            {/* Default environment for lighting/reflections when no custom background */}
-            {!currentLevelData?.background && !(
-              !currentLevelData && (PHOTO_PRESETS.has(settings.backgroundTheme) || settings.backgroundTheme === 'blackhole')
-            ) && (
+            {/* Free play: fallback for unknown/legacy themes (e.g. old sunrise/sunset in localStorage) */}
+            {!currentLevelData && !PHOTO_PRESETS.has(settings.backgroundTheme) &&
+              settings.backgroundTheme !== 'blackhole' && (
+              <BlackHoleEnvironment flipTrigger={blackHolePulse} />
+            )}
+            {/* Default environment for lighting/reflections when in a level with no custom background */}
+            {currentLevelData && !currentLevelData.background && (
               <Environment preset="city" />
             )}
 
