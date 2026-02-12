@@ -11,8 +11,9 @@
 
 import { useEffect, useRef } from 'react';
 import { useGameStore } from './useGameStore.js';
-import { buildManifoldGridMap, flipStickerPair, getManifoldNeighbors } from '../game/manifoldLogic.js';
+import { buildManifoldGridMap, flipStickerPair, findAntipodalStickerByGrid, getManifoldNeighbors } from '../game/manifoldLogic.js';
 import { isOnEdge } from '../game/cubeUtils.js';
+import { isInRefractory, markFlipped } from '../game/refractoryMap.js';
 
 // Tuning constants
 const TICK_MS = 2500;            // check interval
@@ -68,16 +69,32 @@ export function useParityDecay() {
       // Each candidate independently rolls for a spontaneous flip
       // Higher flip count = higher probability
       for (const tile of candidates) {
+        // Respect per-tile refractory period
+        if (isInRefractory(tile.x, tile.y, tile.z, tile.dirKey)) continue;
+
         const chance = Math.min(tile.flips * BASE_CHANCE, MAX_CHANCE);
         if (Math.random() >= chance) continue;
 
         // This tile spontaneously flips!
         const manifoldMap = buildManifoldGridMap(state, S);
+
+        // Mark both tiles in the pair as in refractory
+        const sticker = state[tile.x]?.[tile.y]?.[tile.z]?.stickers?.[tile.dirKey];
+        markFlipped(tile.x, tile.y, tile.z, tile.dirKey);
+        if (sticker) {
+          const antipodalLoc = findAntipodalStickerByGrid(manifoldMap, sticker, S);
+          if (antipodalLoc) {
+            markFlipped(antipodalLoc.x, antipodalLoc.y, antipodalLoc.z, antipodalLoc.dirKey);
+          }
+        }
+
         let next = flipStickerPair(state, S, tile.x, tile.y, tile.z, tile.dirKey, manifoldMap);
 
         // Propagation: check neighbors
         const neighbors = getManifoldNeighbors(tile.x, tile.y, tile.z, tile.dirKey, S);
         for (const nb of neighbors) {
+          if (isInRefractory(nb.x, nb.y, nb.z, nb.dirKey)) continue;
+
           const nc = next[nb.x]?.[nb.y]?.[nb.z];
           if (!nc) continue;
           const nst = nc.stickers[nb.dirKey];
@@ -87,6 +104,14 @@ export function useParityDecay() {
           const propChance = Math.min(tile.flips * PROPAGATE_CHANCE, MAX_PROPAGATE);
           if (Math.random() < propChance) {
             const freshMap = buildManifoldGridMap(next, S);
+            markFlipped(nb.x, nb.y, nb.z, nb.dirKey);
+            const nbSticker = next[nb.x]?.[nb.y]?.[nb.z]?.stickers?.[nb.dirKey];
+            if (nbSticker) {
+              const nbAntipodal = findAntipodalStickerByGrid(freshMap, nbSticker, S);
+              if (nbAntipodal) {
+                markFlipped(nbAntipodal.x, nbAntipodal.y, nbAntipodal.z, nbAntipodal.dirKey);
+              }
+            }
             next = flipStickerPair(next, S, nb.x, nb.y, nb.z, nb.dirKey, freshMap);
           }
         }

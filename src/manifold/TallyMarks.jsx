@@ -108,8 +108,8 @@ const TallyMarks = ({ flips, radius, origColor }) => {
         </group>
       )}
 
-      {/* Show flip count as small text for high counts */}
-      {flips > 10 && (
+      {/* Show flip count as small text for higher counts (keeps marks within tile) */}
+      {flips > 6 && (
         <Text
           position={[0, -radius * 0.6, 0.005]}
           fontSize={0.06}

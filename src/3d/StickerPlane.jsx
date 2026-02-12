@@ -717,7 +717,7 @@ const StickerPlane = function StickerPlane({ meta, pos, rot=[0,0,0], overlay, mo
   const isWormhole = meta?.flips>0 && meta?.curr!==meta?.orig;
   const hasFlipHistory = meta?.flips > 0;
 
-  const trackerRadius = Math.min(0.35, 0.06 + (meta?.flips ?? 0) * 0.012);
+  const trackerRadius = Math.min(0.25, 0.06 + (meta?.flips ?? 0) * 0.012);
   const origColor = meta?.orig ? fc[meta.orig] : COLORS.black;
   const antipodalColor = meta?.orig ? fc[ANTIPODAL_COLOR[meta.orig]] : COLORS.black;
 
