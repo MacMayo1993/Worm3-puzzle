@@ -4,7 +4,7 @@ import { FACE_COLORS } from '../utils/constants.js';
 import { getManifoldGridId } from '../game/coordinates.js';
 import { findAntipodalStickerByGrid } from '../game/manifoldLogic.js';
 
-const WormholeNetwork = ({ cubies, size, showTunnels, manifoldMap, cubieRefs, faceColors }) => {
+const WormholeNetwork = ({ cubies, size, showTunnels, manifoldMap, cubieRefs, faceColors, explosionFactor = 0 }) => {
   const fc = faceColors || FACE_COLORS;
   const tunnelData = useMemo(() => {
     if (!showTunnels) return [];
@@ -67,6 +67,7 @@ const WormholeNetwork = ({ cubies, size, showTunnels, manifoldMap, cubieRefs, fa
           color1={t.color1}
           color2={t.color2}
           size={size}
+          explosionFactor={explosionFactor}
         />
       ))}
     </group>

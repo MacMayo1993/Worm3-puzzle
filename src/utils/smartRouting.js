@@ -18,7 +18,7 @@ const _result = new THREE.Vector3();
  * @param side - Which side to curve towards: 1 for positive, -1 for negative (default: auto-detect)
  * @returns THREE.Vector3 - Note: returns a reused vector, caller should copy if storing
  */
-export const calculateSmartControlPoint = (start, end, size, side = null) => {
+export const calculateSmartControlPoint = (start, end, size, side = null, explosionFactor = 0) => {
   _vStart.set(start[0], start[1], start[2]);
   _vEnd.set(end[0], end[1], end[2]);
   _midPoint.addVectors(_vStart, _vEnd).multiplyScalar(0.5);
@@ -29,7 +29,9 @@ export const calculateSmartControlPoint = (start, end, size, side = null) => {
   const dy = Math.abs(_delta.y);
   const dz = Math.abs(_delta.z);
 
-  const cubeRadius = ((size - 1) / 2) * 1.4;
+  // Scale routing radius to match exploded cube size
+  const explosionMultiplier = size >= 4 ? 1.53 : 1.8;
+  const cubeRadius = ((size - 1) / 2) * 1.4 * (1 + explosionFactor * explosionMultiplier);
 
   // Push perpendicular to the tunnel's main axis
   // If side is specified, use that; otherwise auto-detect based on midpoint

@@ -19,7 +19,7 @@ const _c1 = new THREE.Color();
 const _c2 = new THREE.Color();
 const _cTemp = new THREE.Color();
 
-const WormholeTunnel = ({ meshIdx1, meshIdx2, dirKey1, dirKey2, cubieRefs, intensity, flips, color1, color2, size }) => {
+const WormholeTunnel = ({ meshIdx1, meshIdx2, dirKey1, dirKey2, cubieRefs, intensity, flips, color1, color2, size, explosionFactor = 0 }) => {
   const linesRef = useRef([]);
   const pulseT = useRef(Math.random() * Math.PI * 2);
   // Cache curve object to avoid recreation
@@ -94,7 +94,7 @@ const WormholeTunnel = ({ meshIdx1, meshIdx2, dirKey1, dirKey2, cubieRefs, inten
 
     // Tug-of-war bias: oscillates at the dominant tremor frequency, amplified during surge
     const tugRaw = Math.sin(t * 1.5);
-    const tugBias = tugRaw * (0.15 + surge * 0.35);
+    const tugBias = tugRaw * (0.3 + surge * 0.4);
 
     pulseT.current += delta * (2 + intensity * 0.5);
     const pulse = Math.sin(pulseT.current) * 0.1 + 0.9;
@@ -115,8 +115,8 @@ const WormholeTunnel = ({ meshIdx1, meshIdx2, dirKey1, dirKey2, cubieRefs, inten
         line.material.opacity = Math.min(1, config.baseOpacity * pulse * (1 + spark * 0.5) + surgeGlow);
       }
 
-      // Smart control point with tug-of-war shift
-      const baseControlPoint = calculateSmartControlPoint(pos1, pos2, size, config.side);
+      // Smart control point with tug-of-war shift (scaled for explosion)
+      const baseControlPoint = calculateSmartControlPoint(pos1, pos2, size, config.side, explosionFactor);
       _controlPoint.copy(baseControlPoint);
 
       // Tug of war: lerp control point toward the "winning" endpoint
@@ -159,9 +159,9 @@ const WormholeTunnel = ({ meshIdx1, meshIdx2, dirKey1, dirKey2, cubieRefs, inten
       const colors = line.geometry.attributes.color.array;
 
       // Pulse speed and tightness scale with surge — faster, sharper bolts during breakthrough
-      const pulseSpeed = 0.6 + surge * 2.0;
-      const pulseWidth = 0.08 + (1 - surge) * 0.04;
-      const pulseIntensity = 0.3 + surge * 0.7;
+      const pulseSpeed = 1.2 + surge * 2.5;
+      const pulseWidth = 0.10 + (1 - surge) * 0.05;
+      const pulseIntensity = 0.6 + surge * 0.4;
 
       // Two traveling pulses per strand, staggered in phase and speed
       const rawP1 = (((t * pulseSpeed + config.sparkOffset) % 1.0) + 1.0) % 1.0;
@@ -175,7 +175,7 @@ const WormholeTunnel = ({ meshIdx1, meshIdx2, dirKey1, dirKey2, cubieRefs, inten
         const u = j / 29;
 
         // Tug-of-war gradient shift: dominant side's color bleeds further along the tunnel
-        const shiftedU = Math.max(0, Math.min(1, u + tugBias * 0.5));
+        const shiftedU = Math.max(0, Math.min(1, u + tugBias * 0.6));
         _cTemp.lerpColors(_c1, _c2, shiftedU);
 
         // Gaussian energy pulse brightness
@@ -210,12 +210,14 @@ const WormholeTunnel = ({ meshIdx1, meshIdx2, dirKey1, dirKey2, cubieRefs, inten
               count={30}
               array={new Float32Array(30 * 3)}
               itemSize={3}
+              usage={THREE.DynamicDrawUsage}
             />
             <bufferAttribute
               attach="attributes-color"
               count={30}
               array={strand.colors}
               itemSize={3}
+              usage={THREE.DynamicDrawUsage}
             />
           </bufferGeometry>
           <lineBasicMaterial
