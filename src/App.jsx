@@ -69,6 +69,9 @@ function InteractivePhotoBackground({ preset }) {
 
 // UI components
 import TopMenuBar from './components/menus/TopMenuBar.jsx';
+import BottomNavBar from './components/menus/BottomNavBar.jsx';
+import SecondaryModesSheet from './components/menus/SecondaryModesSheet.jsx';
+import FloatingHUD from './components/menus/FloatingHUD.jsx';
 import MainMenu from './components/menus/MainMenu.jsx';
 import SettingsMenu from './components/menus/SettingsMenu.jsx';
 import HelpMenu from './components/menus/HelpMenu.jsx';
@@ -171,7 +174,7 @@ export default function WORM3() {
     setCubies, changeSize, shuffle, reset, flipSticker
   } = useCubeState();
 
-  const { moves, gameTime, victory, achievedWins, setVictory } = useGameSession();
+  const { moves, gameTime, victory, achievedWins: _achievedWins, setVictory } = useGameSession();
 
   const {
     animState, startAnimation, handleAnimComplete, onMove
@@ -216,6 +219,10 @@ export default function WORM3() {
 
   // Co-op Crawler mode
   const [coopMode, setCoopMode] = useState(false);
+
+  // Bottom sheet state for new nav bar
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetMode, setSheetMode] = useState('more'); // 'more' or 'views'
 
   // ========================================================================
   // EXPLOSION ANIMATION
@@ -794,7 +801,6 @@ export default function WORM3() {
 
       <div className="ui-layer">
         <TopMenuBar
-          moves={moves}
           metrics={metrics}
           size={size}
           visualMode={visualMode}
@@ -802,13 +808,8 @@ export default function WORM3() {
           chaosMode={chaosMode}
           chaosLevel={chaosLevel}
           cubies={cubies}
-          onShowHelp={() => setShowHelp(true)}
           onShowSettings={() => setShowSettings(true)}
-          achievedWins={achievedWins}
-          faceColors={resolvedColors}
-          faceTextures={faceTextures}
-          showStats={settings.showStats}
-          showFaceProgress={settings.showFaceProgress}
+          currentLevelData={currentLevelData}
         />
 
         {/* Undo Indicator - desktop only (mobile uses MobileControls) */}
@@ -833,114 +834,65 @@ export default function WORM3() {
           <RotationPreview upcomingRotation={upcomingRotation} countdown={rotationCountdown} maxCountdown={10000} size={size} />
         )}
 
-        {/* Controls */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-          <div className="controls-compact ui-element">
-            <div className="controls-row">
-              <button className={`btn-compact text ${flipMode ? 'active' : ''} ${currentLevelData && !currentLevelData.features.flips ? 'locked' : ''}`}
-                onClick={() => { if (!currentLevelData || currentLevelData.features.flips) setFlipMode(!flipMode); }}
-                disabled={currentLevelData && !currentLevelData.features.flips}>
-                {currentLevelData && !currentLevelData.features.flips && <span className="lock-icon">🔒</span>}FLIP
-              </button>
-              <button className={`btn-compact text ${chaosMode ? 'chaos' : ''} ${currentLevelData && !currentLevelData.features.chaos ? 'locked' : ''}`}
-                onClick={() => { if (!currentLevelData || currentLevelData.features.chaos) setChaosLevel(l => l > 0 ? 0 : 1); }}
-                disabled={currentLevelData && !currentLevelData.features.chaos}>
-                {currentLevelData && !currentLevelData.features.chaos && <span className="lock-icon">🔒</span>}CHAOS
-              </button>
-              {chaosMode && currentLevelData?.features.chaos !== false && (
-                <>
-                  <div className="chaos-levels">
-                    {[1, 2, 3, 4].map((l) => {
-                      const maxChaos = currentLevelData?.chaosLevel || 4;
-                      const isLocked = currentLevelData && l > maxChaos;
-                      return (
-                        <button key={l} className={`btn-level ${chaosLevel === l ? 'active' : ''} ${isLocked ? 'locked' : ''}`}
-                          onClick={() => !isLocked && setChaosLevel(l)} disabled={isLocked}>
-                          {isLocked && <span className="lock-icon-small">🔒</span>}L{l}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <button className={`btn-compact text ${autoRotateEnabled ? 'active' : ''}`}
-                    onClick={() => setAutoRotateEnabled(!autoRotateEnabled)}>AUTO</button>
-                </>
-              )}
-              <button className={`btn-compact text ${exploded ? 'active' : ''} ${currentLevelData && !currentLevelData.features.explode ? 'locked' : ''}`}
-                onClick={() => { if (!currentLevelData || currentLevelData.features.explode) setExploded(!exploded); }}
-                disabled={currentLevelData && !currentLevelData.features.explode}>
-                {currentLevelData && !currentLevelData.features.explode && <span className="lock-icon">🔒</span>}EXPLODE
-              </button>
-              <button className={`btn-compact text ${showTunnels ? 'active' : ''} ${currentLevelData && !currentLevelData.features.tunnels ? 'locked' : ''}`}
-                onClick={() => { if (!currentLevelData || currentLevelData.features.tunnels) setShowTunnels(!showTunnels); }}
-                disabled={currentLevelData && !currentLevelData.features.tunnels}>
-                {currentLevelData && !currentLevelData.features.tunnels && <span className="lock-icon">🔒</span>}TUNNELS
-              </button>
-              <button className={`btn-compact text ${showNetPanel ? 'active' : ''} ${currentLevelData && !currentLevelData.features.net ? 'locked' : ''}`}
-                onClick={() => { if (!currentLevelData || currentLevelData.features.net) setShowNetPanel(!showNetPanel); }}
-                disabled={currentLevelData && !currentLevelData.features.net}>
-                {currentLevelData && !currentLevelData.features.net && <span className="lock-icon">🔒</span>}NET
-              </button>
-              <button className="btn-compact text"
-                onClick={() => setVisualMode(v => {
-                  const modes = ['classic', 'grid', 'sudokube', 'wireframe', 'glass'];
-                  return modes[(modes.indexOf(v) + 1) % modes.length];
-                })}>
-                {visualMode.toUpperCase()}
-              </button>
-              <select className={`btn-compact ${currentLevelData ? 'locked' : ''}`} value={size}
-                onChange={(e) => { if (!currentLevelData) changeSize(Number(e.target.value)); }}
-                disabled={!!currentLevelData} style={{ fontFamily: "'Courier New', monospace" }}>
-                {[2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}×{n}</option>)}
-              </select>
-              <button className="btn-compact shuffle text" onClick={currentLevelData ? shuffleForLevel : shuffle}>SHUFFLE</button>
-              <button className="btn-compact reset text" onClick={reset}>RESET</button>
-              <button className={`btn-compact text ${solveModeActive ? 'active' : ''}`}
-                onClick={() => { setSolveModeActive(!solveModeActive); if (!solveModeActive) setSolveFocusedStep(null); else setSolveHighlights([]); }}
-                style={{ color: solveModeActive ? '#00ff88' : undefined, borderColor: solveModeActive ? '#00ff88' : undefined }}>
-                SOLVE
-              </button>
-              <button className={`btn-compact text ${teachMode.active ? 'active' : ''}`}
-                onClick={() => { if (teachMode.active) teachMode.exitTeachMode(); else teachMode.enterTeachMode(); }}
-                style={{ color: teachMode.active ? '#fbbf24' : undefined, borderColor: teachMode.active ? '#fbbf24' : undefined }}
-                disabled={size !== 3}
-                title={size !== 3 ? 'Teach mode available for 3×3 only' : 'Learn solving algorithms'}>
-                TEACH
-              </button>
-              <button className={`btn-compact text ${handsMode ? 'active' : ''}`}
-                onClick={() => { setHandsMode(!handsMode); if (!handsMode) { setHandsMoveHistory([]); setHandsMoveQueue([]); setHandsTps(0); handsMoveTimestamps.current = []; } }}
-                style={{ color: handsMode ? '#ff6b35' : undefined, borderColor: handsMode ? '#ff6b35' : undefined }}>
-                HANDS
-              </button>
-              <button className={`btn-compact text ${antipodalIntegrityMode ? 'active' : ''}`}
-                onClick={() => setAntipodalIntegrityMode(!antipodalIntegrityMode)}
-                style={{ color: antipodalIntegrityMode ? '#a78bfa' : undefined, borderColor: antipodalIntegrityMode ? '#a78bfa' : undefined }}
-                title="Toggle antipodal integrity visualization (I)">
-                I(T)
-              </button>
-              <button className={`btn-compact text ${hollowMode ? 'active' : ''}`}
-                onClick={toggleHollowMode}
-                style={{ color: hollowMode ? '#ff9500' : undefined, borderColor: hollowMode ? '#ff9500' : undefined }}
-                title="Toggle hollow cube mode (M)">
-                HOLLOW
-              </button>
-              {currentLevelData && (
-                <>
-                  <button className="btn-compact text" onClick={() => setShowLevelSelect(true)}
-                    style={{ color: '#9370DB', borderColor: '#9370DB' }}>LEVELS</button>
-                  <button className="btn-compact text freeplay"
-                    onClick={() => { useGameStore.getState().clearLevel(); }}>FREEPLAY</button>
-                </>
-              )}
-            </div>
-          </div>
+        {/* Floating HUD — auto-fade parity/chaos notifications */}
+        <FloatingHUD metrics={metrics} chaosLevel={chaosLevel} chaosMode={chaosMode} />
 
-          {settings.showManifoldFooter && (
-            <div className="manifold-selector" style={{ fontFamily: 'Georgia, serif', fontSize: '10px', color: '#9c6644', letterSpacing: '0.2em', textTransform: 'uppercase', opacity: 0.6 }}>
-              Standard Euclidean ——— <span style={{ color: '#bc6c25', fontWeight: 600 }}>Antipodal Projection</span> ——— Real Projective Plane
-            </div>
-          )}
-        </div>
+        {/* Bottom Navigation Bar */}
+        <BottomNavBar
+          onReset={reset}
+          onShuffle={currentLevelData ? shuffleForLevel : shuffle}
+          solveModeActive={solveModeActive}
+          teachModeActive={teachMode.active}
+          onToggleSolve={() => { setSolveModeActive(!solveModeActive); if (!solveModeActive) setSolveFocusedStep(null); else setSolveHighlights([]); }}
+          onToggleTeach={() => { if (teachMode.active) teachMode.exitTeachMode(); else if (size === 3) teachMode.enterTeachMode(); }}
+          hasActiveView={exploded || showTunnels || showNetPanel || hollowMode}
+          onToggleViews={() => { setSheetMode('views'); setSheetOpen(!sheetOpen || sheetMode !== 'views'); }}
+          onToggleMore={() => { setSheetMode('more'); setSheetOpen(!sheetOpen || sheetMode !== 'more'); }}
+          moreOpen={sheetOpen && sheetMode === 'more'}
+          viewsOpen={sheetOpen && sheetMode === 'views'}
+        />
       </div>
+
+      {/* Secondary Modes Bottom Sheet */}
+      <SecondaryModesSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        mode={sheetMode}
+        flipMode={flipMode}
+        onToggleFlip={() => { if (!currentLevelData || currentLevelData.features.flips) setFlipMode(!flipMode); }}
+        flipLocked={!!(currentLevelData && !currentLevelData.features.flips)}
+        chaosMode={chaosMode}
+        chaosLevel={chaosLevel}
+        onToggleChaos={() => { if (!currentLevelData || currentLevelData.features.chaos) setChaosLevel(l => l > 0 ? 0 : 1); }}
+        onSetChaosLevel={(l) => setChaosLevel(l)}
+        chaosLocked={!!(currentLevelData && !currentLevelData.features.chaos)}
+        maxChaosLevel={currentLevelData?.chaosLevel || 4}
+        autoRotateEnabled={autoRotateEnabled}
+        onToggleAutoRotate={() => setAutoRotateEnabled(!autoRotateEnabled)}
+        showTunnels={showTunnels}
+        onToggleTunnels={() => { if (!currentLevelData || currentLevelData.features.tunnels) setShowTunnels(!showTunnels); }}
+        tunnelsLocked={!!(currentLevelData && !currentLevelData.features.tunnels)}
+        exploded={exploded}
+        onToggleExplode={() => { if (!currentLevelData || currentLevelData.features.explode) setExploded(!exploded); }}
+        explodeLocked={!!(currentLevelData && !currentLevelData.features.explode)}
+        showNetPanel={showNetPanel}
+        onToggleNet={() => { if (!currentLevelData || currentLevelData.features.net) setShowNetPanel(!showNetPanel); }}
+        netLocked={!!(currentLevelData && !currentLevelData.features.net)}
+        hollowMode={hollowMode}
+        onToggleHollow={toggleHollowMode}
+        visualMode={visualMode}
+        onCycleVisualMode={(m) => setVisualMode(m)}
+        size={size}
+        onChangeSize={(n) => { if (!currentLevelData) changeSize(n); }}
+        sizeLocked={!!currentLevelData}
+        handsMode={handsMode}
+        onToggleHands={() => { setHandsMode(!handsMode); if (!handsMode) { setHandsMoveHistory([]); setHandsMoveQueue([]); setHandsTps(0); handsMoveTimestamps.current = []; } }}
+        antipodalIntegrityMode={antipodalIntegrityMode}
+        onToggleIntegrity={() => setAntipodalIntegrityMode(!antipodalIntegrityMode)}
+        currentLevelData={currentLevelData}
+        onShowLevels={() => { setShowLevelSelect(true); setSheetOpen(false); }}
+        onFreeplay={() => { useGameStore.getState().clearLevel(); setSheetOpen(false); }}
+      />
 
       {/* Level Badge */}
       {currentLevelData && !showMainMenu && !showLevelSelect && !victory && (
